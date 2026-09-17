@@ -14,6 +14,7 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | 06 | [Engineering Conventions](06-engineering-conventions.md) | Branching, style, testing, definition of done | P4 |
 | 07 | [Risk Register](07-risk-register.md) | What could go wrong and who is watching it | P1 |
 | 08 | [Experiment Log](08-experiment-log.md) | Running record of every run | P2 |
+| 10 | [Spike R-01: Crosswalk](10-spike-r01-crosswalk.md) | Measured result that set the knowledge-graph strategy | P1 |
 
 ## Reading paths
 

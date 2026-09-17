@@ -10,18 +10,52 @@ Scoring: Likelihood (L) and Impact (I) 1–5. **Score = L × I.**
 
 ## Active risks
 
-### 🔴 R-01 — DDXPlus and BODHI-S vocabularies do not align
-**L 4 · I 5 · Score 20 · Owner P1 · Status: OPEN — resolving in Week-1 spike**
+### 🟢 R-01 — DDXPlus and BODHI-S vocabularies do not align
+**L 4 · I 5 · Score 20 · Owner P1 · Status: ✅ CLOSED 2026-09-17 — fallback adopted**
 
-DDXPlus stores symptoms as codes (`E_54_@_V_161`); BODHI-S as English sentences
-(`Chest pain <radiate> to jaw`). If they cannot be reconciled, KG scoring cannot be computed over
-patient findings and the fusion design collapses.
+*Measured outcome* (full report: [10-spike-r01-crosswalk.md](10-spike-r01-crosswalk.md)):
 
-*Trigger:* crosswalk coverage < 60% at the Week-1 gate.
-*Mitigation:* spike in Days 3–5 measures coverage before any dependent work starts.
-*Fallback (pre-approved):* derive the medical KG from **DDXPlus condition↔evidence co-occurrence
-statistics**; use BODHI-S only for qualifiers and red-flag rules. The KG remains real and
-explainable; it simply carries less external knowledge. The report must disclose this.
+| Measure | Result | Gate |
+|---|---|---|
+| Condition coverage, strict | **31%** (4/13 exact) | 60% |
+| Condition coverage, generous | 77% (incl. approximate) | 60% |
+| Symptom alignment, content-word | **28%** | — |
+| Symptom alignment, naive string | 0% *(artifact — see report)* | — |
+
+**Decision: FALLBACK**, and the decision is robust to the measurement method — every figure that
+matters is below the gate. BODHI-S spans 555 conditions across all of medicine and is simply not
+cardiac-deep: myocarditis, spontaneous pneumothorax and Boerhaave are absent entirely, and it
+collapses stable/unstable angina into one `Angina` node and AF/PSVT into one `Arrhythmia` node.
+
+*Resolution — better than the anticipated fallback.* The plan assumed we would fall back to
+co-occurrence statistics mined from patient rows. Instead, DDXPlus ships
+**`release_conditions.json`**: a *curated* condition↔symptom knowledge base with **13/13 coverage**,
+explicit symptoms and antecedents, **ICD-10 codes**, and a **severity ranking** that independently
+corroborates our must-not-miss set. BODHI-S is retained to enrich the 4 exactly-matched conditions
+(MI, pericarditis, PE, GERD) with its `likelihood_*` edge qualifiers.
+
+*Spawned risk:* **R-12 (circularity)** — see below.
+
+---
+
+### 🟠 R-12 — KG and ML ranker share a data source (circularity)
+**L 5 · I 3 · Score 15 · Owner P4 · Status: OPEN — accepted, must be disclosed**
+
+Consequence of the R-01 fallback: if the cardiac KG is derived from DDXPlus and the ML ranker is
+trained on DDXPlus, the KG is no longer an *independent* knowledge source. The ablation question
+"does the KG add value over ML alone?" is weakened, because both encode the same beliefs.
+
+*Mitigation — keep the comparison meaningful:*
+1. The KG contributes what the ranker cannot express: reasoning paths, supporting/missing/
+   contradicting analysis, and rule-based red flags.
+2. **Aortic dissection is in neither source** and is hand-authored — a contribution the ranker can
+   never make.
+3. Red-flag rules are hand-authored from clinical literature, not derived from DDXPlus.
+4. BODHI-S enrichment supplies independent evidence for 4 conditions.
+
+*Expected honest finding:* the KG earns its place on **safety and explainability**, not raw
+accuracy. Predicting this in advance is better science than discovering it at the end. Recorded as
+a limitation in [05-evaluation-protocol.md](05-evaluation-protocol.md) §8.
 
 ---
 
@@ -132,3 +166,4 @@ knowledge; daily standup surfaces absence early.
 | Week | Date | Changes | Reviewed by |
 |---|---|---|---|
 | 1 | 2026-09-17 | Register created; R-01 spike scheduled | — |
+| 1 | 2026-09-17 | **R-01 closed** (31% < 60% gate → fallback adopted); **R-12 opened** (circularity, spawned by the R-01 resolution) | — |

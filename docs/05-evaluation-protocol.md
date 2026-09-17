@@ -1,7 +1,11 @@
 # 05 — Evaluation Protocol (Pre-Registered)
 
-**Version:** 1.0 · 2026-09-17 · **Owner:** P4
-**Status:** 🔓 DRAFT — **freeze at end of Week 1, before any model is trained**
+**Version:** 1.1 · 2026-09-17 · **Owner:** P4
+**Status:** 🔒 **FROZEN** as of 2026-09-17, end of Phase 0 — before any model was trained
+
+> Frozen means: no metric, baseline, ablation, or success threshold in this document may change
+> without a dated entry in the amendment log (§9) **and** disclosure in the final report. No model
+> had been trained at the time of freezing, so nothing here was chosen with knowledge of results.
 
 > **Why this document is written first.** Choosing metrics after seeing results is how a project
 > talks itself into a conclusion. Everything measurable is fixed here, in advance. After the freeze
@@ -164,6 +168,13 @@ explains *why*.
 4. The **synthetic-data limitation** stated alongside every accuracy claim.
 5. Failed hypotheses stated plainly in the abstract/conclusion, not buried.
 6. Fusion weights, hyperparameters, seeds, and model versions disclosed.
+7. **The circularity caveat must accompany every RQ1/RQ4 result** (risk R-12). The cardiac KG is
+   derived largely from DDXPlus `release_conditions.json`, the same source the ML ranker trains on,
+   so the KG is not a fully independent knowledge source. State this wherever the value of the KG
+   is claimed. The independent contributions that remain — hand-authored red-flag rules, aortic
+   dissection (absent from the training data entirely), and BODHI-S enrichment for four conditions
+   — should be reported separately from the shared-source component. See
+   [10-spike-r01-crosswalk.md](10-spike-r01-crosswalk.md).
 
 ---
 
@@ -172,6 +183,7 @@ explains *why*.
 | Date | Change | Justification | Approved by |
 |---|---|---|---|
 | 2026-09-17 | Initial version | — | — |
+| 2026-09-17 | Added reporting rule §8.7 (circularity caveat) | R-01 spike resolved to a fallback that derives the KG from DDXPlus, the ranker's own training source. Added **before** freezing and before any model was trained. | — |
+| 2026-09-17 | **Document FROZEN** | End of Phase 0. No model trained to date. | — |
 
-*Freeze date: end of Week 1. Amendments after that date require an entry here and must be disclosed
-in the final report.*
+*Amendments after the freeze date require an entry here and must be disclosed in the final report.*

@@ -63,6 +63,62 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-001 — R-01 crosswalk spike: DDXPlus ↔ BODHI-S
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-17 |
+| Author | P1 |
+| Config / ablation | — (feasibility spike) |
+| Split used | none — vocabulary files only |
+| Git commit | Phase 0c |
+| Seed | n/a (deterministic) |
+
+**Question:** Can BODHI-S serve as the cardiac knowledge-graph backbone? Gate: 60% crosswalk
+coverage (risk R-01).
+
+**Setup:** `scripts/decode_ddxplus.py` then `scripts/spike_crosswalk.py`. Inputs were
+`release_evidences.json` + `release_conditions.json` (141 kB) and BODHI-S `triples.jsonl` +
+`nl_facts.jsonl` (4.4 MB). **The 847 MB DDXPlus patient CSVs were not needed** — the gate is a
+vocabulary question, not a data-volume one.
+
+**Results:**
+
+| Metric | Value |
+|---|---|
+| BODHI-S conditions (total) | 555 |
+| Condition coverage, strict (exact) | **31%** (4/13) |
+| Condition coverage, generous (incl. approximate) | 77% |
+| Symptom alignment, content-word | **28%** (35/123) |
+| Symptom alignment, naive string | 0% (123 evidences) — *artifact* |
+| DDXPlus evidence vocabulary decoded | 919 entries (223 questions → 696 values) |
+| Nightingale conditions found in `release_conditions.json` | **13/13** |
+
+**Interpretation:** Below the gate on every measure that matters → **FALLBACK adopted**. Three
+findings worth carrying forward:
+
+1. **BODHI-S is broad, not cardiac-deep.** Myocarditis, pneumothorax and Boerhaave are absent;
+   stable/unstable angina collapse to one node, as do AF/PSVT.
+2. **The 0% naive figure is a measurement artifact, not a result.** DDXPlus evidences are
+   patient-facing questions; BODHI-S symptoms are clinical noun phrases. They never match lexically
+   even when identical in meaning ("Are you feeling nauseous?" ≡ `Vomit <char> nausea present`).
+   The 28% content-word figure is fairer but still generous — some matches hinge on "pain" alone.
+3. **DDXPlus's own `release_conditions.json` is a better backbone than the anticipated fallback** —
+   curated, 13/13 coverage, with ICD-10 codes and a severity ranking that independently
+   corroborates our must-not-miss set.
+
+**Also noted:** DDXPlus English is machine-translated from French and unreliable — `déchirante`
+(*tearing*, the aortic-dissection descriptor) renders as **"heartbreaking"**. Prefer codes over
+English labels throughout.
+
+**Next action:** Closed R-01; opened **R-12 (circularity)** — the KG and ranker now share a source,
+recorded as a reporting obligation in the evaluation protocol §8.7. P1 proceeds to build the KG
+loader from `ddxplus_chestpain_conditions.json`.
+
+Full report: [10-spike-r01-crosswalk.md](10-spike-r01-crosswalk.md)
+
+---
+
 ### EXP-000 — Log initialised
 
 | Field | Value |

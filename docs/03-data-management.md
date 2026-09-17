@@ -34,9 +34,21 @@ terms change.
 - *Attribution:* Tchango et al., DDXPlus (NeurIPS 2022), arXiv:2205.09148.
 
 ### 1.2 BODHI-S — licence constraint ⚠️
-- Condition↔symptom relations as **English clinical sentences** with qualifiers
-  (`Chest pain <radiate> to jaw (Symptom) is a symptom present in Acute myocardial infarction
-  (Condition)`), not a ready-made graph dump. A parser is required.
+- Ships **two line-aligned files of 13,204 rows each** (verified 2026-09-17):
+  - `data/triples.jsonl` — structured edges:
+    `{head: <symptom UUID>, head_type: "Symptom", relation: "PRESENT_IN", tail: "<SNOMED CT id>",
+    tail_type: "Condition", properties: {likelihood_condition_given_symptom,
+    likelihood_symptom_given_condition}}`. The likelihood qualifiers (`rare`/`medium`/`high`) are
+    directly usable as KG edge weights and DDXPlus has no equivalent.
+  - `data/nl_facts.jsonl` — the same facts as English sentences
+    (`Chest pain <radiate> to jaw (Symptom) is a symptom present in Acute myocardial infarction
+    (Condition).`). Because the files are line-aligned, `nl_facts[i]` decodes the UUID/SNOMED ids
+    in `triples[i]`.
+- Conditions are identified by **SNOMED CT** codes; DDXPlus uses **ICD-10**. Joining the two is a
+  manual, 13-row mapping — not a general terminology problem at this scale.
+- **Coverage is limited for our scope**: BODHI-S spans 555 conditions across all of medicine and
+  matches only 4 of our 13 exactly. It is therefore an *enrichment* source, not the KG backbone —
+  see [10-spike-r01-crosswalk.md](10-spike-r01-crosswalk.md).
 - **CC-BY-NC-4.0 — NON-COMMERCIAL.** Consequences, which are binding:
   - Academic/research use: permitted.
   - Any commercial use, product, or paid service built on it: **prohibited**.
