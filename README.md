@@ -14,6 +14,7 @@
 ---
 
 ## Table of Contents
+- [Documentation](#documentation)
 - [Scope: acute chest pain](#scope-acute-chest-pain)
 - [The differential (verified against DDXPlus)](#the-differential-verified-against-ddxplus)
 - [System architecture](#system-architecture)
@@ -31,6 +32,26 @@
 - [Safety & scope](#safety--scope)
 - [Licensing (read before you publish)](#licensing-read-before-you-publish)
 - [References](#references)
+
+---
+
+## Documentation
+
+Full project documentation is in [`docs/`](docs/README.md). New contributors should start with
+[CONTRIBUTING.md](CONTRIBUTING.md) and the prerequisites guide.
+
+| Document | Purpose |
+|---|---|
+| [Prerequisites & Learning Guide](docs/09-prerequisites.md) | What to learn before contributing — includes the **cardiac domain primer** |
+| [00 · Project Charter](docs/00-project-charter.md) | Problem, objectives, scope, success criteria |
+| [01 · SRS](docs/01-srs.md) | Functional and non-functional requirements |
+| [02 · Architecture & Contracts](docs/02-architecture.md) | Component design and the shared data schemas |
+| [03 · Data Management & Licensing](docs/03-data-management.md) | Dataset register, licences, leakage policy |
+| [04 · Ethics, Safety & Clinical Risk](docs/04-safety-ethics.md) | Intended use, must-not-miss policy, failure modes |
+| [05 · Evaluation Protocol](docs/05-evaluation-protocol.md) | **Pre-registered** metrics, baselines, ablations |
+| [06 · Engineering Conventions](docs/06-engineering-conventions.md) | Branching, style, testing, definition of done |
+| [07 · Risk Register](docs/07-risk-register.md) | Scored risks, owners, pre-approved fallbacks |
+| [08 · Experiment Log](docs/08-experiment-log.md) | Running record of every experiment |
 
 ---
 
