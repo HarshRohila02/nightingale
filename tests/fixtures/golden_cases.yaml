@@ -1,0 +1,108 @@
+# Golden clinical cases — executable clinical expectations.
+#
+# These encode what a clinician would expect the system to do. They are asserted
+# in CI and must stay green: if a change breaks one, the change is wrong until
+# proven otherwise (docs/06-engineering-conventions.md §6).
+#
+# They are hand-written and synthetic. They are NOT drawn from any patient record.
+#
+# Add a case whenever you fix a clinically-wrong ranking, so it can never regress.
+
+cases:
+  - id: GC-001
+    description: >
+      Classic acute coronary syndrome. 58-year-old male with exertional crushing
+      central chest pain radiating to the jaw and left arm, with diaphoresis.
+      Diabetic smoker. This is the anchor case for the whole project.
+    case:
+      case_id: GC-001
+      age: 58
+      sex: M
+      findings:
+        - { concept_id: "SYM:chest_pain", label: "Chest pain", assertion: present,
+            qualifiers: { character: "pressure", radiate: "to jaw and left arm", onset: "gradual" } }
+        - { concept_id: "SYM:pain_character_pressure", label: "Pressure-type pain", assertion: present }
+        - { concept_id: "SYM:radiation_jaw_arm", label: "Radiation to jaw/arm", assertion: present }
+        - { concept_id: "SYM:diaphoresis", label: "Diaphoresis", assertion: present }
+        - { concept_id: "SYM:exertional", label: "Exertional onset", assertion: present }
+        - { concept_id: "SYM:breathlessness", label: "Breathlessness", assertion: present }
+      risk_factors:
+        - { concept_id: "RF:diabetes", label: "Diabetes mellitus", assertion: present }
+        - { concept_id: "RF:smoking", label: "Smoking", assertion: present }
+      vitals: { hr: 98, sbp: 150, dbp: 95 }
+    expect:
+      top_k: 3
+      must_include: ["COND:nstemi_stemi"]
+      red_flag_for: ["COND:nstemi_stemi"]
+
+  - id: GC-002
+    description: >
+      Pulmonary embolism. Sudden pleuritic chest pain and breathlessness with
+      unilateral leg swelling after recent immobilisation. The must-not-miss
+      mimic that an ML model trained on cardiac features alone tends to miss.
+    case:
+      case_id: GC-002
+      age: 42
+      sex: F
+      findings:
+        - { concept_id: "SYM:chest_pain", label: "Chest pain", assertion: present,
+            qualifiers: { character: "pleuritic", onset: "sudden" } }
+        - { concept_id: "SYM:pleuritic", label: "Pleuritic pain", assertion: present }
+        - { concept_id: "SYM:sudden_onset", label: "Sudden onset", assertion: present }
+        - { concept_id: "SYM:breathlessness", label: "Breathlessness", assertion: present }
+        - { concept_id: "SYM:leg_swelling_unilateral", label: "Unilateral leg swelling", assertion: present }
+        - { concept_id: "SYM:recent_immobilisation", label: "Recent immobilisation", assertion: present }
+      vitals: { hr: 112, sbp: 118 }
+    expect:
+      top_k: 3
+      must_include: ["COND:pulmonary_embolism"]
+      red_flag_for: ["COND:pulmonary_embolism"]
+
+  - id: GC-003
+    description: >
+      Aortic dissection. Tearing pain radiating to the back with an inter-arm
+      blood-pressure difference. This condition is ABSENT from DDXPlus, so the ML
+      ranker can never score it — the knowledge-graph rule must catch it. This is
+      the case that justifies the KG in the architecture.
+    case:
+      case_id: GC-003
+      age: 64
+      sex: M
+      findings:
+        - { concept_id: "SYM:chest_pain", label: "Chest pain", assertion: present,
+            qualifiers: { character: "tearing", radiate: "to back", onset: "sudden" } }
+        - { concept_id: "SYM:pain_character_tearing", label: "Tearing pain", assertion: present }
+        - { concept_id: "SYM:radiation_back", label: "Radiation to back", assertion: present }
+        - { concept_id: "SYM:sudden_onset", label: "Sudden onset", assertion: present }
+        - { concept_id: "SYM:interarm_bp_difference", label: "Inter-arm BP difference", assertion: present }
+      risk_factors:
+        - { concept_id: "RF:hypertension", label: "Hypertension", assertion: present }
+      vitals: { hr: 96, sbp: 178 }
+    expect:
+      top_k: 5
+      must_include: ["COND:aortic_dissection"]
+      red_flag_for: ["COND:aortic_dissection"]
+
+  - id: GC-004
+    description: >
+      Benign reflux. Burning post-prandial pain, worse lying flat, with ischaemic
+      features explicitly DENIED. Guards against over-flagging: a benign
+      presentation must not raise a cardiac red flag.
+    case:
+      case_id: GC-004
+      age: 35
+      sex: F
+      findings:
+        - { concept_id: "SYM:chest_pain", label: "Chest pain", assertion: present,
+            qualifiers: { character: "burning" } }
+        - { concept_id: "SYM:pain_character_burning", label: "Burning pain", assertion: present }
+        - { concept_id: "SYM:worse_lying_flat", label: "Worse lying flat", assertion: present }
+        - { concept_id: "SYM:post_prandial", label: "Post-prandial", assertion: present }
+        - { concept_id: "SYM:exertional", label: "Exertional onset", assertion: absent }
+        - { concept_id: "SYM:radiation_jaw_arm", label: "Radiation to jaw/arm", assertion: absent }
+        - { concept_id: "SYM:diaphoresis", label: "Diaphoresis", assertion: absent }
+      vitals: { hr: 76, sbp: 118 }
+    expect:
+      top_k: 3
+      must_include: ["COND:gerd"]
+      no_red_flag: true

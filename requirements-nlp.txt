@@ -1,0 +1,22 @@
+# Nightingale — optional clinical NLP dependencies (Phase 3, free-text intake)
+#
+# Install only when you start work on free-text case entry (FR-2.1–2.4):
+#
+#     pip install -r requirements-nlp.txt
+#
+# These are kept out of requirements.txt on purpose: scispacy pins specific spaCy
+# versions and downloads models from direct URLs, which regularly breaks an
+# otherwise-working environment. Isolating them means a broken NLP install never
+# blocks the ML, KG, or UI workstreams.
+
+spacy~=3.7
+scispacy~=0.5.5
+medspacy~=1.1
+
+# Biomedical NER model — install after scispacy, via direct URL.
+# Check https://allenai.github.io/scispacy/ for the current release before use.
+#   pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz
+
+# Transformer encoders for concept normalisation (SapBERT / PubMedBERT)
+transformers~=4.45
+torch~=2.4

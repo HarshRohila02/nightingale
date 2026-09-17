@@ -1,0 +1,54 @@
+[project]
+name = "nightingale"
+version = "0.1.0"
+description = "Clinical Intelligence & Reasoning System — explainable differential diagnosis for acute chest pain"
+requires-python = ">=3.10"
+readme = "README.md"
+license = { file = "LICENSE" }
+
+# NOTE: runtime dependencies live in requirements.txt (see docs/06-engineering-conventions.md §1).
+# This file configures tooling only.
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["notebooks", "data"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort — import ordering
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "ARG",  # unused arguments
+    "SIM",  # simplify
+]
+ignore = [
+    "E501",  # line length is enforced by black
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG"]        # fixtures are often unused-by-name
+"src/stubs.py" = ["ARG"]   # stubs deliberately ignore their arguments
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers"
+markers = [
+    "golden: clinical vignettes that encode expected diagnostic behaviour",
+    "slow: excluded from the default run",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/api/*", "src/*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true

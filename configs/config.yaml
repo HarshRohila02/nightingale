@@ -1,0 +1,68 @@
+# Nightingale configuration.
+# Secrets belong in .env, never here (see .env.example).
+
+seed: 42 # used for splits, Synthea generation, and model training
+
+paths:
+  data_root: data
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  external: data/external
+
+datasets:
+  ddxplus:
+    hf_id: aai530-group6/ddxplus
+    license: CC-BY-4.0
+    role: primary ML training and differential ground truth
+  bodhi_s:
+    hf_id: ekacare/BODHI-S
+    license: CC-BY-NC-4.0 # NON-COMMERCIAL — see docs/03-data-management.md §1.2
+    role: cardiac medical knowledge graph seed
+  uci_heart:
+    hf_id: MLLab-TS/heart_disease_uci
+    license: open (verify mirror)
+    role: cardiac-risk sub-model and real-data sanity check
+
+graph:
+  backend: neo4j # neo4j | networkx (networkx is the fallback, risk R-06)
+  uri: bolt://localhost:7687
+  database: neo4j
+
+ranking:
+  # Fusion weights are tuned on VALIDATION ONLY and must be reported in the
+  # write-up — they are a result, not a hidden hyperparameter.
+  ml_weight: 0.5
+  kg_weight: 0.5
+  top_k_display: 5
+  top_k_evidence: 3
+
+safety:
+  enable_red_flags: true # never disable outside an ablation run
+  must_not_miss_recall_target: 0.95
+
+retrieval:
+  embedding_model: pritamdeka/S-PubMedBert-MS-MARCO
+  chunk_size: 512
+  chunk_overlap: 64
+  top_k: 10
+  rerank_top_k: 5
+
+llm:
+  provider: ollama
+  model: llama3.1:8b # quantised; must fit the local RTX GPU
+  temperature: 0.1 # low — this is an explainer, not a writer
+  max_tokens: 512
+  timeout_seconds: 30 # falls back to TemplateExplainer on timeout
+
+evaluation:
+  # The test split is opened ONCE, in Phase 4.
+  # docs/05-evaluation-protocol.md §2
+  allow_test_split: false
+  bootstrap_samples: 1000
+  confidence_level: 0.95
+  calibration_bins: 10
+
+mlflow:
+  tracking_uri: file:./mlruns
+  experiment_name: nightingale

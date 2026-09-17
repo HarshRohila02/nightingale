@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # Only the dependencies needed to exercise contracts, pipeline and golden
+      # cases. The full requirements.txt (torch, faiss, mlflow) is slow to install
+      # and unnecessary for these tests — add it when CI covers model training.
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic pyyaml pytest pytest-cov black ruff
+
+      - name: Format check
+        run: black --check src tests scripts
+
+      - name: Lint
+        run: ruff check src tests scripts
+
+      - name: Tests
+        run: pytest --cov=src --cov-report=term-missing
+
+      # Golden cases encode clinical expectations. A failure here means the
+      # system's diagnostic behaviour changed — treat it as a blocking bug, not
+      # a test to update. See docs/06-engineering-conventions.md §6.
+      - name: Golden clinical cases
+        run: pytest -m golden -v

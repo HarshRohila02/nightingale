@@ -400,20 +400,34 @@ data, hospital deployment, training a medical LLM from scratch, non-chest-pain p
 ## Getting started
 
 ```bash
-# 1. Clone
+# 1. Clone and set up the environment
 git clone https://github.com/HarshRohila02/nightingale.git && cd nightingale
-
-# 2. Environment
 python -m venv .venv
 # Windows:  .venv\Scripts\activate    |  macOS/Linux:  source .venv/bin/activate
 pip install -r requirements.txt
 
-# 3. Pull the primary dataset (example)
-python -c "from datasets import load_dataset; load_dataset('aai530-group6/ddxplus')"
+# 2. Run the walking skeleton — works immediately, no data download needed
+python scripts/demo.py                  # anchor ACS case
+python scripts/demo.py --case GC-003    # aortic dissection (KG-only red flag)
+python scripts/demo.py --list
 
-# 4. (later) run the API
-uvicorn src.api.main:app --reload
+# 3. Run the tests, including the golden clinical cases
+pytest
 ```
+
+The skeleton runs on **stub components** (`src/stubs.py`), so the full pipeline is exercisable
+before any model is trained. Each stub is replaced independently — nothing downstream changes.
+
+```bash
+# Optional, when you start on real data and the knowledge graph
+cp .env.example .env
+docker compose up -d                    # Neo4j
+python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
+```
+
+> **Try `--case GC-003` first.** Aortic dissection is absent from the training data, so its ML
+> score is `0.00` — yet the knowledge graph ranks it first and fires a red flag. That single output
+> is the architecture's whole argument.
 
 ---
 
