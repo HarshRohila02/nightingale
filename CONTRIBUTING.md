@@ -7,6 +7,10 @@ you productive quickly; the detail lives in [`docs/`](docs/README.md).
 
 ## Before you write code
 
+0. Read [`PROGRESS.md`](PROGRESS.md) — where the project is right now, what is in flight, and what is
+   waiting on a decision. **Updating it is part of every task** (its §4 protocol): mark your task
+   In-flight before you start, and tick it off in the same commit as the work. This is how four
+   people and any number of Claude sessions stay in sync without asking "where are we?"
 1. Read [`docs/09-prerequisites.md`](docs/09-prerequisites.md) — including the **cardiac domain
    primer**. You cannot sanity-check clinical output you do not understand.
 2. Read [`docs/02-architecture.md`](docs/02-architecture.md) §4 — the interface contracts.

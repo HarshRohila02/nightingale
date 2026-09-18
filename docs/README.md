@@ -1,5 +1,8 @@
 # Nightingale — Documentation Index
 
+> **Where is the project right now?** See [`../PROGRESS.md`](../PROGRESS.md) — current phase,
+> in-flight work, pending decisions and history. It is updated with every task.
+
 Phase 0 documentation set. Read in this order if you are new to the project.
 
 | # | Document | What it answers | Owner |
