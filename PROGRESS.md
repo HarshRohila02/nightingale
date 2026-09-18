@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (1b crosswalk + EXP-014; R-15 opened) · **Last verified commit:** `4007807`
+**Last updated:** 2026-09-19 · by Claude (1b crosswalk + EXP-014; R-15 opened) · **Last verified commit:** `249b968`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Next action** | **Claude:** 1b, hand-author **aortic dissection** into the KG (`source = hand_authored`), then **BODHI-S enrichment**. Neither needs a download, and both run in seconds. **The user, when convenient:** create the **AuraDB Free** instance (`docs/11` §5). **The team:** **D-8**, and read EXP-014 / **R-15** (the red flags over-fire; the fix is 2d) |
 | **Blocked on** | The Neo4j store ← the user's AuraDB instance · any Precision@3 / Recall@5 number ← **D-8** (team) · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 143 tests passing locally (135 in CI, where the 8 real-data tests skip, as a data-free copy confirmed) · CI green on GitHub at `4007807` |
+| **Health** | 143 tests passing locally (135 in CI, where the 8 real-data tests skip, as a data-free copy confirmed) · CI green on GitHub at `249b968` |
 
 **Handoff note for the next session:** Nothing is in flight. The chest-pain parquet exists for
 **validate** only (`docs/03` §2.1). EXP-013 found two things everyone must know. First, **a listed
@@ -203,7 +203,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 **1b — Cardiac medical KG · 🔄** · P1
 - [x] KG loader from `data/interim/ddxplus_chestpain_conditions.json` → a backend-neutral `KnowledgeGraph` (`src/medical_kg/loader.py`): 14 conditions, 84 `DDX:E_nn` evidence nodes, 245 edges, **each with a `source`** (R-12). KG card in `docs/02` §5.1 — `6709697`
 - [x] NetworkX `GraphStore` (`src/medical_kg/networkx_store.py`): a drop-in for `InMemoryGraphStore`, proven by running the pipeline on it in a test. 20 tests — `6709697`
-- [x] Crosswalk, `SYM:*`/`RF:*` ↔ DDXPlus evidence (`src/medical_kg/crosswalk.py`): 33 concepts with SKOS match types (11 exact, 12 close, 3 broader, 3 narrower, 1 related, 3 with no DDXPlus equivalent), validated against the release. `expand_case` (concept → graph) and `concepts_from_evidences` / `case_from_ddxplus` (DDXPlus → concept). `scripts/check_crosswalk.py`, 52 tests, card in `docs/02` §5.2. **EXP-014**: the red flags over-fire (**R-15**); the golden cases pass on the real graph only through red flags — → pending
+- [x] Crosswalk, `SYM:*`/`RF:*` ↔ DDXPlus evidence (`src/medical_kg/crosswalk.py`): 33 concepts with SKOS match types (11 exact, 12 close, 3 broader, 3 narrower, 1 related, 3 with no DDXPlus equivalent), validated against the release. `expand_case` (concept → graph) and `concepts_from_evidences` / `case_from_ddxplus` (DDXPlus → concept). `scripts/check_crosswalk.py`, 52 tests, card in `docs/02` §5.2. **EXP-014**: the red flags over-fire (**R-15**); the golden cases pass on the real graph only through red flags — `249b968`
 - [ ] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights, `source = bodhi_s`)
 - [ ] Hand-author aortic dissection into the KG (`source = hand_authored`)
 - [ ] Neo4j-backed `GraphStore` from the same `KnowledgeGraph`, with NetworkX as the fallback (**D-6**)
@@ -296,7 +296,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Item | State |
 |---|---|
 | Git | clean · the repository is **public** on GitHub, so cloud notebooks clone it without a token |
-| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `e956594`) · Python 3.11 |
+| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `249b968`) · Python 3.11 |
 | Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub. Full install is D-4 |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
@@ -315,7 +315,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-19 | Claude | **1b crosswalk**: 33 hand-authored concepts mapped to DDXPlus answers, with SKOS match types that allow only sound inferences. Validated against the release. `expand_case` lets the real graph score hand-authored cases, and `concepts_from_evidences` lets the red-flag rules run on DDXPlus patients. **EXP-014** on validate: the mapping behaves sensibly; the **red flags over-fire** (59% of patients; the aortic-dissection rule flags 50%) → **R-15**; the golden cases pass on the real graph, but only because red flags rank first (by graph score alone, GC-001's MI is fifth). Open decision A-5 (the sudden-onset cut-off) added to `docs/02` §9 | → pending |
+| 2026-09-19 | Claude | **1b crosswalk**: 33 hand-authored concepts mapped to DDXPlus answers, with SKOS match types that allow only sound inferences. Validated against the release. `expand_case` lets the real graph score hand-authored cases, and `concepts_from_evidences` lets the red-flag rules run on DDXPlus patients. **EXP-014** on validate: the mapping behaves sensibly; the **red flags over-fire** (59% of patients; the aortic-dissection rule flags 50%) → **R-15**; the golden cases pass on the real graph, but only because red flags rank first (by graph score alone, GC-001's MI is fifth). Open decision A-5 (the sudden-onset cut-off) added to `docs/02` §9 | `249b968` |
 | 2026-09-18 | Claude | The user decided **D-9**: Claude runs each laptop-GPU test only after the user says yes in chat. Recorded in `CLAUDE.md`, `docs/11` (v1.1) and every doc that still said the user runs the tests by hand | `4007807` |
 | 2026-09-18 | Claude | The user asked Claude to run the laptop-GPU setup and tests itself ("just run and complete the setup and test yourself"). Claude treated that as covering these tests only: `.venv-gpu` with torch 2.11.0+cu128 (2.75 GB download, no pip cache kept), `check_gpu.py --device cuda` ✅ (`sm_120`, 6.6 TFLOP/s), the test suite passes inside it, Ollama smoke test ✅ at 100% GPU, and the model was unloaded afterwards. `docs/11` now records the results. Whether Claude may run GPU tests from now on is **D-9** | `e956594` |
 | 2026-09-18 | Claude | The user set compute placement (**D-7**): the laptop GPU for tests only, run by the user by hand; training runs, and any job over ~5 min (CPU included), go to the cloud (Colab free · Kaggle · Lightning AI / Studio Lab) or the university GPU, asked per job. Also **D-4** (per-task installs) and **D-6** (Neo4j on AuraDB Free). New runbook `docs/11` with the user's GPU setup and start/stop steps; `scripts/check_gpu.py`; R-14 re-scoped, R-06 mitigated | `d3683a7` |
