@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (D-7 recorded; 1a validate parquet + EXP-013; 1b KG loader + NetworkX store) · **Last verified commit:** `4d640a8`
+**Last updated:** 2026-09-18 · by Claude (D-7 recorded; 1a validate parquet + EXP-013; 1b KG loader + NetworkX store) · **Last verified commit:** `6709697`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Next action** | Ask the user about **D-4** and **D-6** (downloads), and take **D-8** to the team. Unblocked meanwhile, with no downloads: the 1b **crosswalk** (`DDX:E_nn` ↔ `SYM:*`), then hand-authoring **aortic dissection** and **BODHI-S enrichment** (its data is on disk) |
 | **Blocked on** | D-4 (full install, ~1 GB with CPU torch) · D-6 (Neo4j image, ~0.5 GB) — need permission · D-5 (LLM pull) waits on **D-7**: where GPU work runs. A university GPU is being sought; **the laptop GPU is used only with the user's permission** · **D-8** (definition of D) blocks any Precision@3 / Recall@5 number |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 89 tests passing locally (86 in CI, where the 3 real-data tests skip) · CI green on GitHub at `4d640a8` |
+| **Health** | 89 tests passing locally (86 in CI, where the 3 real-data tests skip) · CI green on GitHub at `6709697` |
 
 **Handoff note for the next session:** Nothing is in flight. The chest-pain parquet exists for
 **validate** only (`docs/03` §2.1). EXP-013 found two things everyone must know. First, **a listed
@@ -179,8 +179,8 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] Archive the reference docs to `docs/archive/`; delete the byte-identical duplicate (D-3) — `5ce3725`
 - [x] Python 3.11 (D-2): `py install 3.11` → 3.11.9; `.venv` rebuilt; tests, black, ruff green — `1ccb06a`
 - [x] Fix local-vs-CI tool drift: new `requirements-dev.txt` is the single source of truth for pytest/black/ruff; CI and `requirements.txt` both read it — `1ccb06a`
-- [x] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` → `~=2.7`. 2.7 is the first release that supports the RTX 5060; the CPU and every CUDA build satisfy it — → pending
-- [x] Record the GPU policy (**D-7**, set by the user): laptop GPU only with explicit permission; university GPU being sought. Now in `CLAUDE.md`, the setup guides, `configs/` (`compute.device: cpu`), charter, SRS, R-14 and `docs/09` §1.4 — → pending
+- [x] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` → `~=2.7`. 2.7 is the first release that supports the RTX 5060; the CPU and every CUDA build satisfy it — `8dced77`
+- [x] Record the GPU policy (**D-7**, set by the user): laptop GPU only with explicit permission; university GPU being sought. Now in `CLAUDE.md`, the setup guides, `configs/` (`compute.device: cpu`), charter, SRS, R-14 and `docs/09` §1.4 — `8dced77`
 - [ ] Full `pip install -r requirements.txt` (D-4 — **ask first**; CPU torch recommended); commit `requirements.lock.txt`
 - [ ] Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474` (**D-6**)
 - [ ] `ollama pull llama3.1:8b` (the configured model; only `qwen2.5-coder:7b` is present); smoke test (**D-5**, deferred until **D-7** — a smoke test uses the GPU)
@@ -189,13 +189,13 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 **1a — Data & class balance · 🔄** · P2
 - [x] DDXPlus `validate.csv` downloaded (D-1, 87 MB); `train.csv` / `test.csv` deferred until training — `843c5fb`
 - [x] EXP-002 on validate: R-03 not triggered (rarest ≈10,880 projected training cases; 2.7× imbalance); **R-13 opened** (closed-world) — `843c5fb`
-- [x] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain_validate.parquet` (33,963 rows; one file per split, and the builder refuses the test split). `src/ddxplus.py` + `scripts/build_ddxplus_chestpain.py` + 35 tests. Label audit **EXP-013** → R-13 extended, **D-8** opened — → pending
+- [x] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain_validate.parquet` (33,963 rows; one file per split, and the builder refuses the test split). `src/ddxplus.py` + `scripts/build_ddxplus_chestpain.py` + 35 tests. Label audit **EXP-013** → R-13 extended, **D-8** opened — `4d640a8`
 - [ ] Build the train parquet when `train.csv` is downloaded: `scripts/build_ddxplus_chestpain.py --split train`
 - [ ] Re-confirm EXP-002 counts on `train.csv` once it is downloaded
 
 **1b — Cardiac medical KG · 🔄** · P1
-- [x] KG loader from `data/interim/ddxplus_chestpain_conditions.json` → a backend-neutral `KnowledgeGraph` (`src/medical_kg/loader.py`): 14 conditions, 84 `DDX:E_nn` evidence nodes, 245 edges, **each with a `source`** (R-12). KG card in `docs/02` §5.1 — → pending
-- [x] NetworkX `GraphStore` (`src/medical_kg/networkx_store.py`): a drop-in for `InMemoryGraphStore`, proven by running the pipeline on it in a test. 20 tests — → pending
+- [x] KG loader from `data/interim/ddxplus_chestpain_conditions.json` → a backend-neutral `KnowledgeGraph` (`src/medical_kg/loader.py`): 14 conditions, 84 `DDX:E_nn` evidence nodes, 245 edges, **each with a `source`** (R-12). KG card in `docs/02` §5.1 — `6709697`
+- [x] NetworkX `GraphStore` (`src/medical_kg/networkx_store.py`): a drop-in for `InMemoryGraphStore`, proven by running the pipeline on it in a test. 20 tests — `6709697`
 - [ ] Crosswalk: `DDX:E_nn` ↔ the `SYM:*` / `RF:*` ids the red-flag rules and golden cases use. Needed before the pipeline can switch from the stub store
 - [ ] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights, `source = bodhi_s`)
 - [ ] Hand-author aortic dissection into the KG (`source = hand_authored`)
@@ -293,7 +293,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8**. **1b:** KG loader + NetworkX store, with edge provenance for R-12. KG card: questions not answers; stable ⊂ unstable angina, so overlap ranks the benign one first. Corrected the stale README/charter claims that the KG is built from BODHI-S. Protocol note: the session was interrupted once, mid-way through updating this file for task 2, and recovered from §2 | `8dced77` `4d640a8` → pending |
+| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8**. **1b:** KG loader + NetworkX store, with edge provenance for R-12. KG card: questions not answers; stable ⊂ unstable angina, so overlap ranks the benign one first. Corrected the stale README/charter claims that the KG is built from BODHI-S. Protocol note: the session was interrupted once, mid-way through updating this file for task 2, and recovered from §2 | `8dced77` `4d640a8` `6709697` |
 | 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `843c5fb` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |
