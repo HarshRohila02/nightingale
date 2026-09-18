@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (progress-tracker setup) · **Last verified commit:** `8b682e9`
+**Last updated:** 2026-09-18 · by Claude (progress-tracker setup) · **Last verified commit:** `51b49ce`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Next action** | Get the user's answers to **D-1** and **D-2** (§3), then start Docker Desktop and bring up Neo4j |
 | **Blocked on** | User decisions D-1 (CSV download) and D-2 (Python version) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 33 tests passing locally · CI green on GitHub at `8b682e9` |
+| **Health** | 33 tests passing locally · CI green on GitHub at `51b49ce` |
 
 **Handoff note for the next session:** Phase 0 is done and nothing is in flight. Before touching the
 knowledge graph, read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus
@@ -154,7 +154,7 @@ evaluation protocol frozen ✅ · **Neo4j + Ollama running ⚠️ not met — ca
 
 **0d — Phase exit · ✅ 2026-09-18**
 - [x] `docs/05` evaluation protocol **frozen** at v1.1, before any model was trained — `8b682e9`
-- [x] Session continuity: `PROGRESS.md` + `CLAUDE.md` — `→ pending`
+- [x] Session continuity: `PROGRESS.md` + `CLAUDE.md` — `51b49ce`
 
 ### Phase 1 — Data & Knowledge Foundations → Walking Skeleton · ⬜
 **Exit criteria:** 🎯 **W3 milestone** — a case produces a ranked differential from the **real** ML
@@ -243,8 +243,8 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 
 | Item | State |
 |---|---|
-| Git | clean at `8b682e9`, apart from the 4 untracked reference docs (D-3) |
-| CI (GitHub Actions) | ✅ green · Python 3.11 |
+| Git | clean, apart from the 4 untracked reference docs (D-3) |
+| CI (GitHub Actions) | ✅ green on every push so far (`efc10e9`, `8b682e9`, `51b49ce`) · Python 3.11 |
 | Local Python | 3.14.7 in `.venv` — only pydantic, pytest, pyyaml, black, ruff, huggingface_hub installed |
 | Docker | 29.7.2 installed · **daemon not running** — start Docker Desktop |
 | Neo4j | never started |
@@ -260,7 +260,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `→ pending` |
+| 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |
 | 2026-09-17 | Claude | Phase 0b: scaffold + walking skeleton, 33 tests, CI | `efc10e9` |
 | 2026-09-17 | Claude | Phase 0a: 11 planning documents | `26240f5` `1a47a0e` `a842c0f` |
