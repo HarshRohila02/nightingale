@@ -420,8 +420,8 @@ before any model is trained. Each stub is replaced independently — nothing dow
 
 ```bash
 # Optional, when you start on real data and the knowledge graph
-pip install "torch>=2.7" --index-url https://download.pytorch.org/whl/cu128   # GPU build first
-pip install -r requirements.txt         # full stack, ~2–3 GB
+pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu    # CPU build first (see below)
+pip install -r requirements.txt         # full stack, roughly 1 GB with the CPU torch build
 cp .env.example .env
 docker compose up -d                    # Neo4j
 python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
@@ -430,6 +430,11 @@ python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
 > **Try `--case GC-003` first.** Aortic dissection is absent from the training data, so its ML
 > score is `0.00` — yet the knowledge graph ranks it first and fires a red flag. That single output
 > is the architecture's whole argument.
+
+> **GPU use is opt-in.** Nothing before Phase 3 needs a GPU (the ML baseline is XGBoost on the
+> CPU). The team is seeking a university GPU for the LLM and embedding work; the project owner's
+> laptop GPU is used only with their explicit permission. Install the CUDA build of torch only on a
+> machine approved for GPU work — see decision D-7 in [`PROGRESS.md`](PROGRESS.md).
 
 ---
 

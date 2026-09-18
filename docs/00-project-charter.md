@@ -125,8 +125,11 @@ complete ablation study showing which components help.
 
 ## 10. Constraints & Assumptions
 
-- **Compute:** team laptops + one RTX-class GPU + free-tier cloud. No paid API budget; the language
-  model runs locally via Ollama.
+- **Compute:** team laptops + free-tier cloud. No paid API budget; the language model runs locally
+  via Ollama. *(Updated 2026-09-18.)* GPU work, meaning the LLM and embeddings in Phase 3, runs on a
+  **university GPU** if access is granted. The project owner's laptop GPU (RTX 5060, 8 GB) is the
+  fallback and is used **only with their explicit permission**. Nothing before Phase 3 needs a GPU.
+  See decision D-7 in `PROGRESS.md` and risk R-14.
 - **Time:** 8–10 weeks with daily work.
 - **Licensing:** BODHI-S is CC-BY-NC-4.0 — the project must remain **non-commercial**.
 - **Assumption:** DDXPlus coded evidences can be aligned with BODHI-S symptom names. *This is

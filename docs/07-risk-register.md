@@ -122,6 +122,28 @@ possibly with confidence.
 *Trigger:* generation latency > 30 s or the model does not fit in VRAM.
 *Mitigation:* use a quantised 7–8B model; cache explanations per candidate; explanation is
 asynchronous in the UI; templated fallback always available.
+*Related:* **R-14**, which GPU is available at all.
+
+---
+
+### 🟠 R-14 — No GPU secured for Phase 3
+**L 3 · I 3 · Score 9 · Owner P3 · Status: OPEN** · *opened 2026-09-18*
+
+The LLM explainer (3b), its baselines B3/B4 (EXP-009/010) and embedding the evidence corpus (3a) need
+a GPU to run at a usable speed. The team is seeking access to a **university GPU**. The project
+owner's laptop GPU (RTX 5060, 8 GB) may be used **only with their explicit permission** (decision
+D-7 in `PROGRESS.md`). If neither is available when Phase 3 starts on 2026-10-22, the LLM runs on
+the CPU and R-05 fires.
+
+*Trigger:* university GPU access not confirmed by **2026-10-14** (end of Week 4).
+*Mitigation:*
+1. **Nothing before Phase 3 needs a GPU.** XGBoost, SHAP, the knowledge graph and the red-flag layer
+   all run on the CPU, and `compute.device` in `configs/config.yaml` defaults to `cpu`.
+2. At the trigger date, ask the owner whether the laptop GPU may be used for Phase 3.
+3. The CPU fallbacks already exist. The templated explainer needs no LLM (R-04, R-05), and the LLM
+   explainer is last in the cut line (R-02).
+4. Setting up university access takes time: accounts, SSH, the job scheduler, a CUDA build to match
+   its driver. Start as soon as access is granted. Learning items are in `docs/09` §1.4.
 
 ---
 
@@ -193,3 +215,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-17 | Register created; R-01 spike scheduled | — |
 | 1 | 2026-09-17 | **R-01 closed** (31% < 60% gate → fallback adopted); **R-12 opened** (circularity, spawned by the R-01 resolution) | — |
 | 1 | 2026-09-18 | **R-03 resolved** on projection (EXP-002: min ≈10,880 train cases, 2.7× imbalance); **R-13 opened** (closed-world assumption, found by EXP-002) | — |
+| 1 | 2026-09-18 | **R-14 opened** (no GPU secured for Phase 3): the laptop GPU is used only with the owner's permission, and a university GPU is being sought | — |

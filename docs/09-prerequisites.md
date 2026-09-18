@@ -75,6 +75,26 @@ nonsense output.**
 - **Calibration** — a model saying "70%" should be right 70% of the time. Raw scores are *not*
   probabilities until proven.
 
+### 1.4 Compute & GPU etiquette (30 minutes) · *added 2026-09-18*
+
+- **GPU use is opt-in.** Everything up to Phase 3 runs on the CPU, including the XGBoost baseline.
+  Code that could use a GPU reads `compute.device` from `configs/config.yaml`, which defaults to `cpu`.
+- **The project owner's laptop GPU is used only with their explicit permission,** asked before
+  each new use. Three things use it without saying so:
+  - torch code that picks CUDA automatically, once the CUDA build is installed;
+  - XGBoost with `device="cuda"`;
+  - **any model run through Ollama**, which loads onto the GPU by default. Pass the option
+    `num_gpu: 0` to keep it on the CPU.
+- **If the university GPU is granted** (decision D-7 in `PROGRESS.md`, risk R-14), whoever sets it
+  up should learn the following before Phase 3:
+
+| Skill | Why it matters here | Get to this level |
+|---|---|---|
+| **SSH** keys, `scp` / `rsync` | All access is remote | Log in with a key; sync the repo. `data/` is never committed, so re-create it there with `scripts/download_data.py` |
+| **The cluster's job scheduler** (often SLURM) | GPU jobs are usually queued, not run interactively | Submit a one-GPU job (`sbatch` with `--gres=gpu:1`), watch it (`squeue`), cancel it (`scancel`), read its log |
+| **Matching torch to the driver** | The cluster's CUDA driver decides which torch build works | Read `nvidia-smi`, choose the matching PyTorch CUDA index, build a Python 3.11 env |
+| **Serving Ollama remotely** | The app calls the model over HTTP | Set `OLLAMA_HOST`, or tunnel it: `ssh -L 11434:localhost:11434 <host>` |
+
 ---
 
 ## 2. Role-specific prerequisites
@@ -116,7 +136,7 @@ using the release evidence-mapping file before any modelling.
 | **FAISS** | Build an index, search, persist | FAISS wiki |
 | **Chunking strategy** | Why chunk size and overlap change retrieval quality | Any RAG primer |
 | **BM25 / hybrid retrieval** | Lexical vs semantic; why combining beats either | `rank_bm25` |
-| **Running a local LLM** | Ollama: pull, run, call from Python | Ollama docs |
+| **Running a local LLM** | Ollama: pull, run, call from Python. Keep it on the CPU (`num_gpu: 0`) unless GPU use is approved (§1.4) | Ollama docs |
 | **Prompt grounding & guardrails** | Constraining output to retrieved context; refusing when unsupported | — |
 | **Prompt injection** | Free-text intake is untrusted input | OWASP LLM Top 10 |
 | **PubMed E-utilities** | Programmatic literature fetch; rate limits | NCBI E-utilities docs |

@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (decisions D-1–D-3 applied) · **Last verified commit:** `843c5fb`
+**Last updated:** 2026-09-18 · by Claude (GPU policy D-7 recorded; 1a + 1b in flight) · **Last verified commit:** `79f7d64`
 
 ---
 
@@ -15,9 +15,9 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅; heavy downloads await D-4–D-6) · **1a — Data** · 🔄 (`validate.csv` + EXP-002 ✅) |
-| **Next action** | Get the user's permission for **D-4, D-5, D-6** (§3) — the environment downloads. Unblocked meanwhile: 1a `validate.csv` → parquet, and the 1b KG loader on NetworkX |
-| **Blocked on** | D-4 (full requirements, ~2–3 GB) · D-5 (LLM pull, ~4.9 GB) · D-6 (Neo4j image, ~0.5 GB) — all lengthy, need permission |
+| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · GPU policy D-7 recorded; installs await D-4/D-6) · **1a — Data** · 🔄 (parquet in flight) · **1b — KG** · ⬜ (loader next) |
+| **Next action** | Finish in-flight tasks 2–3 (§2): the 1a parquet, then the 1b KG loader on NetworkX. Then ask the user about **D-4** and **D-6** |
+| **Blocked on** | D-4 (full install, ~1 GB with CPU torch) · D-6 (Neo4j image, ~0.5 GB) — need permission · D-5 (LLM pull) waits on **D-7**: where GPU work runs. A university GPU is being sought; **the laptop GPU is used only with the user's permission** |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
 | **Health** | 33 tests passing locally · CI green on GitHub at `843c5fb` |
 
@@ -27,7 +27,8 @@ read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus `release_
 respect: the system is **closed-world** (R-13 — only 13 conditions exist for it), and DDXPlus
 demographics are synthetic (~50% female everywhere), so **by-sex parity is an artifact, not
 fairness**. The evaluation protocol (`docs/05`) is **frozen**. Use `./.venv/Scripts/python.exe` —
-plain `python` is 3.14, not the team's 3.11.
+plain `python` is 3.14, not the team's 3.11. **Never use the laptop GPU without asking the user
+first** (D-7). That includes running any model through Ollama, which uses the GPU automatically.
 
 ---
 
@@ -36,7 +37,18 @@ plain `python` is 3.14, not the team's 3.11.
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-_Nothing in flight._
+**Started 2026-09-18 by Claude.** User request: do the two no-download tasks first (1a parquet, 1b KG
+loader on NetworkX); update the learning guide (`docs/09`) and other docs before D-4–D-6; **ask
+before using the laptop GPU**, because the team is seeking a university GPU, and record that in the docs.
+
+| # | Task — one commit each | State |
+|---|---|---|
+| 1 | GPU policy: record D-7 (laptop GPU only with permission; university GPU sought) in `CLAUDE.md`, here, the setup docs, the risk register and `docs/09`; re-frame D-4/D-5; fix the torch pin | ✅ committed with this file |
+| 2 | 1a: `validate.csv` → `data/interim/ddxplus_chestpain_validate.parquet` — decoder in `src/ddxplus.py`, tests, dataset card in `docs/03` | ⬜ next |
+| 3 | 1b: KG loader + NetworkX `GraphStore` — `src/medical_kg/`, tests, KG card in `docs/02` | ⬜ |
+
+**If interrupted:** run `git status`. The task with uncommitted files is the one that was cut off.
+Tasks 2 and 3 need no downloads. `networkx` is a small (~2 MB) install for task 3.
 
 <!-- Template — copy above the line when a task starts:
 - **Task:** <one line>
@@ -54,9 +66,10 @@ _Nothing in flight._
 
 | ID | Decision needed | Options | Recommended | Blocks |
 |---|---|---|---|---|
-| **D-4** | Full `pip install -r requirements.txt` into the 3.11 venv — **lengthy (~2–3 GB), needs permission** | CPU-only torch · CUDA 12.8 torch for the RTX 5060 | **CUDA 12.8 torch first** (`--index-url …/whl/cu128`), then the rest | 1.0 · all real modelling |
-| **D-5** | `ollama pull llama3.1:8b` — **lengthy (~4.9 GB), needs permission** | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b** — a general instruct model; the coder model is tuned for code, not clinical prose | 1.0 · Phase 3 explainer |
-| **D-6** | Start Docker Desktop and pull the `neo4j:5-community` image — **lengthy (~0.5 GB), needs permission** | Neo4j now · NetworkX only until 1b needs a real graph DB | **Neo4j now** — 1b (P1) needs it, and Docker setup problems are better found early (R-06) | 1.0 · 1b KG |
+| **D-4** | Full `pip install -r requirements.txt` into the 3.11 venv — **lengthy, needs permission** | **CPU-only torch** (~1 GB in all) · CUDA 12.8 torch (~3 GB in all, and only useful if D-7 approves the laptop GPU) | **CPU-only torch** (`--index-url …/whl/cpu`), then the rest. *Re-framed 2026-09-18:* nothing before Phase 3 needs a GPU, since XGBoost trains on the CPU. The CUDA build goes on whichever machine D-7 picks | 1.0 · 1c ranker onwards |
+| **D-5** | `ollama pull llama3.1:8b` — **lengthy (~4.9 GB), needs permission** | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Defer until D-7:** the LLM is Phase 3 (Week 6), and Ollama runs any model on the GPU automatically, so even a smoke test on the laptop would use the laptop GPU. Pull it where it will be served | Phase 3 explainer |
+| **D-6** | Start Docker Desktop and pull the `neo4j:5-community` image — **lengthy (~0.5 GB), needs permission** | Neo4j now · NetworkX only until 1b needs a real graph DB | **Neo4j now** — Docker setup problems are better found early (R-06). No GPU involved. The NetworkX backend (in flight) removes the hard dependency | 1.0 · 1b Neo4j store |
+| **D-7** 🆕 | **Where GPU work runs** (LLM + embeddings, Phase 3). *Set by the user 2026-09-18:* the team is seeking a **university GPU**, and the **laptop RTX 5060 is used only with the user's explicit permission, asked before each use** | University GPU, if granted · laptop RTX 5060, with permission · CPU only (slow LLM; the templated explainer is the fallback) | Waiting on the university. **Decide by 2026-10-14** (end of Week 4) so Phase 3 (from 2026-10-22) is not blocked. If there is no university GPU by then, ask the user about the laptop GPU for Phase 3 (risk R-14) | D-5 · 3a embeddings · 3b LLM · any CUDA install |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
 
@@ -169,10 +182,11 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] Archive the reference docs to `docs/archive/`; delete the byte-identical duplicate (D-3) — `5ce3725`
 - [x] Python 3.11 (D-2): `py install 3.11` → 3.11.9; `.venv` rebuilt; tests, black, ruff green — `1ccb06a`
 - [x] Fix local-vs-CI tool drift: new `requirements-dev.txt` is the single source of truth for pytest/black/ruff; CI and `requirements.txt` both read it — `1ccb06a`
-- [ ] Full `pip install -r requirements.txt` (D-4 — **ask first**); commit `requirements.lock.txt`
-- [ ] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` cannot use the RTX 5060 (Blackwell needs torch ≥ 2.7 / CUDA 12.8)
+- [x] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` → `~=2.7`. 2.7 is the first release that supports the RTX 5060; the CPU and every CUDA build satisfy it — → pending
+- [x] Record the GPU policy (**D-7**, set by the user): laptop GPU only with explicit permission; university GPU being sought. Now in `CLAUDE.md`, the setup guides, `configs/` (`compute.device: cpu`), charter, SRS, R-14 and `docs/09` §1.4 — → pending
+- [ ] Full `pip install -r requirements.txt` (D-4 — **ask first**; CPU torch recommended); commit `requirements.lock.txt`
 - [ ] Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474` (**D-6**)
-- [ ] `ollama pull llama3.1:8b` (the configured model; only `qwen2.5-coder:7b` is present); smoke test (**D-5**)
+- [ ] `ollama pull llama3.1:8b` (the configured model; only `qwen2.5-coder:7b` is present); smoke test (**D-5**, deferred until **D-7** — a smoke test uses the GPU)
 - [ ] Optional: pre-commit hooks for black + ruff
 
 **1a — Data & class balance · 🔄** · P2
@@ -250,6 +264,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | 2026-09-18 | **D-1:** download DDXPlus `validate.csv` only (87 MB) now; train/test CSVs when training starts | user · §8 |
 | 2026-09-18 | **D-2:** the team standardises on **Python 3.11** (matches CI; safest for scispacy/medspaCy) | user · §8 |
 | 2026-09-18 | **D-3:** reference docs archived to `docs/archive/`; the byte-identical duplicate prompt deleted | user · `docs/archive/README.md` |
+| 2026-09-18 | **GPU policy:** the laptop GPU (RTX 5060) is used **only with the user's explicit permission, asked before each use**; the team is seeking a university GPU. Which machine does GPU work stays open as D-7 | user · `CLAUDE.md`, R-14 |
 
 ---
 
@@ -263,8 +278,8 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed · **daemon not running** — start Docker Desktop |
 | Neo4j | never started |
-| Ollama | 0.34.1 installed · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` |
-| GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (torch ≥ 2.7 / CUDA 12.8) |
+| Ollama | 0.34.1 installed · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` · runs models **on the GPU by default**, so running one is laptop-GPU use |
+| GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (torch ≥ 2.7 / CUDA 12.8) · **use only with the user's permission** (D-7); a university GPU is being sought · `compute.device: cpu` in `configs/` |
 | Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json` · `train.csv` / `test.csv` **not downloaded** |
 
 Re-verify this table whenever the environment changes, and date it.
@@ -275,6 +290,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed | → pending |
 | 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `843c5fb` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |

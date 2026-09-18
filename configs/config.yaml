@@ -3,6 +3,13 @@
 
 seed: 42 # used for splits, Synthea generation, and model training
 
+compute:
+  # cpu | cuda. GPU use is opt-in: the project owner's laptop GPU (RTX 5060) is used
+  # only with their explicit permission, and the team is seeking a university GPU.
+  # Where GPU work runs is decision D-7 in PROGRESS.md. Code must read this value
+  # and never switch to CUDA on its own.
+  device: cpu
+
 paths:
   data_root: data
   raw: data/raw
@@ -50,7 +57,9 @@ retrieval:
 
 llm:
   provider: ollama
-  model: llama3.1:8b # quantised; must fit the local RTX GPU
+  model: llama3.1:8b # quantised (~4.9 GB); served from the GPU host chosen in D-7
+  # Ollama puts the model on a GPU automatically. On the owner's laptop that is GPU
+  # use and needs their permission; to stay on the CPU, pass the option num_gpu: 0.
   temperature: 0.1 # low — this is an explainer, not a writer
   max_tokens: 512
   timeout_seconds: 30 # falls back to TemplateExplainer on timeout

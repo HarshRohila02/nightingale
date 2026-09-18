@@ -12,10 +12,18 @@ kill student projects: **merge chaos** and **nothing works on anyone else's mach
 ```bash
 py -3.11 -m venv .venv        # macOS/Linux: python3.11 -m venv .venv
 # Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
-pip install "torch>=2.7" --index-url https://download.pytorch.org/whl/cu128   # GPU build first
+pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu    # CPU build first
 pip install -r requirements.txt
 docker compose up -d          # Neo4j
 ```
+
+- **GPU use is opt-in** (2026-09-18). Everything up to Phase 3 runs on the CPU, including the XGBoost
+  baseline. The team is seeking a **university GPU** for the LLM and embedding work; the project
+  owner's **laptop GPU is used only with their explicit permission**, asked before each new use.
+  Which machine does GPU work is decision **D-7** in `PROGRESS.md`. Code that can use a GPU reads
+  `compute.device` from `configs/config.yaml` (default `cpu`) and never picks CUDA on its own. That
+  includes `torch.cuda.is_available()` auto-selection, XGBoost `device="cuda"`, and Ollama, which
+  puts a model on the GPU unless told `num_gpu: 0`.
 
 - **Python 3.11** — the team standard (decision D-2), matching CI. The code only *needs* ≥ 3.10 (for
   `X | None` in the contracts), but everyone develops on 3.11 so behaviour and tool output are

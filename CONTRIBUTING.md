@@ -23,11 +23,16 @@ you productive quickly; the detail lives in [`docs/`](docs/README.md).
 git clone https://github.com/HarshRohila02/nightingale.git && cd nightingale
 py -3.11 -m venv .venv                # team standard is Python 3.11 (D-2); macOS/Linux: python3.11 -m venv .venv
 # Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
-pip install "torch>=2.7" --index-url https://download.pytorch.org/whl/cu128   # GPU build, BEFORE requirements
+pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu   # CPU build, BEFORE requirements
 pip install -r requirements.txt
 docker compose up -d                  # Neo4j
 python scripts/download_data.py       # fetches DDXPlus, BODHI-S, UCI Heart
 ```
+
+**GPU use is opt-in.** Everything up to Phase 3 runs on the CPU. The team is seeking a university GPU
+for the LLM and embedding work (decision D-7 in [`PROGRESS.md`](PROGRESS.md)); the project owner's
+laptop GPU is used only with their explicit permission. Code that can use a GPU must read
+`compute.device` from `configs/config.yaml`, which defaults to `cpu`.
 
 ## Workflow
 

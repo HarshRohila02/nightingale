@@ -53,8 +53,10 @@ clinical services. All data is synthetic or open-licensed.
 | **Evaluator / supervisor** | Assesses the project | Medium |
 
 ### 2.3 Operating environment
-Python 3.11 (team standard; the code requires ≥ 3.10); Neo4j Community (Docker); Ollama-hosted local LLM on an RTX-class GPU; Streamlit UI in
-a modern browser; Linux/Windows/macOS.
+Python 3.11 (team standard; the code requires ≥ 3.10); Neo4j Community (Docker); Ollama-hosted local
+LLM on a GPU host: a university GPU if access is granted, otherwise the project owner's laptop GPU
+used only with their permission (decision D-7, 2026-09-18); Streamlit UI in a modern browser;
+Linux/Windows/macOS. Everything except the LLM and embedding work runs on the CPU.
 
 ### 2.4 In-scope conditions (13)
 

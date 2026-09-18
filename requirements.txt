@@ -38,10 +38,14 @@ neo4j~=5.25            # driver; the database itself runs via docker-compose
 networkx~=3.3          # in-memory fallback backend (risk R-06)
 
 # --- Retrieval / RAG ------------------------------------------------------- #
-# sentence-transformers pulls in torch. On Windows, plain `pip install` gives a
-# CPU-only torch. For the team's RTX 5060 (Blackwell) install the CUDA 12.8 build
-# FIRST, then this file (decision D-4 in PROGRESS.md):
-#   pip install "torch>=2.7" --index-url https://download.pytorch.org/whl/cu128
+# sentence-transformers pulls in torch. Install torch FIRST, then this file.
+# GPU use is opt-in (D-7 in PROGRESS.md): the owner's laptop RTX 5060 is used only
+# with their explicit permission, and the team is seeking a university GPU. So the
+# default is the CPU build, which is also ~10x smaller to download:
+#   pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu
+# Only on a machine approved for GPU work, use the CUDA build that matches its driver
+# (cu128 for the RTX 5060, which needs torch >= 2.7):
+#   pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cu128
 sentence-transformers~=3.2
 faiss-cpu~=1.9
 rank-bm25~=0.2
