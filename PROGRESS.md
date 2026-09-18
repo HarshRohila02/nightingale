@@ -131,7 +131,7 @@ changes — update this table when they do.
 | Phase | Weeks | Target end | Status |
 |---|---|---|---|
 | 0 — Preparation & documentation | 1 | 2026-09-23 | ✅ 2026-09-17 · env items → 1.0 |
-| 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | ⬜ |
+| 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 + 1a in progress |
 | 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | ⬜ |
 | 3 — Evidence & explanation | 6–7 | 2026-11-04 | ⬜ |
 | 4 — Evaluation, ablations & write-up | 8–9 | 2026-11-18 | ⬜ |
