@@ -18,7 +18,7 @@
 | **Every model training or tuning run**, however short | Cloud or university GPU; the laptop only if the owner picks it | **Yes: where it runs** |
 | **Any other job expected to take over ~5 minutes**, CPU jobs included | Cloud or university GPU | **Yes: where it runs** |
 | Batch LLM or embedding runs (B3/B4 baselines, embedding the corpus) | Cloud or university GPU | **Yes: where it runs** |
-| **GPU tests on the laptop**: does CUDA work, a short model load, an Ollama smoke test | Laptop GPU, **run by the owner by hand** (§2–§3) | Claude only writes the steps |
+| **GPU tests on the laptop**: does CUDA work, a short model load, an Ollama smoke test | Laptop GPU, **run by the owner by hand** (§2–§3) | Claude only writes the steps, unless the owner asks Claude to run a specific test (D-9 in `PROGRESS.md`) |
 | The Neo4j graph database | Neo4j AuraDB Free, in Neo4j's cloud (§5) | — |
 | Installing packages | Laptop, one task at a time, only what that task needs | Yes, before each download |
 
@@ -55,12 +55,14 @@ again.
 ```powershell
 py -3.11 -m venv .venv-gpu
 .\.venv-gpu\Scripts\python.exe -m pip install --upgrade pip
-.\.venv-gpu\Scripts\python.exe -m pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cu128
+.\.venv-gpu\Scripts\python.exe -m pip install --no-cache-dir "torch~=2.7" --index-url https://download.pytorch.org/whl/cu128
 .\.venv-gpu\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
 
 The torch download is about 3 GB. The RTX 5060 is a Blackwell GPU, which needs torch 2.7 or newer
-**built for CUDA 12.8** (`cu128`). Older builds and CPU builds cannot use it.
+**built for CUDA 12.8** (`cu128`). Older builds and CPU builds cannot use it. `torch~=2.7` installs
+the newest 2.x release on the cu128 index (2.11.0 on 2026-09-18). `--no-cache-dir` stops pip from
+keeping a second 3 GB copy of the download on the C: drive.
 
 **Step 3. Check that it works.** This takes a few seconds.
 
@@ -77,6 +79,13 @@ the whole output to Claude.
 | **torch build CUDA** is `None` | The CPU build of torch was installed | Repeat the torch line of step 2 |
 | **sm_120 in build** is `NO` | The torch build is too old for Blackwell | Reinstall torch from the `cu128` index |
 | **CUDA available** is `False` | The driver is too old, or Windows is not exposing the GPU | Redo step 1; check the GPU in Device Manager |
+
+**Status on the owner's laptop: set up on 2026-09-18.** Claude ran steps 1–3, because the owner
+asked it to. Driver 591.91 (CUDA Version 13.1) · Python 3.11.9 · torch 2.11.0+cu128, built for
+`sm_75` to `sm_120` · compute capability 12.0 · `sm_120` in build: yes · matmul test OK at
+6.6 TFLOP/s (float32, on the charger). The test suite also passes inside `.venv-gpu`: 89 tests pass,
+and the 2 checks for a missing torch skip there. The environment takes 4.3 GB on D:. Re-run step 3
+after a driver update.
 
 ---
 
@@ -102,6 +111,10 @@ The GPU is released when the script ends. Ctrl+C stops it early.
 2. Run `ollama run qwen2.5-coder:7b "Reply with one word: ready"`.
 3. In a second window, run `ollama ps`. The PROCESSOR column should say **100% GPU**. If it says
    CPU, update Ollama and the driver.
+
+Measured on the owner's laptop on 2026-09-18 (Ollama 0.34.2, `qwen2.5-coder:7b`): 100% GPU with a
+4,096-token context; the model took about 4.7 GB of the 8 GB; generation ran at about 71 tokens/s.
+The first prompt after loading took 13.6 s, most likely GPU warm-up. A repeat took 0.3 s in total.
 
 **To stop Ollama:** `ollama stop qwen2.5-coder:7b` frees the GPU memory at once; otherwise the model
 stays loaded for about 5 minutes. Quit Ollama from its tray icon to stop the server itself. If Ollama

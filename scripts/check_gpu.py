@@ -55,9 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     arch_list = torch.cuda.get_arch_list()
     has_blackwell = BLACKWELL_ARCH in arch_list
     print(f"built for         : {' '.join(arch_list)}")
-    print(
-        f"{BLACKWELL_ARCH} in build     : {'yes' if has_blackwell else 'NO: reinstall from cu128'}"
-    )
+    print(f"{BLACKWELL_ARCH} in build   : {'yes' if has_blackwell else 'NO: reinstall from cu128'}")
     if args.device == "cpu":
         print("Report only. Add --device cuda to run the short GPU test.")
         return 0

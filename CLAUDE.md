@@ -30,7 +30,9 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
     give the expected runtime.
   - **The laptop GPU is for tests only, and the owner runs them by hand.** Never start GPU work on
     the laptop yourself: no CUDA install, no GPU script, no Ollama model. Write the steps
-    (`docs/11` §2–§3) and read the output the owner pastes back.
+    (`docs/11` §2–§3) and read the output the owner pastes back. The exception: the owner asks you
+    in chat to run a specific test. That covers that test only. They did so for the one-time setup
+    on 2026-09-18. Whether that becomes the standing rule is D-9.
   - Install packages **per task, as needed** (D-4), and ask before each download. Code stays on the
     CPU unless `compute.device` in `configs/config.yaml` says otherwise.
 - **Commit and push at every sub-phase boundary**, with `PROGRESS.md` updated in the same commit.
@@ -86,7 +88,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - Tool versions live in **`requirements-dev.txt`**, the single source shared with CI. Bump black or
   ruff there, never in one place only.
 - The laptop GPU is an **RTX 5060 (Blackwell, `sm_120`)**. GPU tests run from a separate
-  **`.venv-gpu`** (torch ≥ 2.7 built for CUDA 12.8), which the owner sets up (`docs/11` §2). The
+  **`.venv-gpu`** (torch ≥ 2.7 built for CUDA 12.8), set up on 2026-09-18 with torch 2.11.0+cu128
+  and verified with `scripts/check_gpu.py --device cuda` (`docs/11` §2). The
   main `.venv` stays CPU-only, so everyday work cannot touch the GPU. A cloud or university GPU
   needs the CUDA build that matches its own driver.
 - **Ollama puts a model on the GPU automatically**, so running any local model is laptop-GPU use,
