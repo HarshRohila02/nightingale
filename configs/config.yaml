@@ -33,6 +33,8 @@ datasets:
 
 graph:
   backend: neo4j # neo4j | networkx (networkx is the fallback, risk R-06)
+  # Status 2026-09-18: networkx is implemented (src/medical_kg/networkx_store.py);
+  # the Neo4j store waits on Docker (decision D-6). Nothing reads this key yet.
   uri: bolt://localhost:7687
   database: neo4j
 

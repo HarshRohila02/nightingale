@@ -1,6 +1,6 @@
 # 02 — Architecture & Interface Contracts
 
-**Version:** 1.0 · 2026-09-17
+**Version:** 1.1 · 2026-09-18 (added the §5.1 KG card; updated the §8 layout and §9 ids; the §4 contracts are unchanged)
 **Owners:** P1 (knowledge graph) + P2 (data/ML)
 
 > **This is the most important Phase 0 document.** The schemas in §4 are what let four people work
@@ -246,6 +246,55 @@ erDiagram
 
 `in_training_data = false` marks **aortic dissection**: reachable by KG rules, invisible to ML.
 
+### 5.1 KG card: what the DDXPlus-derived graph contains · *built 2026-09-18*
+
+`src/medical_kg/loader.py` builds a backend-neutral `KnowledgeGraph` from
+`data/interim/ddxplus_chestpain_conditions.json` and `ddxplus_evidences.json`.
+`NetworkXGraphStore` (`src/medical_kg/networkx_store.py`) serves it. Print this card with
+`python scripts/build_cardiac_kg.py`.
+
+**Ids and provenance.** Conditions keep their registry ids (`COND:*`). DDXPlus evidence questions
+become `DDX:E_nn` (`concept_id()` in `src/ddxplus.py`). That keeps them apart from the hand-authored
+`SYM:*` / `RF:*` ids that the red-flag rules and golden cases use; linking the two is the crosswalk
+task. **Every edge carries a `source`**: `ddxplus` now, later `bodhi_s` and `hand_authored`. The
+store is a `MultiDiGraph` keyed by source, so a fact that two sources both state is kept twice but
+counted once. This lets the report separate the KG's shared-source contribution from its
+independent ones (R-12, docs/05 §8.7).
+
+| Measure | Value |
+|---|---|
+| Nodes | 14 Condition · 41 Symptom · 43 RiskFactor |
+| Edges | 245 (160 `HAS_SYMPTOM` · 85 `HAS_RISK_FACTOR`), all `source = ddxplus`, weight 1.0 |
+| Conditions without edges | Aortic dissection (hand-authoring pending) |
+| Evidence questions unique to one condition | 49 of 84 |
+| Questions shared by ≥ 75% of the conditions | 9: the seven pain questions (`E_53`–`E_59`), breathlessness (`E_66`) and travel (`E_204`, all 13) |
+| Anomaly | `E_16` "Do you feel anxious?" is a symptom of PSVT and panic attack, but DDXPlus flags it as an antecedent. It is typed by its use |
+
+**Known limitations. Read these before using the scores.**
+
+1. **Questions, not answers.** DDXPlus links conditions to evidence *questions*. Twelve of the
+   thirteen conditions "have" `E_54`, "characterize your pain". So the graph cannot tell tearing
+   pain from burning pain, or pleuritic from pressure-like. That has to come from BODHI-S
+   enrichment, the crosswalk and red-flag rules, or the ML ranker.
+2. **Stable angina's evidence set sits inside unstable angina's.** All 20 of stable angina's
+   questions are among unstable angina's 24. Only `E_13` (worsening with less effort), `E_14` (pain
+   at rest), `E_50` (sweating) and `E_148` (nausea) separate them. Overlap is normalised by set
+   size, so a patient with stable angina's full picture **plus rest pain** scores **stable 1.00,
+   unstable 0.875**. The benign condition ranks above the must-not-miss one, although rest pain is
+   the defining sign of unstable angina. **2a must fix this**, for example by weighting
+   discriminating questions or by PPR. **2d must add a red-flag rule for unstable angina**, which is
+   one of three must-not-miss conditions still without one (with myocarditis and acute pulmonary
+   edema).
+3. **Node labels are DDXPlus's machine-translated questions**, such as "Have you had significantly
+   increased sweating?". There is no `body_system` yet. The crosswalk will attach clinical labels.
+4. **Scoring is the stub's weighted overlap**, kept so that the store is a drop-in replacement. The
+   real scoring is 2a (EXP-005).
+5. **The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
+   crosswalk first.
+
+**Backend status:** NetworkX ✅, the working backend. Neo4j is pending Docker (decision D-6). Both
+are built from the same `KnowledgeGraph`.
+
 ---
 
 ## 6. Fusion
@@ -276,6 +325,9 @@ regardless of its rank.
 The UI must always render `degraded_components` — a silently degraded medical tool is a safety
 problem.
 
+*Until Neo4j runs (D-6), NetworkX is the configured backend rather than a fallback, so nothing is
+reported as degraded. The automatic Neo4j → NetworkX switch arrives with the Neo4j store.*
+
 ---
 
 ## 8. Directory layout
@@ -300,9 +352,12 @@ nightingale/
 
 ## 9. Open decisions
 
+IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions in `PROGRESS.md`
+§3. They were renamed on 2026-09-18 and were previously D-1 to D-4.
+
 | # | Decision | Resolve by | Owner |
 |---|---|---|---|
-| D-1 | KG backbone: BODHI-S vs DDXPlus co-occurrence | Week-1 spike gate | P1 |
-| D-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
-| D-3 | Embedding model for retrieval | Phase 3 | P3 |
-| D-4 | Local LLM model + quantisation | Phase 3 | P3 |
+| A-1 | KG backbone: BODHI-S vs DDXPlus co-occurrence | ✅ **Resolved 2026-09-17:** DDXPlus `release_conditions.json`, with BODHI-S as enrichment ([10](10-spike-r01-crosswalk.md)) | P1 |
+| A-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
+| A-3 | Embedding model for retrieval | Phase 3 | P3 |
+| A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is D-7 | P3 |

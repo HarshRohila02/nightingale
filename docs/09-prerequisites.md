@@ -108,10 +108,20 @@ nonsense output.**
 | **Neo4j Python driver** | Sessions, parameterised queries, batch writes | Official driver docs |
 | **Graph algorithms** | Personalised PageRank, degree/weight scoring — conceptually | NetworkX docs; Neo4j GDS overview |
 | **Text parsing** | Regex/rule parsing of BODHI-S triples into edges | Python `re` |
+| **NetworkX** *(added 2026-09-18)*: the KG's working backend until Neo4j runs (D-6) | `MultiDiGraph` with keyed parallel edges, node and edge attributes, `out_edges(data=True)`, `nx.freeze`; `pagerank(personalization=…)` for 2a | NetworkX tutorial |
 
-*First task you will hit:* BODHI-S stores relations as English sentences with qualifiers
-(`Chest pain <radiate> to jaw (Symptom) is a symptom present in Acute myocardial infarction
-(Condition)`). You must design a parser and a schema that preserves those qualifiers.
+*Where to start (updated 2026-09-18):* the KG loader and the NetworkX store exist. Read
+`src/medical_kg/` and the KG card in [02-architecture.md](02-architecture.md) §5.1, above all its
+**known limitations**. The next P1 tasks are:
+1. **The crosswalk** from `DDX:E_nn` to the `SYM:*` / `RF:*` ids used by the red-flag rules and the
+   golden cases.
+2. **BODHI-S enrichment.** BODHI-S stores relations as English sentences with qualifiers
+   (`Chest pain <radiate> to jaw (Symptom) is a symptom present in Acute myocardial infarction
+   (Condition)`). Design a parser that keeps those qualifiers, and add the edges with
+   `source = bodhi_s`.
+3. **Aortic dissection**, hand-authored with `source = hand_authored`.
+
+Every edge must carry its `source`, because the R-12 disclosure reports the KG by source.
 
 ### P2 — Data & ML
 
@@ -124,7 +134,7 @@ nonsense output.**
 | **Ranking metrics** | Top-k accuracy, MRR, Precision@k, Recall@k, nDCG | Read [05-evaluation-protocol.md](05-evaluation-protocol.md) |
 | **SHAP** | Feature attribution for explanations | SHAP docs, `TreeExplainer` |
 | **Leakage discipline** | Patient-level splits; never inspect the test set | — |
-| **Parquet with list columns** | The chest-pain data is one parquet per split, with list and struct columns | `pd.read_parquet`, `Series.explode`, reading a `pyarrow` schema | pandas / pyarrow docs |
+| **Parquet with list columns**: the chest-pain data is one parquet per split, with list and struct columns | `pd.read_parquet`, `Series.explode`, reading a `pyarrow` schema | pandas / pyarrow docs |
 
 *First task you will hit:* ~~decoding the coded evidences~~, which is done (task 1a, 2026-09-18).
 Read `src/ddxplus.py` and [03-data-management.md](03-data-management.md) §2.1 before writing

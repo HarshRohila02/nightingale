@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (D-7 recorded; 1a validate parquet + EXP-013 done; 1b in flight) · **Last verified commit:** `8dced77`
+**Last updated:** 2026-09-18 · by Claude (D-7 recorded; 1a validate parquet + EXP-013; 1b KG loader + NetworkX store) · **Last verified commit:** `4d640a8`
 
 ---
 
@@ -15,17 +15,20 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · GPU policy D-7 recorded; installs await D-4/D-6) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; train awaits download) · **1b — KG** · 🔄 (loader in flight) |
-| **Next action** | Finish in-flight task 3 (§2): the 1b KG loader on NetworkX. Then ask the user about **D-4** and **D-6**, and take **D-8** to the team |
+| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · GPU policy D-7 recorded; installs await D-4/D-6) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; train awaits download) · **1b — KG** · 🔄 (loader + NetworkX store ✅; crosswalk, BODHI-S, aortic dissection, Neo4j to go) |
+| **Next action** | Ask the user about **D-4** and **D-6** (downloads), and take **D-8** to the team. Unblocked meanwhile, with no downloads: the 1b **crosswalk** (`DDX:E_nn` ↔ `SYM:*`), then hand-authoring **aortic dissection** and **BODHI-S enrichment** (its data is on disk) |
 | **Blocked on** | D-4 (full install, ~1 GB with CPU torch) · D-6 (Neo4j image, ~0.5 GB) — need permission · D-5 (LLM pull) waits on **D-7**: where GPU work runs. A university GPU is being sought; **the laptop GPU is used only with the user's permission** · **D-8** (definition of D) blocks any Precision@3 / Recall@5 number |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 68 tests passing locally · CI green on GitHub at `8dced77` |
+| **Health** | 89 tests passing locally (86 in CI, where the 3 real-data tests skip) · CI green on GitHub at `4d640a8` |
 
-**Handoff note for the next session:** Task 3 of §2 (the 1b KG loader) may still be in flight;
-check §2 first. The chest-pain parquet exists for **validate** only (`docs/03` §2.1). EXP-013 found
-two things everyone must know. First, **a listed DDXPlus token can mean "no"**
-(`E_204_@_V_10` = "did not travel"), so use `positive_codes()`. Second, **the ground-truth
-differentials are open-world**, so `Recall@5` as written tops out at 0.434 (**D-8**). Before touching the knowledge graph,
+**Handoff note for the next session:** Nothing is in flight. The chest-pain parquet exists for
+**validate** only (`docs/03` §2.1). EXP-013 found two things everyone must know. First, **a listed
+DDXPlus token can mean "no"** (`E_204_@_V_10` = "did not travel"), so use `positive_codes()`.
+Second, **the ground-truth differentials are open-world**, so `Recall@5` as written tops out at
+0.434 (**D-8**). The KG now loads into a NetworkX store, but read its card (`docs/02` §5.1) before
+trusting a score. It links conditions to *questions*, not answers, and ranks **stable angina above
+must-not-miss unstable angina** even when rest pain is present; 2a must fix this. The pipeline and
+golden cases still use the stub store until the crosswalk exists. Before touching the knowledge graph,
 read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus `release_conditions.json`,
 **not** BODHI-S, which creates circularity risk R-12. EXP-002 added two things every result must
 respect: the system is **closed-world** (R-13 — only 13 conditions exist for it), and DDXPlus
@@ -41,29 +44,7 @@ first** (D-7). That includes running any model through Ollama, which uses the GP
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-**Started 2026-09-18 by Claude.** User request: do the two no-download tasks first (1a parquet, 1b KG
-loader on NetworkX); update the learning guide (`docs/09`) and other docs before D-4–D-6; **ask
-before using the laptop GPU**, because the team is seeking a university GPU, and record that in the docs.
-
-| # | Task — one commit each | State |
-|---|---|---|
-| 1 | GPU policy: record D-7 (laptop GPU only with permission; university GPU sought) in `CLAUDE.md`, here, the setup docs, the risk register and `docs/09`; re-frame D-4/D-5; fix the torch pin | ✅ `8dced77` |
-| 2 | 1a: `validate.csv` → `data/interim/ddxplus_chestpain_validate.parquet` — decoder in `src/ddxplus.py`, builder `scripts/build_ddxplus_chestpain.py`, tests, dataset card in `docs/03`, label audit EXP-013, decision D-8 | ✅ committed with this file |
-| 3 | 1b: KG loader + NetworkX `GraphStore` — `src/medical_kg/`, tests, KG card in `docs/02` | ⬜ next |
-
-**If interrupted:** run `git status`. The task with uncommitted files is the one that was cut off.
-Task 3 needs no downloads beyond `networkx`, a small (~2 MB) pure-Python install.
-
-- **Task 3 — files expected to change:** `src/medical_kg/{__init__,loader,networkx_store}.py`,
-  `src/ddxplus.py` (a concept-id helper), `scripts/build_cardiac_kg.py`, `tests/test_medical_kg.py`,
-  `requirements-dev.txt` (+networkx), `docs/02` §5, `docs/09` P1, `docs/10` actions, this file.
-- **Design, so a resumed session does not re-derive it:** node ids are `COND:*` for conditions and
-  `DDX:E_nn` for DDXPlus evidence *questions*. Every edge carries a `source` attribute
-  (`ddxplus` / `bodhi_s` / `hand_authored`), so the R-12 disclosure can report the KG's
-  contributions by source. The store scores with weighted overlap, a drop-in for
-  `InMemoryGraphStore`. The pipeline and golden cases are **not** switched to it: they use `SYM:*`
-  ids, which need the crosswalk (a later 1b task).
-- **Safe to resume blindly?** No. Run the tests first; a half-written store may fail to import.
+_Nothing in flight._
 
 <!-- Template — copy above the line when a task starts:
 - **Task:** <one line>
@@ -83,7 +64,7 @@ Task 3 needs no downloads beyond `networkx`, a small (~2 MB) pure-Python install
 |---|---|---|---|---|
 | **D-4** | Full `pip install -r requirements.txt` into the 3.11 venv — **lengthy, needs permission** | **CPU-only torch** (~1 GB in all) · CUDA 12.8 torch (~3 GB in all, and only useful if D-7 approves the laptop GPU) | **CPU-only torch** (`--index-url …/whl/cpu`), then the rest. *Re-framed 2026-09-18:* nothing before Phase 3 needs a GPU, since XGBoost trains on the CPU. The CUDA build goes on whichever machine D-7 picks | 1.0 · 1c ranker onwards |
 | **D-5** | `ollama pull llama3.1:8b` — **lengthy (~4.9 GB), needs permission** | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Defer until D-7:** the LLM is Phase 3 (Week 6), and Ollama runs any model on the GPU automatically, so even a smoke test on the laptop would use the laptop GPU. Pull it where it will be served | Phase 3 explainer |
-| **D-6** | Start Docker Desktop and pull the `neo4j:5-community` image — **lengthy (~0.5 GB), needs permission** | Neo4j now · NetworkX only until 1b needs a real graph DB | **Neo4j now** — Docker setup problems are better found early (R-06). No GPU involved. The NetworkX backend (in flight) removes the hard dependency | 1.0 · 1b Neo4j store |
+| **D-6** | Start Docker Desktop and pull the `neo4j:5-community` image — **lengthy (~0.5 GB), needs permission** | Neo4j now · NetworkX only until 1b needs a real graph DB | **Neo4j now** — Docker setup problems are better found early (R-06). No GPU involved. The NetworkX backend now works (1b), so nothing is hard-blocked meanwhile | 1.0 · 1b Neo4j store |
 | **D-7** 🆕 | **Where GPU work runs** (LLM + embeddings, Phase 3). *Set by the user 2026-09-18:* the team is seeking a **university GPU**, and the **laptop RTX 5060 is used only with the user's explicit permission, asked before each use** | University GPU, if granted · laptop RTX 5060, with permission · CPU only (slow LLM; the templated explainer is the fallback) | Waiting on the university. **Decide by 2026-10-14** (end of Week 4) so Phase 3 (from 2026-10-22) is not blocked. If there is no university GPU by then, ask the user about the laptop GPU for Phase 3 (risk R-14) | D-5 · 3a embeddings · 3b LLM · any CUDA install |
 | **D-8** 🆕 | **What the ground-truth differential D means** in Precision@3 and Recall@5 (`docs/05` §3.1). EXP-013: 91.8% of in-scope patients' D contain conditions we cannot output (33% of the probability mass), so **Recall@5 as written tops out at 0.434 for a perfect system**. `docs/05` is **frozen**, so any change is a dated amendment in its §9, approved by the team **before any model is evaluated** | Keep as written · **restrict D to the 13 in-scope conditions** (ceiling 0.753) · restrict and renormalise the probabilities | **Restrict D to the in-scope conditions** for the headline figure, and report the as-written figure alongside it for comparison with published DDXPlus results. Top-k accuracy, MRR and must-not-miss recall are unaffected | 1e metrics · any Precision@3 / Recall@5 number |
 
@@ -160,7 +141,7 @@ changes — update this table when they do.
 | Phase | Weeks | Target end | Status |
 |---|---|---|---|
 | 0 — Preparation & documentation | 1 | 2026-09-23 | ✅ 2026-09-17 · env items → 1.0 |
-| 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 + 1a in progress |
+| 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 + 1a + 1b in progress |
 | 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | ⬜ |
 | 3 — Evidence & explanation | 6–7 | 2026-11-04 | ⬜ |
 | 4 — Evaluation, ablations & write-up | 8–9 | 2026-11-18 | ⬜ |
@@ -212,12 +193,13 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [ ] Build the train parquet when `train.csv` is downloaded: `scripts/build_ddxplus_chestpain.py --split train`
 - [ ] Re-confirm EXP-002 counts on `train.csv` once it is downloaded
 
-**1b — Cardiac medical KG · ⬜** · P1
-- [ ] KG loader from `data/interim/ddxplus_chestpain_conditions.json`
-- [ ] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights)
-- [ ] Hand-author aortic dissection into the KG
-- [ ] Neo4j-backed `GraphStore` (NetworkX fallback) replacing `InMemoryGraphStore`
-- [ ] Crosswalk: DDXPlus evidence codes ↔ the `SYM:*` concept ids the red-flag rules use
+**1b — Cardiac medical KG · 🔄** · P1
+- [x] KG loader from `data/interim/ddxplus_chestpain_conditions.json` → a backend-neutral `KnowledgeGraph` (`src/medical_kg/loader.py`): 14 conditions, 84 `DDX:E_nn` evidence nodes, 245 edges, **each with a `source`** (R-12). KG card in `docs/02` §5.1 — → pending
+- [x] NetworkX `GraphStore` (`src/medical_kg/networkx_store.py`): a drop-in for `InMemoryGraphStore`, proven by running the pipeline on it in a test. 20 tests — → pending
+- [ ] Crosswalk: `DDX:E_nn` ↔ the `SYM:*` / `RF:*` ids the red-flag rules and golden cases use. Needed before the pipeline can switch from the stub store
+- [ ] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights, `source = bodhi_s`)
+- [ ] Hand-author aortic dissection into the KG (`source = hand_authored`)
+- [ ] Neo4j-backed `GraphStore` from the same `KnowledgeGraph`, with NetworkX as the fallback (**D-6**)
 
 **1c — Baseline ML ranker · ⬜** · P2
 - [ ] Feature encoding from decoded evidence **codes** (not English labels), handling the three token
@@ -238,10 +220,13 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 
 ### Phase 2 — Reasoning, Fusion & Prototype · ⬜
 **Exit criteria:** 🎯 **W5 milestone** — working prototype in the UI, tagged `v0.1-prototype`, demo video recorded.
-- **2a** · P1 — KG scoring (overlap → Personalised PageRank) + reasoning paths · EXP-005
+- **2a** · P1 — KG scoring (overlap → Personalised PageRank) + reasoning paths · EXP-005.
+  **Must fix:** the current overlap ranks stable angina above must-not-miss unstable angina even with
+  rest pain present (`docs/02` §5.1, limitation 2). Add that case as a regression test once fixed
 - **2b** · P2 — Calibration (Platt vs isotonic) + SHAP · EXP-007
 - **2c** · P4 — Fusion layer, ✓/?/✗ analysis, weight sweep on validation only · EXP-006
-- **2d** · P3 — Red-flag rules on real concepts + safety layer v1 · EXP-008
+- **2d** · P3 — Red-flag rules on real concepts + safety layer v1 · EXP-008. Three
+  must-not-miss conditions have **no rule yet**: unstable angina, myocarditis, acute pulmonary edema
 - **2e** · P4 — Streamlit dashboard v1 (must render `degraded_components` and the disclaimer)
 
 ### Phase 3 — Evidence & Explanation · ⬜
@@ -291,14 +276,14 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 |---|---|
 | Git | clean — reference docs archived to `docs/archive/` (D-3) |
 | CI (GitHub Actions) | ✅ green on every push so far (`efc10e9`, `8b682e9`, `51b49ce`) · Python 3.11 |
-| Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` + pandas, numpy, pyarrow, huggingface_hub. Full install is D-4 |
+| Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub. Full install is D-4 |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed · **daemon not running** — start Docker Desktop |
 | Neo4j | never started |
 | Ollama | 0.34.1 installed · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` · runs models **on the GPU by default**, so running one is laptop-GPU use |
 | GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (torch ≥ 2.7 / CUDA 12.8) · **use only with the user's permission** (D-7); a university GPU is being sought · `compute.device: cpu` in `configs/` |
 | Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json`, **`ddxplus_chestpain_validate.parquet`** (4.6 MB) + `.summary.json` · `train.csv` / `test.csv` **not downloaded** |
-| Local venv extras | `requirements-dev.txt` now also carries pandas, numpy and pyarrow (moved from `requirements.txt`, so CI tests the parquet builder) |
+| CI dependency set | `requirements-dev.txt`: the tools plus pydantic, pyyaml, pandas, numpy, pyarrow and networkx. These moved from `requirements.txt` so CI runs the parquet-builder and KG tests (CI went from ~15 s to ~35 s) |
 
 Re-verify this table whenever the environment changes, and date it.
 
@@ -308,7 +293,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8** | `8dced77` → pending |
+| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8**. **1b:** KG loader + NetworkX store, with edge provenance for R-12. KG card: questions not answers; stable ⊂ unstable angina, so overlap ranks the benign one first. Corrected the stale README/charter claims that the KG is built from BODHI-S. Protocol note: the session was interrupted once, mid-way through updating this file for task 2, and recovered from §2 | `8dced77` `4d640a8` → pending |
 | 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `843c5fb` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |

@@ -67,8 +67,9 @@ Why this scope:
   dissection) is catastrophic. That gives Nightingale a real **safety / red-flag** contribution,
   not just a ranking metric.
 - **The data actually exists and is open** (see below) — DDXPlus carries a ground-truth differential
-  for exactly these conditions, and BODHI-S carries the cardiac symptom vocabulary.
-- **It's tractable for a 4-person, ~24-week team** — a bounded set of ~12 conditions instead of the
+  for exactly these conditions, and its curated condition knowledge base seeds the cardiac knowledge
+  graph (BODHI-S enriches four of the conditions).
+- **It's tractable for a 4-person, 8–10-week team** — a bounded set of 13 conditions instead of the
   whole of medicine.
 
 **Core research question:** *Does combining a patient KG + cardiac medical KG + ML ranking +
@@ -120,7 +121,7 @@ flowchart TD
     NLP --> PKG["3 · Patient Knowledge Graph<br/>this patient's structured facts"]
 
     PKG --> ML["4 · ML Ranker<br/>LogReg · RandomForest · XGBoost<br/>(DDXPlus chest-pain subset)"]
-    PKG --> MKG["5 · Cardiac Medical KG<br/>Condition ↔ Symptom relations<br/>(from BODHI-S)"]
+    PKG --> MKG["5 · Cardiac Medical KG<br/>Condition ↔ Symptom relations<br/>(DDXPlus condition KB + BODHI-S enrichment)"]
 
     ML --> FUSE["6 · Candidate generation<br/>& fusion / re-ranking"]
     MKG --> FUSE
@@ -187,7 +188,7 @@ flowchart LR
         PT --> R1[Diabetes / smoker]
     end
 
-    subgraph M["Cardiac Medical KG (BODHI-S)"]
+    subgraph M["Cardiac Medical KG (DDXPlus condition KB + BODHI-S)"]
         D1((Acute MI)) --> M1[Chest pain: pressure/exertional]
         D1 --> M2[Radiation to jaw/arm]
         D1 --> M3[Diaphoresis]
@@ -204,7 +205,11 @@ flowchart LR
 ```
 
 - **Patient KG** = *what is true about this patient* (built per case, access-controlled/discarded after).
-- **Cardiac Medical KG** = *cardiac knowledge in general* (built once from BODHI-S + open sources).
+- **Cardiac Medical KG** = *cardiac knowledge in general*. It is built once from DDXPlus's curated
+  condition knowledge base (`release_conditions.json`), enriched from BODHI-S for four conditions,
+  with aortic dissection hand-authored. The week-1 spike found BODHI-S too broad to be the backbone
+  ([docs/10](docs/10-spike-r01-crosswalk.md)). Because the ML ranker also learns from DDXPlus, the
+  KG is not a fully independent source, and results must say so (risk R-12).
 - Overlap between the two, scored alongside the ML model, produces an **explainable** ranking: the
   reasoning path *is* the set of matched edges between the graphs.
 
@@ -216,7 +221,8 @@ flowchart LR
 flowchart TD
     DDX["DDXPlus (chest-pain subset)<br/>synthetic cases + ranked differential"] --> MLC["ML diagnosis / ranking model"]
     SYN["Synthea (cardiac modules)<br/>synthetic patients (EHR/FHIR)"] --> PKGC["Patient KG + pipeline testing"]
-    BOD["BODHI-S<br/>cardiac condition ↔ symptom relations"] --> MKGC["Cardiac Medical KG"]
+    DDX -- "condition KB (the KG backbone)" --> MKGC["Cardiac Medical KG"]
+    BOD["BODHI-S<br/>cardiac condition ↔ symptom relations"] -. "enrichment, 4 conditions" .-> MKGC
     UCI["UCI Heart Disease<br/>real cardiac features + chest-pain type"] --> RISKC["Cardiac-risk sub-model / sanity check"]
     PUB["PubMed / PMC<br/>cardiology guidelines"] --> RAGC["RAG evidence retrieval"]
     PTB["PTB-XL ECG (stretch)"] -.-> MULTI["Multimodal extension"]
@@ -250,8 +256,9 @@ Data Use Agreement, no real patient data. **Repo IDs and licenses verified on Hu
 - **DDXPlus does the differential; UCI does *not*.** UCI Heart Disease is a binary "coronary disease
   present?" classifier — a useful real-data cardiac-risk feature, but it can't rank MI vs pericarditis
   vs PE. Keep the two roles distinct.
-- **DDXPlus symptoms are coded** (`E_54_@_V_161` = a pain-location value). You need its
-  evidence-mapping file to decode them and align with BODHI-S's vocabulary — the **first week-1 spike**.
+- **DDXPlus symptoms are coded** (`E_54_@_V_161` = a pain-location value). `src/ddxplus.py` decodes
+  them. Aligning them with BODHI-S's vocabulary was the week-1 spike: only 31% of conditions matched,
+  so the KG is built from DDXPlus's own condition knowledge base instead ([docs/10](docs/10-spike-r01-crosswalk.md)).
 - **BODHI-S is non-commercial (CC-BY-NC-4.0)** — fine for academia; attribute Eka Care; no commercial
   use. Its data is NL triples, not a ready Neo4j dump — you write a parser.
 
@@ -288,7 +295,7 @@ nightingale/
 ├── src/
 │   ├── nlp/              # clinical NER, entity linking, negation, temporality
 │   ├── patient_kg/       # build the per-patient graph
-│   ├── medical_kg/       # parse BODHI-S → Neo4j; cardiac schema; traversal & scoring
+│   ├── medical_kg/       # cardiac KG (DDXPlus KB + BODHI-S) → NetworkX / Neo4j; scoring & paths
 │   ├── ml/               # rankers, calibration, SHAP
 │   ├── fusion/           # ML + KG candidate generation & re-ranking
 │   ├── reasoning/        # supporting / missing / contradicting + red-flag rules
@@ -313,7 +320,7 @@ Build the spine first; add the smart layers on top. **Do not start with the LLM.
 ```mermaid
 flowchart LR
     S1["1 · Decode & filter<br/>DDXPlus (chest pain)"] --> S2["2 · Build DB +<br/>Patient KG (Synthea)"]
-    S2 --> S3["3 · Build Cardiac KG<br/>(BODHI-S → Neo4j)"]
+    S2 --> S3["3 · Build Cardiac KG<br/>(DDXPlus KB + BODHI-S → NetworkX / Neo4j)"]
     S3 --> S4["4 · Train ML ranker<br/>(DDXPlus subset)"]
     S4 --> S5["5 · Fusion +<br/>graph reasoning"]
     S5 --> S6["6 · Red-flag rules +<br/>evaluate / ablations"]
@@ -363,7 +370,7 @@ result.
 
 **Phase 1 — Core (MVP, must ship)**
 - [ ] Decode DDXPlus evidences; filter to the ~13 chest-pain conditions; train a ranker
-- [ ] Build the Cardiac KG from BODHI-S (parse triples → Neo4j)
+- [ ] Build the Cardiac KG from DDXPlus's condition KB, enriched from BODHI-S (→ NetworkX / Neo4j)
 - [ ] Build the Patient KG (from Synthea + entered cases)
 - [ ] Fusion + reasoning: ranked differential with supporting ✓ / missing ? symptoms
 - [ ] Red-flag rules (ACS / PE / pneumothorax / dissection)
@@ -391,7 +398,7 @@ data, hospital deployment, training a medical LLM from scratch, non-chest-pain p
 
 | Person | Owns | Key deps |
 |---|---|---|
-| **P1 — Cardiac Medical KG** | parse BODHI-S → Neo4j; cardiac schema; traversal, scoring, red-flag rules | feeds P3, P4 |
+| **P1 — Cardiac Medical KG** | build the KG from DDXPlus's condition KB + BODHI-S enrichment (NetworkX / Neo4j); cardiac schema; traversal, scoring, red-flag rules | feeds P3, P4 |
 | **P2 — Clinical NLP + ML** | NER/entity-linking/negation; Patient KG extraction; DDXPlus decoding & ranking; calibration | needs P1 schema |
 | **P3 — RAG + LLM** | PubMed/PMC retrieval; embeddings; evidence synthesis; guardrailed LLM explainer | needs candidates from P2 |
 | **P4 — Backend + UI + Eval + Safety** | FastAPI; dashboard; integration; evaluation harness (incl. must-not-miss); safety layer | integrates all |

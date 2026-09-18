@@ -33,7 +33,7 @@ shap~=0.46
 
 # --- Knowledge graph ------------------------------------------------------- #
 neo4j~=5.25            # driver; the database itself runs via docker-compose
-networkx~=3.3          # in-memory fallback backend (risk R-06)
+# networkx (the in-memory backend, risk R-06) comes from requirements-dev.txt above
 
 # --- Retrieval / RAG ------------------------------------------------------- #
 # sentence-transformers pulls in torch. Install torch FIRST, then this file.

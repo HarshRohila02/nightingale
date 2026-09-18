@@ -23,6 +23,7 @@ from src.ddxplus import (
     TokenKind,
     check_split_allowed,
     code_sort_key,
+    concept_id,
     decode_differential,
     decode_row,
     is_positive,
@@ -94,6 +95,11 @@ class TestParseToken:
 
     def test_codes_sort_numerically(self):
         assert sorted(["E_100", "E_2", "E_10"], key=code_sort_key) == ["E_2", "E_10", "E_100"]
+
+    def test_concept_ids_name_questions_in_their_own_namespace(self):
+        assert concept_id("E_53") == "DDX:E_53"
+        with pytest.raises(ValueError):
+            concept_id("E_54_@_V_161")  # an answer, not a question
 
 
 class TestPositiveCodes:

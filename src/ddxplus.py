@@ -37,6 +37,7 @@ from typing import Any
 from src.conditions import from_ddxplus_label
 
 __all__ = [
+    "CONCEPT_PREFIX",
     "INPUT_COLUMNS",
     "LABEL_COLUMNS",
     "METADATA_COLUMNS",
@@ -48,6 +49,7 @@ __all__ = [
     "TokenKind",
     "check_split_allowed",
     "code_sort_key",
+    "concept_id",
     "decode_differential",
     "decode_row",
     "is_positive",
@@ -60,6 +62,7 @@ __all__ = [
 TOKEN_SEP = "_@_"
 NA_VALUE = "V_11"
 SPLITS: tuple[str, ...] = ("train", "validate", "test")
+CONCEPT_PREFIX = "DDX:"
 
 INPUT_COLUMNS: tuple[str, ...] = ("age", "sex", "evidences", "positive_codes")
 """Model inputs. docs/05 §2 allows AGE, SEX and EVIDENCES; ``positive_codes`` is
@@ -121,6 +124,18 @@ class EvidenceSpec:
 def code_sort_key(code: str) -> int:
     """Numeric order for evidence codes, so that E_2 < E_10 < E_100."""
     return int(code.split("_", 2)[1])
+
+
+def concept_id(code: str) -> str:
+    """The knowledge-graph concept id of a DDXPlus evidence question: E_53 -> DDX:E_53.
+
+    The ``DDX:`` namespace keeps DDXPlus-derived concepts apart from the hand-authored
+    ``SYM:*`` / ``RF:*`` ids that the red-flag rules and golden cases use. Mapping one
+    onto the other is the crosswalk, a separate 1b task.
+    """
+    if not _CODE.match(code):
+        raise ValueError(f"not a DDXPlus evidence code: {code!r}")
+    return f"{CONCEPT_PREFIX}{code}"
 
 
 def parse_token(raw: str) -> EvidenceToken:

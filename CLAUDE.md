@@ -50,6 +50,14 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   decode its UUIDs. BODHI-S identifies conditions by SNOMED, DDXPlus by ICD-10.
 - The KG backbone is DDXPlus `release_conditions.json`, not BODHI-S (R-01). That creates
   **circularity risk R-12**, which must be disclosed wherever results claim value for the KG.
+  Every KG edge carries a `source` (`ddxplus` / `bodhi_s` / `hand_authored`); keep it that way.
+- **KG concept ids come in two vocabularies.** DDXPlus questions are `DDX:E_nn`; the red-flag
+  rules and golden cases use hand-authored `SYM:*` / `RF:*` ids. Until the crosswalk links them,
+  the pipeline and golden cases stay on the stub store.
+- **The KG knows questions, not answers** (`docs/02` §5.1). Stable angina's evidence set also sits
+  entirely inside unstable angina's. So with rest pain present, overlap scoring still ranks stable
+  angina (1.00) above must-not-miss unstable angina (0.875). 2a must fix this; until then, don't
+  trust a KG-only ranking of the anginas.
 - The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced
   into one of them. Say so wherever results are reported.
 - DDXPlus demographics are synthetic: every condition is ~50% female, and MI has a median age of 45.
@@ -82,6 +90,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe -m ruff check src tests scripts  # lint
 ./.venv/Scripts/python.exe scripts/demo.py --case GC-003    # walking skeleton
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
+./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ```
 
 ## Where things are
@@ -89,4 +98,4 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 `docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
 chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
-decoding
+decoding · `src/medical_kg/` the KG and its NetworkX store (card: `docs/02` §5.1)

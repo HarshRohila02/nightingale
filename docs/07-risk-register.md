@@ -52,6 +52,10 @@ trained on DDXPlus, the KG is no longer an *independent* knowledge source. The a
    never make.
 3. Red-flag rules are hand-authored from clinical literature, not derived from DDXPlus.
 4. BODHI-S enrichment supplies independent evidence for 4 conditions.
+5. *(Added 2026-09-18.)* **Every KG edge records its `source`** (`ddxplus`, `bodhi_s` or
+   `hand_authored`), so the KG's shared-source contribution can be separated from its independent
+   ones mechanically. Today all 245 edges are `ddxplus`: the KG is still entirely shared-source (KG
+   card, [02-architecture.md](02-architecture.md) §5.1).
 
 *Expected honest finding:* the KG earns its place on **safety and explainability**, not raw
 accuracy. Predicting this in advance is better science than discovering it at the end. Recorded as

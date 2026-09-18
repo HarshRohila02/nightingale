@@ -16,6 +16,8 @@ pyyaml~=6.0
 pandas~=2.2
 numpy~=1.26
 pyarrow~=17.0
+# ...and by the knowledge-graph store and its tests (task 1b). Moved from requirements.txt.
+networkx~=3.3
 
 # Test runner
 pytest~=8.3

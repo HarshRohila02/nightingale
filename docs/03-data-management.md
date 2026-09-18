@@ -85,6 +85,7 @@ data/                        # gitignored in its entirety
 │   ├── ddxplus_chestpain_conditions.json       # the 13 conditions' evidence sets: the KG source
 │   ├── ddxplus_chestpain_<split>.parquet       # the 13-condition filter, one row per patient (§2.1)
 │   ├── ddxplus_chestpain_<split>.summary.json  # its counts and label audit (EXP-013)
+│   ├── cardiac_kg_summary.json                 # the KG card's numbers (build_cardiac_kg.py)
 │   └── bodhi_cardiac_triples.jsonl
 ├── processed/               # model-ready
 │   ├── train.parquet  val.parquet  test.parquet

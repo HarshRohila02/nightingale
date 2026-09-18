@@ -118,7 +118,7 @@ complete ablation study showing which components help.
 
 | Role | Owns |
 |---|---|
-| **P1 — Cardiac Medical KG** | KG schema, BODHI-S parsing, graph scoring, reasoning paths, red-flag rules |
+| **P1 — Cardiac Medical KG** | KG schema, KG built from DDXPlus's condition KB with BODHI-S enrichment, graph scoring, reasoning paths, red-flag rules |
 | **P2 — Data & ML** | DDXPlus decoding, features, rankers, calibration, error analysis |
 | **P3 — RAG + LLM + Safety** | Patient KG, evidence retrieval, grounded explanation, safety layer |
 | **P4 — Platform & Evaluation** | Contracts, API, dashboard, evaluation harness, CI, documentation |
@@ -134,7 +134,10 @@ complete ablation study showing which components help.
 - **Licensing:** BODHI-S is CC-BY-NC-4.0 — the project must remain **non-commercial**.
 - **Assumption:** DDXPlus coded evidences can be aligned with BODHI-S symptom names. *This is
   unverified and is the subject of the Week-1 feasibility spike;* a fallback is defined in
-  [07-risk-register.md](07-risk-register.md).
+  [07-risk-register.md](07-risk-register.md). **Tested 2026-09-17: it does not hold.** Only 31% of
+  conditions matched, against a 60% gate, so the fallback was adopted: the KG is built from
+  DDXPlus's own condition knowledge base, and BODHI-S enriches four conditions
+  ([10-spike-r01-crosswalk.md](10-spike-r01-crosswalk.md)).
 
 ---
 
