@@ -47,8 +47,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   **circularity risk R-12**, which must be disclosed wherever results claim value for the KG.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
-- Local Python is **3.14**; CI runs **3.11**. The GPU is an **RTX 5060 (Blackwell)** — torch must be
-  ≥ 2.7 with CUDA 12.8.
+- The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still
+  **3.14**, so plain `python` silently bypasses the venv — always use `./.venv/Scripts/python.exe`.
+- Tool versions live in **`requirements-dev.txt`**, the single source shared with CI. Bump black or
+  ruff there, never in one place only.
+- The GPU is an **RTX 5060 (Blackwell)**: torch must be ≥ 2.7 with CUDA 12.8, installed from the
+  PyTorch cu128 index before `requirements.txt`.
 
 ## Commands (Windows venv)
 

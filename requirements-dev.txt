@@ -1,0 +1,22 @@
+# Nightingale — test-suite and code-quality dependencies.
+#
+# CI installs exactly this file, and requirements.txt includes it, so local and CI
+# tool versions can never drift apart. Before this file existed, CI installed black
+# and ruff unpinned while requirements.txt pinned them — a new black release could
+# have turned CI red with no code change (found while applying decision D-2).
+#
+# Pinned to the versions the codebase is currently formatted and linted with.
+# To upgrade a tool: bump it here, run black + ruff locally, commit both together.
+
+# Needed by the test suite itself
+pydantic~=2.9
+pyyaml~=6.0
+
+# Test runner
+pytest~=8.3
+pytest-cov~=5.0
+
+# Code quality — exact minor versions, because formatting and lint rules change
+# between minor releases
+black~=26.5.0
+ruff~=0.16.0

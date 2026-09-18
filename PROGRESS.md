@@ -43,9 +43,10 @@ must be disclosed in results. The evaluation protocol (`docs/05`) is **frozen**.
   `docs/08-experiment-log.md` · `docs/07-risk-register.md`
 - **Done so far:** decisions approved by the user 2026-09-18; duplicate re-verified identical
   (SHA-256 `fc0212c3…`); Python 3.11 confirmed not installed (only 3.14, 3.12) ·
-  ① **D-3 done** — 3 docs archived and renamed, duplicate deleted, `docs/archive/README.md` written
-- **Remaining:** ② D-2 `py install 3.11`, rebuild `.venv`, tests green → commit ·
-  ③ D-1 download `validate.csv`, EXP-002 → commit · then clear this marker
+  ① **D-3 done** — 3 docs archived and renamed, duplicate deleted, `docs/archive/README.md` written ·
+  ② **D-2 done** — Python 3.11.9 installed, `.venv` rebuilt and verified; `requirements-dev.txt`
+  added to stop local/CI tool drift
+- **Remaining:** ③ D-1 download `validate.csv`, EXP-002 → commit · then clear this marker
 - **Safe to resume blindly?** No — check `git log` for which of ①②③ committed, and run
   `./.venv/Scripts/python.exe --version` to see whether the venv is already 3.11.
 
@@ -175,7 +176,8 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 
 **1.0 — Environment bring-up · 🔄** *(carried over from Phase 0)*
 - [x] Archive the reference docs to `docs/archive/`; delete the byte-identical duplicate (D-3) — `→ pending`
-- [ ] Python 3.11 (D-2): `py install 3.11`; rebuild `.venv`; tests green
+- [x] Python 3.11 (D-2): `py install 3.11` → 3.11.9; `.venv` rebuilt; tests, black, ruff green — `→ pending`
+- [x] Fix local-vs-CI tool drift: new `requirements-dev.txt` is the single source of truth for pytest/black/ruff; CI and `requirements.txt` both read it — `→ pending`
 - [ ] Full `pip install -r requirements.txt` (D-4 — **ask first**); commit `requirements.lock.txt`
 - [ ] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` cannot use the RTX 5060 (Blackwell needs torch ≥ 2.7 / CUDA 12.8)
 - [ ] Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474`
@@ -263,7 +265,8 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 |---|---|
 | Git | clean — reference docs archived to `docs/archive/` (D-3) |
 | CI (GitHub Actions) | ✅ green on every push so far (`efc10e9`, `8b682e9`, `51b49ce`) · Python 3.11 |
-| Local Python | 3.14.7 in `.venv` — only pydantic, pytest, pyyaml, black, ruff, huggingface_hub installed |
+| Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` + pandas, numpy, pyarrow, huggingface_hub. Full install is D-4 |
+| Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed · **daemon not running** — start Docker Desktop |
 | Neo4j | never started |
 | Ollama | 0.34.1 installed · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` |

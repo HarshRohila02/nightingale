@@ -10,13 +10,18 @@ kill student projects: **merge chaos** and **nothing works on anyone else's mach
 ## 1. Environment
 
 ```bash
-python -m venv .venv
+py -3.11 -m venv .venv        # macOS/Linux: python3.11 -m venv .venv
 # Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
+pip install "torch>=2.7" --index-url https://download.pytorch.org/whl/cu128   # GPU build first
 pip install -r requirements.txt
 docker compose up -d          # Neo4j
 ```
 
-- **Python 3.10+** (required for `X | None` syntax in the contracts).
+- **Python 3.11** — the team standard (decision D-2), matching CI. The code only *needs* ≥ 3.10 (for
+  `X | None` in the contracts), but everyone develops on 3.11 so behaviour and tool output are
+  identical. Where the machine's default `python` is another version, create the venv explicitly
+  with `py -3.11` (Windows) or `python3.11` — plain `python -m venv` will silently use the wrong one.
+- **Tool versions** (pytest, black, ruff) live only in `requirements-dev.txt`, which CI installs too.
 - **All dependencies pinned** (`package==1.2.3`). An unpinned dependency that silently upgrades
   mid-project and changes results is an avoidable disaster.
 - Adding a dependency: justify it in the PR. Prefer the standard library.

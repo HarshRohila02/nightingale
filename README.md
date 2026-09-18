@@ -264,7 +264,7 @@ Data Use Agreement, no real patient data. **Repo IDs and licenses verified on Hu
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Language | **Python 3.10+** | |
+| Language | **Python 3.11** | team standard (decision D-2); the code requires ≥ 3.10 |
 | Clinical NLP | **scispaCy**, **medspaCy**, HF biomedical models (BioBERT/PubMedBERT/SapBERT) | NER, entity linking, negation, temporality |
 | ML ranking | **scikit-learn**, **XGBoost** | chest-pain symptom → condition; the baseline & workhorse |
 | KG store | **Neo4j** (or **NetworkX** to start) | patient + cardiac graphs, Cypher traversal |
@@ -402,9 +402,9 @@ data, hospital deployment, training a medical LLM from scratch, non-chest-pain p
 ```bash
 # 1. Clone and set up the environment
 git clone https://github.com/HarshRohila02/nightingale.git && cd nightingale
-python -m venv .venv
+py -3.11 -m venv .venv                  # macOS/Linux: python3.11 -m venv .venv
 # Windows:  .venv\Scripts\activate    |  macOS/Linux:  source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt     # light — all the skeleton and the tests need
 
 # 2. Run the walking skeleton — works immediately, no data download needed
 python scripts/demo.py                  # anchor ACS case
@@ -420,6 +420,8 @@ before any model is trained. Each stub is replaced independently — nothing dow
 
 ```bash
 # Optional, when you start on real data and the knowledge graph
+pip install "torch>=2.7" --index-url https://download.pytorch.org/whl/cu128   # GPU build first
+pip install -r requirements.txt         # full stack, ~2–3 GB
 cp .env.example .env
 docker compose up -d                    # Neo4j
 python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
