@@ -124,9 +124,17 @@ nonsense output.**
 | **Ranking metrics** | Top-k accuracy, MRR, Precision@k, Recall@k, nDCG | Read [05-evaluation-protocol.md](05-evaluation-protocol.md) |
 | **SHAP** | Feature attribution for explanations | SHAP docs, `TreeExplainer` |
 | **Leakage discipline** | Patient-level splits; never inspect the test set | — |
+| **Parquet with list columns** | The chest-pain data is one parquet per split, with list and struct columns | `pd.read_parquet`, `Series.explode`, reading a `pyarrow` schema | pandas / pyarrow docs |
 
-*First task you will hit:* DDXPlus evidences are **coded** (`E_54_@_V_161`). You must decode them
-using the release evidence-mapping file before any modelling.
+*First task you will hit:* ~~decoding the coded evidences~~, which is done (task 1a, 2026-09-18).
+Read `src/ddxplus.py` and [03-data-management.md](03-data-management.md) §2.1 before writing
+features. Three things matter:
+- **four token forms:** binary (`E_91`), categorical value (`E_54_@_V_161`), numeric ordinal
+  (`E_56_@_4`, to be encoded as ordered) and the NA sentinel (`E_54_@_V_11`);
+- **tokens that mean "no":** a listed `E_204_@_V_10` means "did *not* travel". Use
+  `positive_codes`, never "the code is listed";
+- **select features with `INPUT_COLUMNS`:** every label column starts with `label_`, and one of them
+  is the differential, which must never be an input.
 
 ### P3 — RAG, LLM & Safety
 

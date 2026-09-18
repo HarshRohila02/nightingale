@@ -63,6 +63,65 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-013 — Label audit of the chest-pain subset (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-18 |
+| Author | P2 |
+| Config / ablation | — (data audit, **unplanned**; EXP-003–012 keep their planned numbers) |
+| Split used | **validate** · test **not read** (the builder refuses it) |
+| Git commit | task 1a, "decode validate.csv into the chest-pain parquet" |
+| Seed | n/a (deterministic) |
+
+**Question:** Task 1a decodes the labels for the first time. What does the ground truth look like
+for a closed-world system that can only name 13 conditions? And does a listed evidence token always
+mean the finding is present?
+
+**Setup:** `scripts/build_ddxplus_chestpain.py` on `validate.csv`, which writes
+`data/interim/ddxplus_chestpain_validate.summary.json`. A *ceiling* is the best average score that a
+**perfect** system able to list only our 13 conditions could reach, using the docs/05 §3.1
+definitions. For Recall@5 that is `min(5, |D ∩ in-scope|) / |D|` per patient; for Precision@3 it is
+`min(3, |D ∩ in-scope|) / 3`.
+
+**Results:**
+
+| Measure | Value |
+|---|---|
+| In-scope patients | 33,963 (matches EXP-002) |
+| Ground-truth differential D, size | 12.0 entries on average, 6.7 of them in scope |
+| Patients whose D includes out-of-scope conditions | **31,185 (91.8%)** |
+| Out-of-scope share of D's probability mass | **33.3%** mean · 34.9% median · 52.4% p90 |
+| True pathology inside its own D · ranked first in it | 100% · 71.2% |
+| **Recall@5 ceiling, D as docs/05 defines it** | **0.434** |
+| Recall@5 ceiling, D restricted to the 13 in-scope conditions | 0.753 |
+| Precision@3 ceiling (the same under either D) | 0.929 |
+| Tokens that mean "no" (the evidence's default value, or NA) | 45,049, in 31,189 patients |
+| … the most common | `E_204_@_V_10`, travelled abroad: N (30,416, **89.6%** of patients) · `E_57_@_V_123`, radiates nowhere (8,857) |
+
+**Interpretation:**
+
+1. **R-13 reaches the labels, not just the inputs.** The ground-truth differentials are open-world:
+   a third of their probability mass sits on conditions Nightingale cannot output. The most frequent
+   are scombroid food poisoning, anemia, acute dystonic reactions and Guillain-Barré syndrome. These
+   come from DDXPlus's differential generator, not from clinical chest-pain reasoning.
+2. **As written, Recall@5 cannot exceed 0.434, even for a perfect system.** It mostly measures the
+   closed-world gap, plus the fact that |D| > 5, rather than ranking quality. docs/05 is frozen, so
+   this goes to the team as decision **D-8** instead of being changed here. Top-k accuracy, MRR and
+   must-not-miss recall use the true pathology and are unaffected. Precision@3 barely moves (0.929),
+   because out-of-scope entries do not lower it.
+3. **A listed token is not a present finding.** Default-valued tokens ("N", "nowhere", 0, NA) are
+   listed for 91.8% of patients. Counting "the code is listed" as "the patient has it" would give
+   89.6% of patients a travel history. `positive_codes` in `src/ddxplus.py` handles this, and the KG
+   matching (1b) and feature encoding (1c) must use it.
+4. **EXP-002's 801 "unknown" NA tokens are pain-free patients.** None lists `E_53`, and 771 are PSVT.
+   Their pain questions are filled with defaults.
+
+**Next action:** D-8 goes to the team, and must be decided before any Precision@3 or Recall@5 number
+is produced. 1b builds KG matching on `positive_codes`, and 1c selects features with `INPUT_COLUMNS`.
+
+---
+
 ### EXP-002 — Class balance of the 13 conditions (validate split)
 
 | Field | Value |
@@ -218,3 +277,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-010 | B4 text-RAG + LLM | 3 | H3 |
 | EXP-011 | Retrieval quality sweep | 3 | Chunking/embedding choice |
 | EXP-012 | **Full ablation A0–A6** `[TEST]` | 4 | H1, H2, H4 |
+| EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |

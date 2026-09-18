@@ -29,7 +29,8 @@ terms change.
 - Columns: `AGE`, `SEX`, `PATHOLOGY` (ground truth), `DIFFERENTIAL_DIAGNOSIS` (**ranked list with
   probabilities**), `EVIDENCES`, `INITIAL_EVIDENCE`.
 - **Evidences are coded** (`E_54_@_V_161`). Decoding via the release evidence-mapping file is a
-  prerequisite for all modelling — see `scripts/decode_ddxplus.py`.
+  prerequisite for all modelling — see `scripts/decode_ddxplus.py` (the vocabulary) and
+  `scripts/build_ddxplus_chestpain.py` (the patient rows, §2.1).
 - We filter to the **13 in-scope chest-pain conditions**; all other pathologies are dropped.
 - *Attribution:* Tchango et al., DDXPlus (NeurIPS 2022), arXiv:2205.09148.
 
@@ -80,8 +81,10 @@ data/                        # gitignored in its entirety
 │   ├── uci_heart/
 │   └── pubmed/
 ├── interim/                 # decoded / parsed, pre-feature
-│   ├── ddxplus_decoded.parquet
-│   ├── ddxplus_chestpain.parquet     # the 13-condition filter
+│   ├── ddxplus_evidences.json                  # decoded evidence vocabulary (decode_ddxplus.py)
+│   ├── ddxplus_chestpain_conditions.json       # the 13 conditions' evidence sets: the KG source
+│   ├── ddxplus_chestpain_<split>.parquet       # the 13-condition filter, one row per patient (§2.1)
+│   ├── ddxplus_chestpain_<split>.summary.json  # its counts and label audit (EXP-013)
 │   └── bodhi_cardiac_triples.jsonl
 ├── processed/               # model-ready
 │   ├── train.parquet  val.parquet  test.parquet
@@ -91,6 +94,58 @@ data/                        # gitignored in its entirety
 
 **`raw/` is immutable.** Every transformation is a script in `scripts/` or `src/`, so the chain
 from download to result is reproducible.
+
+Only the in-scope subset of DDXPlus is materialised; the plan's `ddxplus_decoded.parquet` (all 49
+pathologies) is not built. It would be needed only for the R-13 stretch goal, an out-of-scope
+signal trained on the other 36 pathologies. There is one parquet per split, so the test file cannot
+exist until Phase 4 opens that split.
+
+### 2.1 Dataset card — `ddxplus_chestpain_<split>.parquet` · *added 2026-09-18*
+
+Built by `python scripts/build_ddxplus_chestpain.py [--split train|validate]`. The decoding logic
+is in `src/ddxplus.py`, which is covered by `tests/test_ddxplus.py`. One row per patient whose
+`PATHOLOGY` is one of the 13 conditions. The builder refuses `--split test` unless
+`evaluation.allow_test_split` in `configs/config.yaml` is `true`. That switch is flipped once, in
+Phase 4.
+
+| Column | Role | Type | Meaning |
+|---|---|---|---|
+| `case_id` | metadata | str | `ddxplus-<split>-<row>`: stable, and traceable to the raw CSV |
+| `split` | metadata | str | `train` or `validate` (`test` only in Phase 4) |
+| `source_row` | metadata | int | 0-based row number in the raw CSV |
+| `initial_evidence` | metadata | str | The presenting complaint. It is always also in `evidences`. **Not an input**, because docs/05 §2 lists only AGE, SEX and EVIDENCES |
+| `age` | **input** | int | 0–109 |
+| `sex` | **input** | str | `M` or `F`. Synthetic: about 50% female for every condition (EXP-002) |
+| `evidences` | **input** | list[str] | The raw tokens, in DDXPlus order, with nothing dropped |
+| `positive_codes` | **input** | list[str] | Evidence *questions* answered with something other than "no". Derived from `evidences` alone |
+| `label_condition_id` | **label** | str | `COND:*` id of `PATHOLOGY`: the top-1 ground truth |
+| `label_pathology` | **label** | str | The raw DDXPlus `PATHOLOGY` string |
+| `label_differential` | **label** | list[struct] | `DIFFERENTIAL_DIAGNOSIS` as `{pathology, condition_id, probability}`. Out-of-scope entries are kept, with `condition_id = null` |
+
+**Never train on a `label_*` column.** The prefix makes the leakage rule in §4 mechanical: feature
+code selects `INPUT_COLUMNS` from `src/ddxplus.py`, and never "every column except the label".
+
+**Tokens that mean "no".** A token being listed does not mean the finding is present. Every
+categorical, multi-choice and ordinal evidence has a default value that means "no". `E_204_@_V_10`
+("travelled abroad: N") is listed for 89.6% of patients, and `E_57_@_V_123` means "the pain radiates
+nowhere". Use `positive_codes`, never "the code appears in `evidences`". An ordinal at its default of
+0 is not counted as positive, although for `E_59` ("how fast did the pain appear?") 0 can be a real
+answer. The raw value stays in `evidences` for the ML features either way.
+
+**Validate split, built 2026-09-18:**
+
+| Measure | Value |
+|---|---|
+| Rows | **33,963** of 132,448 (25.6%). Per-condition counts match EXP-002 exactly |
+| Tokens | 743,822: 295,726 binary · 353,233 categorical value · 94,062 numeric ordinal · 801 NA |
+| Tokens that mean "no" | 45,049, in 31,189 patients |
+| Positive codes per patient | 14.1 on average |
+| File size | 4.6 MB |
+
+The 801 NA tokens (`E_54_@_V_11`, EXP-002's "unknown" tokens) belong to patients with **no pain at
+all**. None of them lists `E_53` ("pain related to the consultation"), and 771 are PSVT. Their pain
+questions are simply filled with defaults. The label audit is **EXP-013** in
+[08-experiment-log.md](08-experiment-log.md).
 
 ---
 

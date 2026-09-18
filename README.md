@@ -282,7 +282,7 @@ Data Use Agreement, no real patient data. **Repo IDs and licenses verified on Hu
 
 ```
 nightingale/
-├── data/                 # datasets (DVC-tracked, NOT committed)
+├── data/                 # datasets: gitignored, never committed, rebuilt by scripts/ (no DVC)
 ├── docs/                 # research prompt, design notes, spec
 ├── notebooks/            # EDA and experiments
 ├── src/
@@ -298,6 +298,7 @@ nightingale/
 │   └── api/              # FastAPI service
 ├── app/                  # clinician dashboard (Streamlit/React)
 ├── configs/              # experiment configs
+├── scripts/              # download, decode and build entry points
 ├── tests/
 ├── requirements.txt
 └── README.md

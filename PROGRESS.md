@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (GPU policy D-7 recorded; 1a + 1b in flight) · **Last verified commit:** `79f7d64`
+**Last updated:** 2026-09-18 · by Claude (D-7 recorded; 1a validate parquet + EXP-013 done; 1b in flight) · **Last verified commit:** `8dced77`
 
 ---
 
@@ -15,13 +15,17 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · GPU policy D-7 recorded; installs await D-4/D-6) · **1a — Data** · 🔄 (parquet in flight) · **1b — KG** · ⬜ (loader next) |
-| **Next action** | Finish in-flight tasks 2–3 (§2): the 1a parquet, then the 1b KG loader on NetworkX. Then ask the user about **D-4** and **D-6** |
-| **Blocked on** | D-4 (full install, ~1 GB with CPU torch) · D-6 (Neo4j image, ~0.5 GB) — need permission · D-5 (LLM pull) waits on **D-7**: where GPU work runs. A university GPU is being sought; **the laptop GPU is used only with the user's permission** |
+| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · GPU policy D-7 recorded; installs await D-4/D-6) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; train awaits download) · **1b — KG** · 🔄 (loader in flight) |
+| **Next action** | Finish in-flight task 3 (§2): the 1b KG loader on NetworkX. Then ask the user about **D-4** and **D-6**, and take **D-8** to the team |
+| **Blocked on** | D-4 (full install, ~1 GB with CPU torch) · D-6 (Neo4j image, ~0.5 GB) — need permission · D-5 (LLM pull) waits on **D-7**: where GPU work runs. A university GPU is being sought; **the laptop GPU is used only with the user's permission** · **D-8** (definition of D) blocks any Precision@3 / Recall@5 number |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 33 tests passing locally · CI green on GitHub at `843c5fb` |
+| **Health** | 68 tests passing locally · CI green on GitHub at `8dced77` |
 
-**Handoff note for the next session:** Nothing is in flight. Before touching the knowledge graph,
+**Handoff note for the next session:** Task 3 of §2 (the 1b KG loader) may still be in flight;
+check §2 first. The chest-pain parquet exists for **validate** only (`docs/03` §2.1). EXP-013 found
+two things everyone must know. First, **a listed DDXPlus token can mean "no"**
+(`E_204_@_V_10` = "did not travel"), so use `positive_codes()`. Second, **the ground-truth
+differentials are open-world**, so `Recall@5` as written tops out at 0.434 (**D-8**). Before touching the knowledge graph,
 read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus `release_conditions.json`,
 **not** BODHI-S, which creates circularity risk R-12. EXP-002 added two things every result must
 respect: the system is **closed-world** (R-13 — only 13 conditions exist for it), and DDXPlus
@@ -43,12 +47,23 @@ before using the laptop GPU**, because the team is seeking a university GPU, and
 
 | # | Task — one commit each | State |
 |---|---|---|
-| 1 | GPU policy: record D-7 (laptop GPU only with permission; university GPU sought) in `CLAUDE.md`, here, the setup docs, the risk register and `docs/09`; re-frame D-4/D-5; fix the torch pin | ✅ committed with this file |
-| 2 | 1a: `validate.csv` → `data/interim/ddxplus_chestpain_validate.parquet` — decoder in `src/ddxplus.py`, tests, dataset card in `docs/03` | ⬜ next |
-| 3 | 1b: KG loader + NetworkX `GraphStore` — `src/medical_kg/`, tests, KG card in `docs/02` | ⬜ |
+| 1 | GPU policy: record D-7 (laptop GPU only with permission; university GPU sought) in `CLAUDE.md`, here, the setup docs, the risk register and `docs/09`; re-frame D-4/D-5; fix the torch pin | ✅ `8dced77` |
+| 2 | 1a: `validate.csv` → `data/interim/ddxplus_chestpain_validate.parquet` — decoder in `src/ddxplus.py`, builder `scripts/build_ddxplus_chestpain.py`, tests, dataset card in `docs/03`, label audit EXP-013, decision D-8 | ✅ committed with this file |
+| 3 | 1b: KG loader + NetworkX `GraphStore` — `src/medical_kg/`, tests, KG card in `docs/02` | ⬜ next |
 
 **If interrupted:** run `git status`. The task with uncommitted files is the one that was cut off.
-Tasks 2 and 3 need no downloads. `networkx` is a small (~2 MB) install for task 3.
+Task 3 needs no downloads beyond `networkx`, a small (~2 MB) pure-Python install.
+
+- **Task 3 — files expected to change:** `src/medical_kg/{__init__,loader,networkx_store}.py`,
+  `src/ddxplus.py` (a concept-id helper), `scripts/build_cardiac_kg.py`, `tests/test_medical_kg.py`,
+  `requirements-dev.txt` (+networkx), `docs/02` §5, `docs/09` P1, `docs/10` actions, this file.
+- **Design, so a resumed session does not re-derive it:** node ids are `COND:*` for conditions and
+  `DDX:E_nn` for DDXPlus evidence *questions*. Every edge carries a `source` attribute
+  (`ddxplus` / `bodhi_s` / `hand_authored`), so the R-12 disclosure can report the KG's
+  contributions by source. The store scores with weighted overlap, a drop-in for
+  `InMemoryGraphStore`. The pipeline and golden cases are **not** switched to it: they use `SYM:*`
+  ids, which need the crosswalk (a later 1b task).
+- **Safe to resume blindly?** No. Run the tests first; a half-written store may fail to import.
 
 <!-- Template — copy above the line when a task starts:
 - **Task:** <one line>
@@ -70,6 +85,7 @@ Tasks 2 and 3 need no downloads. `networkx` is a small (~2 MB) install for task 
 | **D-5** | `ollama pull llama3.1:8b` — **lengthy (~4.9 GB), needs permission** | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Defer until D-7:** the LLM is Phase 3 (Week 6), and Ollama runs any model on the GPU automatically, so even a smoke test on the laptop would use the laptop GPU. Pull it where it will be served | Phase 3 explainer |
 | **D-6** | Start Docker Desktop and pull the `neo4j:5-community` image — **lengthy (~0.5 GB), needs permission** | Neo4j now · NetworkX only until 1b needs a real graph DB | **Neo4j now** — Docker setup problems are better found early (R-06). No GPU involved. The NetworkX backend (in flight) removes the hard dependency | 1.0 · 1b Neo4j store |
 | **D-7** 🆕 | **Where GPU work runs** (LLM + embeddings, Phase 3). *Set by the user 2026-09-18:* the team is seeking a **university GPU**, and the **laptop RTX 5060 is used only with the user's explicit permission, asked before each use** | University GPU, if granted · laptop RTX 5060, with permission · CPU only (slow LLM; the templated explainer is the fallback) | Waiting on the university. **Decide by 2026-10-14** (end of Week 4) so Phase 3 (from 2026-10-22) is not blocked. If there is no university GPU by then, ask the user about the laptop GPU for Phase 3 (risk R-14) | D-5 · 3a embeddings · 3b LLM · any CUDA install |
+| **D-8** 🆕 | **What the ground-truth differential D means** in Precision@3 and Recall@5 (`docs/05` §3.1). EXP-013: 91.8% of in-scope patients' D contain conditions we cannot output (33% of the probability mass), so **Recall@5 as written tops out at 0.434 for a perfect system**. `docs/05` is **frozen**, so any change is a dated amendment in its §9, approved by the team **before any model is evaluated** | Keep as written · **restrict D to the 13 in-scope conditions** (ceiling 0.753) · restrict and renormalise the probabilities | **Restrict D to the in-scope conditions** for the headline figure, and report the as-written figure alongside it for comparison with published DDXPlus results. Top-k accuracy, MRR and must-not-miss recall are unaffected | 1e metrics · any Precision@3 / Recall@5 number |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
 
@@ -174,7 +190,7 @@ evaluation protocol frozen ✅ · **Neo4j + Ollama running ⚠️ not met — ca
 - [x] `docs/05` evaluation protocol **frozen** at v1.1, before any model was trained — `8b682e9`
 - [x] Session continuity: `PROGRESS.md` + `CLAUDE.md` — `51b49ce`
 
-### Phase 1 — Data & Knowledge Foundations → Walking Skeleton · ⬜
+### Phase 1 — Data & Knowledge Foundations → Walking Skeleton · 🔄
 **Exit criteria:** 🎯 **W3 milestone** — a case produces a ranked differential from the **real** ML
 ranker with **real** KG-matched supporting findings, end to end · CI green.
 
@@ -192,7 +208,8 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 **1a — Data & class balance · 🔄** · P2
 - [x] DDXPlus `validate.csv` downloaded (D-1, 87 MB); `train.csv` / `test.csv` deferred until training — `843c5fb`
 - [x] EXP-002 on validate: R-03 not triggered (rarest ≈10,880 projected training cases; 2.7× imbalance); **R-13 opened** (closed-world) — `843c5fb`
-- [ ] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain.parquet`
+- [x] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain_validate.parquet` (33,963 rows; one file per split, and the builder refuses the test split). `src/ddxplus.py` + `scripts/build_ddxplus_chestpain.py` + 35 tests. Label audit **EXP-013** → R-13 extended, **D-8** opened — → pending
+- [ ] Build the train parquet when `train.csv` is downloaded: `scripts/build_ddxplus_chestpain.py --split train`
 - [ ] Re-confirm EXP-002 counts on `train.csv` once it is downloaded
 
 **1b — Cardiac medical KG · ⬜** · P1
@@ -280,7 +297,8 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Neo4j | never started |
 | Ollama | 0.34.1 installed · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` · runs models **on the GPU by default**, so running one is laptop-GPU use |
 | GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (torch ≥ 2.7 / CUDA 12.8) · **use only with the user's permission** (D-7); a university GPU is being sought · `compute.device: cpu` in `configs/` |
-| Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json` · `train.csv` / `test.csv` **not downloaded** |
+| Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json`, **`ddxplus_chestpain_validate.parquet`** (4.6 MB) + `.summary.json` · `train.csv` / `test.csv` **not downloaded** |
+| Local venv extras | `requirements-dev.txt` now also carries pandas, numpy and pyarrow (moved from `requirements.txt`, so CI tests the parquet builder) |
 
 Re-verify this table whenever the environment changes, and date it.
 
@@ -290,7 +308,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed | → pending |
+| 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8** | `8dced77` → pending |
 | 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `843c5fb` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |

@@ -31,7 +31,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ## Hard rules
 
 - Never commit anything under `data/`.
-- Never use DDXPlus `DIFFERENTIAL_DIAGNOSIS` as a model input — it is the label.
+- Never use DDXPlus `DIFFERENTIAL_DIAGNOSIS` as a model input — it is the label. In the parquet it
+  is `label_differential`; select features with `INPUT_COLUMNS` from `src/ddxplus.py`.
 - Never touch the test split before Phase 4 (`docs/05` §2).
 - Never remove or weaken the disclaimer; never add treatment or drug recommendations.
 - `src/contracts.py` changes need all four team members — flag them rather than just making them.
@@ -53,8 +54,14 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   into one of them. Say so wherever results are reported.
 - DDXPlus demographics are synthetic: every condition is ~50% female, and MI has a median age of 45.
   **Near-equal by-sex results are an artifact, not evidence of fairness** (EXP-002).
-- Patient evidence tokens come in three kinds: categorical codes, **numeric ordinal scales**
-  (`E_56_@_4`, 12.6% of tokens — encode as ordered, not one-hot), and the `V_11` "NA" sentinel.
+- Patient evidence tokens come in four forms: binary, categorical value, **numeric ordinal**
+  (`E_56_@_4`, 12.6% of tokens; encode as ordered, not one-hot) and the `V_11` "NA" sentinel.
+- **A listed DDXPlus token can mean "no".** `E_204_@_V_10` means "did not travel" and is listed for
+  89.6% of patients; `E_57_@_V_123` means "radiates nowhere". To find what a patient actually has,
+  use `positive_codes()` in `src/ddxplus.py`, never "the code appears in EVIDENCES" (EXP-013).
+- **The ground-truth differentials are open-world** (EXP-013): 33% of their probability mass is on
+  conditions we can't output, so `Recall@5` as `docs/05` defines it tops out at 0.434. Decision
+  D-8 is open. Don't report that metric until it is settled.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still
@@ -74,9 +81,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe -m black src tests scripts       # format
 ./.venv/Scripts/python.exe -m ruff check src tests scripts  # lint
 ./.venv/Scripts/python.exe scripts/demo.py --case GC-003    # walking skeleton
+./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ```
 
 ## Where things are
 
-`docs/README.md` document index · `docs/02` architecture and contracts · `docs/05` evaluation
-protocol (frozen) · `docs/07` risk register · `docs/08` experiment log · `docs/10` R-01 spike report
+`docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
+chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
+experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
+decoding

@@ -114,6 +114,12 @@ possibly with confidence.
 3. *Stretch:* DDXPlus's other 36 pathologies are a ready-made source of out-of-scope examples for an
    abstention / out-of-distribution signal.
 
+*The labels are open-world too* (EXP-013, 2026-09-18). 91.8% of in-scope patients' ground-truth
+differentials include out-of-scope conditions, which hold 33% of the probability mass on average.
+As docs/05 §3.1 defines Recall@5, a perfect 13-condition system could not score above **0.434**.
+The definition of D is therefore open as decision **D-8** in `PROGRESS.md`. docs/05 is frozen, so
+any change goes through its amendment log.
+
 ---
 
 ### 🟡 R-05 — Local LLM too slow or too large for the available GPU
@@ -216,3 +222,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-17 | **R-01 closed** (31% < 60% gate → fallback adopted); **R-12 opened** (circularity, spawned by the R-01 resolution) | — |
 | 1 | 2026-09-18 | **R-03 resolved** on projection (EXP-002: min ≈10,880 train cases, 2.7× imbalance); **R-13 opened** (closed-world assumption, found by EXP-002) | — |
 | 1 | 2026-09-18 | **R-14 opened** (no GPU secured for Phase 3): the laptop GPU is used only with the owner's permission, and a university GPU is being sought | — |
+| 1 | 2026-09-18 | **R-13 extended** by EXP-013: the ground-truth differentials are open-world too (Recall@5 ceiling 0.434), which raises decision D-8 | — |

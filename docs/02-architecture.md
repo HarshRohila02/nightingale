@@ -285,10 +285,13 @@ nightingale/
 ├── docs/                 # this documentation set
 ├── src/
 │   ├── contracts.py      # §4 — the single source of truth for schemas
+│   ├── conditions.py     # the conditions in scope (13 trainable + aortic dissection)
+│   ├── ddxplus.py        # DDXPlus token grammar, column roles, test-split gate (shared)
 │   ├── pipeline.py       # orchestrator
 │   ├── nlp/ patient_kg/ medical_kg/ ml/ fusion/ reasoning/ rag/ llm/ eval/ api/
 ├── app/                  # Streamlit dashboard
-├── scripts/              # download_data.py, decode_ddxplus.py, build_cardiac_kg.py
+├── scripts/              # download_data.py, decode_ddxplus.py, build_ddxplus_chestpain.py,
+│                         # build_cardiac_kg.py
 ├── configs/  notebooks/  tests/  data/   # data/ is gitignored
 └── docker-compose.yml    # Neo4j
 ```

@@ -11,6 +11,11 @@
 # Needed by the test suite itself
 pydantic~=2.9
 pyyaml~=6.0
+# ...and by the DDXPlus parquet builder, which tests/test_ddxplus.py runs end to end.
+# They moved here from requirements.txt (2026-09-18) so CI tests the real builder.
+pandas~=2.2
+numpy~=1.26
+pyarrow~=17.0
 
 # Test runner
 pytest~=8.3

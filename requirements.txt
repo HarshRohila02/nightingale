@@ -22,9 +22,7 @@
 python-dotenv~=1.0
 
 # --- Data ------------------------------------------------------------------ #
-pandas~=2.2
-numpy~=1.26
-pyarrow~=17.0
+# pandas, numpy and pyarrow come from requirements-dev.txt above (the tests need them)
 datasets~=3.0          # Hugging Face: DDXPlus, BODHI-S, UCI Heart
 requests~=2.32
 
