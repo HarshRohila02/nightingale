@@ -4,10 +4,11 @@
 seed: 42 # used for splits, Synthea generation, and model training
 
 compute:
-  # cpu | cuda. GPU use is opt-in: the project owner's laptop GPU (RTX 5060) is used
-  # only with their explicit permission, and the team is seeking a university GPU.
-  # Where GPU work runs is decision D-7 in PROGRESS.md. Code must read this value
-  # and never switch to CUDA on its own.
+  # cpu | cuda. Code must read this value and never switch to CUDA on its own.
+  # Leave it at cpu on the owner's laptop. GPU tests there run by hand from the
+  # separate .venv-gpu; heavy jobs run on the cloud or the university GPU, and the
+  # owner picks where for each one (docs/11, decision D-7). Cloud job commands
+  # set cuda explicitly.
   device: cpu
 
 paths:
@@ -33,8 +34,11 @@ datasets:
 
 graph:
   backend: neo4j # neo4j | networkx (networkx is the fallback, risk R-06)
-  # Status 2026-09-18: networkx is implemented (src/medical_kg/networkx_store.py);
-  # the Neo4j store waits on Docker (decision D-6). Nothing reads this key yet.
+  # Status 2026-09-18: networkx is implemented (src/medical_kg/networkx_store.py).
+  # Neo4j will run on AuraDB Free (decision D-6); the Neo4j store waits for the
+  # owner's instance (docs/11 §5). Nothing reads this key yet.
+  # The real URI comes from NEO4J_URI in .env (AuraDB: neo4j+s://<id>.databases.neo4j.io);
+  # this value is only the local-Docker default.
   uri: bolt://localhost:7687
   database: neo4j
 
@@ -59,9 +63,10 @@ retrieval:
 
 llm:
   provider: ollama
-  model: llama3.1:8b # quantised (~4.9 GB); served from the GPU host chosen in D-7
-  # Ollama puts the model on a GPU automatically. On the owner's laptop that is GPU
-  # use and needs their permission; to stay on the CPU, pass the option num_gpu: 0.
+  model: llama3.1:8b # quantised (~4.9 GB); pulled where it runs (D-5, Phase 3)
+  # Ollama puts the model on a GPU automatically. On the owner's laptop only the
+  # owner runs it, by hand, for tests (docs/11 §3). Batch runs (the B3/B4
+  # baselines) go to the cloud or the university GPU, and the owner picks where.
   temperature: 0.1 # low — this is an explainer, not a writer
   max_tokens: 512
   timeout_seconds: 30 # falls back to TemplateExplainer on timeout

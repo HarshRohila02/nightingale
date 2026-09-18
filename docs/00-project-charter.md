@@ -125,11 +125,13 @@ complete ablation study showing which components help.
 
 ## 10. Constraints & Assumptions
 
-- **Compute:** team laptops + free-tier cloud. No paid API budget; the language model runs locally
-  via Ollama. *(Updated 2026-09-18.)* GPU work, meaning the LLM and embeddings in Phase 3, runs on a
-  **university GPU** if access is granted. The project owner's laptop GPU (RTX 5060, 8 GB) is the
-  fallback and is used **only with their explicit permission**. Nothing before Phase 3 needs a GPU.
-  See decision D-7 in `PROGRESS.md` and risk R-14.
+- **Compute:** team laptops for development, plus free-tier cloud and (if granted) a university GPU
+  for heavy jobs. No paid API budget; the language model is self-hosted via Ollama. *(Updated
+  2026-09-18, decision D-7.)* Every training or tuning run, and any job over ~5 minutes, runs where
+  the project owner decides: normally Google Colab, Kaggle, Lightning AI / Studio Lab or the
+  university GPU. The owner's laptop GPU (RTX 5060, 8 GB) is **only for short tests the owner runs
+  by hand**. Neo4j runs on AuraDB Free. See [11-compute-runbook.md](11-compute-runbook.md) and risk
+  R-14.
 - **Time:** 8–10 weeks with daily work.
 - **Licensing:** BODHI-S is CC-BY-NC-4.0 — the project must remain **non-commercial**.
 - **Assumption:** DDXPlus coded evidences can be aligned with BODHI-S symptom names. *This is

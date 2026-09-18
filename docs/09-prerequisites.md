@@ -18,7 +18,7 @@ Phase 0 documentation; role sections can be learned just-in-time at the start of
 |---|---|---|
 | **Git branching & PRs** | Four people on one repo; merge conflicts will happen | Create a branch, rebase, open a PR, resolve a conflict |
 | **Virtual environments** | Reproducible results are a grading criterion | `venv` + pinned `requirements.txt` |
-| **Docker basics** | Neo4j runs in a container | `docker compose up -d`, read logs, stop/remove |
+| **Docker basics** *(optional since 2026-09-18)* | Only needed for a local Neo4j. The team uses AuraDB Free ([11](11-compute-runbook.md) §5) | `docker compose up -d`, read logs, stop/remove |
 | **Type hints + dataclasses** | All inter-module contracts are typed | Read and write `@dataclass` with `list[str]`, `Optional[...]` |
 | **pytest** | Golden clinical cases are enforced in CI | Write a test, use fixtures, run one test file |
 
@@ -75,18 +75,30 @@ nonsense output.**
 - **Calibration** — a model saying "70%" should be right 70% of the time. Raw scores are *not*
   probabilities until proven.
 
-### 1.4 Compute & GPU etiquette (30 minutes) · *added 2026-09-18*
+### 1.4 Compute: where jobs run (30 minutes) · *updated 2026-09-18*
 
-- **GPU use is opt-in.** Everything up to Phase 3 runs on the CPU, including the XGBoost baseline.
-  Code that could use a GPU reads `compute.device` from `configs/config.yaml`, which defaults to `cpu`.
-- **The project owner's laptop GPU is used only with their explicit permission,** asked before
-  each new use. Three things use it without saying so:
+The rules are in [11-compute-runbook.md](11-compute-runbook.md) §1 (decision D-7). In short:
+
+- Tests, lint and scripts that take **under ~5 minutes** run on your own machine.
+- **Every training or tuning run, and any job over ~5 minutes, runs where the project owner
+  decides.** That is usually the cloud or the university GPU. Code that could use a GPU reads
+  `compute.device` from `configs/config.yaml`, which defaults to `cpu`.
+- **The owner's laptop GPU is only for short tests, which the owner runs by hand.** Three things use
+  a GPU without saying so:
   - torch code that picks CUDA automatically, once the CUDA build is installed;
   - XGBoost with `device="cuda"`;
-  - **any model run through Ollama**, which loads onto the GPU by default. Pass the option
-    `num_gpu: 0` to keep it on the CPU.
-- **If the university GPU is granted** (decision D-7 in `PROGRESS.md`, risk R-14), whoever sets it
-  up should learn the following before Phase 3:
+  - **any model run through Ollama**, which loads onto the GPU by default.
+
+Cloud skills, for whoever runs a heavy job:
+
+| Skill | Why it matters here | Get to this level |
+|---|---|---|
+| **Colab / Kaggle / Lightning AI notebooks** | Heavy jobs run there | Pick a GPU runtime; clone the repo at a given commit; install the requirements; fetch the data from Hugging Face ([11](11-compute-runbook.md) §4) |
+| **Saving work before a session ends** | Free sessions end without warning | Write outputs as you go (Google Drive in Colab, `/kaggle/working` in Kaggle) and resume from the last checkpoint |
+| **Keeping the data private** | BODHI-S is non-commercial and DDXPlus needs attribution | Private notebooks only; never publish the data, or a model trained on it |
+
+**If the university GPU is granted** (risk R-14), whoever sets it up should learn the following
+before Phase 3:
 
 | Skill | Why it matters here | Get to this level |
 |---|---|---|
@@ -108,6 +120,7 @@ nonsense output.**
 | **Neo4j Python driver** | Sessions, parameterised queries, batch writes | Official driver docs |
 | **Graph algorithms** | Personalised PageRank, degree/weight scoring — conceptually | NetworkX docs; Neo4j GDS overview |
 | **Text parsing** | Regex/rule parsing of BODHI-S triples into edges | Python `re` |
+| **Neo4j AuraDB** *(added 2026-09-18)*: the team's Neo4j runs in Neo4j's cloud (D-6) | Connect the Python driver to the `neo4j+s://` URI read from `.env`; never hard-code or print the password | Aura docs; Neo4j Python driver docs |
 | **NetworkX** *(added 2026-09-18)*: the KG's working backend until Neo4j runs (D-6) | `MultiDiGraph` with keyed parallel edges, node and edge attributes, `out_edges(data=True)`, `nx.freeze`; `pagerank(personalization=…)` for 2a | NetworkX tutorial |
 
 *Where to start (updated 2026-09-18):* the KG loader and the NetworkX store exist. Read

@@ -14,16 +14,20 @@ py -3.11 -m venv .venv        # macOS/Linux: python3.11 -m venv .venv
 # Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
 pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu    # CPU build first
 pip install -r requirements.txt
-docker compose up -d          # Neo4j
+cp .env.example .env          # Neo4j runs on AuraDB Free; add its details (docs/11 §5)
 ```
 
-- **GPU use is opt-in** (2026-09-18). Everything up to Phase 3 runs on the CPU, including the XGBoost
-  baseline. The team is seeking a **university GPU** for the LLM and embedding work; the project
-  owner's **laptop GPU is used only with their explicit permission**, asked before each new use.
-  Which machine does GPU work is decision **D-7** in `PROGRESS.md`. Code that can use a GPU reads
-  `compute.device` from `configs/config.yaml` (default `cpu`) and never picks CUDA on its own. That
-  includes `torch.cuda.is_available()` auto-selection, XGBoost `device="cuda"`, and Ollama, which
-  puts a model on the GPU unless told `num_gpu: 0`.
+- **Where jobs run** (decision D-7, 2026-09-18; full rules in
+  [11-compute-runbook.md](11-compute-runbook.md)). Tests, lint and scripts under ~5 minutes run
+  locally. **Every training or tuning run, and any job over ~5 minutes (CPU jobs too), runs where
+  the project owner decides**: the cloud (Colab, Kaggle, Lightning AI / Studio Lab), the
+  university GPU, or the laptop. The owner's **laptop GPU is only for short tests the owner runs by
+  hand**, from a separate `.venv-gpu`. Code that can use a GPU reads `compute.device` from
+  `configs/config.yaml` (default `cpu`) and never picks CUDA on its own. That rules out
+  `torch.cuda.is_available()` auto-selection, XGBoost `device="cuda"` by default, and Ollama
+  calls, since Ollama puts a model on the GPU unless told `num_gpu: 0`.
+- **Write long jobs to survive a disconnect.** Cloud sessions end without warning, so a job script
+  must save its outputs as it goes and be able to resume.
 
 - **Python 3.11** — the team standard (decision D-2), matching CI. The code only *needs* ≥ 3.10 (for
   `X | None` in the contracts), but everyone develops on 3.11 so behaviour and tool output are

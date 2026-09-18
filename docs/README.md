@@ -18,18 +18,19 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | 07 | [Risk Register](07-risk-register.md) | What could go wrong and who is watching it | P1 |
 | 08 | [Experiment Log](08-experiment-log.md) | Running record of every run | P2 |
 | 10 | [Spike R-01: Crosswalk](10-spike-r01-crosswalk.md) | Measured result that set the knowledge-graph strategy | P1 |
+| 11 | [Compute Runbook](11-compute-runbook.md) | Where each job runs; the owner's laptop-GPU steps; cloud jobs; AuraDB setup | Owner + P4 |
 
 ## Reading paths
 
 - **New team member:** Prerequisites → 00 → 02 → 06
 - **Supervisor / reviewer:** 00 → 01 → 05 → 04
-- **Starting to code:** 02 (contracts) → 06 (conventions) → 03 (data)
+- **Starting to code:** 02 (contracts) → 06 (conventions) → 03 (data) → 11 (where jobs run)
 
 ## Document status
 
 | Document | Status | Must be frozen by |
 |---|---|---|
-| 00–04, 06–09 | Draft, living | — |
+| 00–04, 06–11 | Draft, living | — |
 | **05 Evaluation Protocol** | **🔒 Frozen 2026-09-17**, changed only via its amendment log (proposed amendment: D-8 in `PROGRESS.md`) | Before any model is trained ✅ |
 
 > ⚠️ Document 05 is the one that must not change after modelling begins. Changing metrics after

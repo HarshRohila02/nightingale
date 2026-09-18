@@ -25,14 +25,16 @@ py -3.11 -m venv .venv                # team standard is Python 3.11 (D-2); macO
 # Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
 pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu   # CPU build, BEFORE requirements
 pip install -r requirements.txt
-docker compose up -d                  # Neo4j
+cp .env.example .env                  # then add the Neo4j AuraDB details (docs/11 §5)
 python scripts/download_data.py       # fetches DDXPlus, BODHI-S, UCI Heart
 ```
 
-**GPU use is opt-in.** Everything up to Phase 3 runs on the CPU. The team is seeking a university GPU
-for the LLM and embedding work (decision D-7 in [`PROGRESS.md`](PROGRESS.md)); the project owner's
-laptop GPU is used only with their explicit permission. Code that can use a GPU must read
-`compute.device` from `configs/config.yaml`, which defaults to `cpu`.
+**Where jobs run** ([docs/11](docs/11-compute-runbook.md)). Heavy jobs run on the cloud (Colab,
+Kaggle, Lightning AI / Studio Lab) or the university GPU, and the project owner picks where for each
+one. Heavy jobs means every training or tuning run, anything over ~5 minutes, and batch LLM or
+embedding runs. The owner's laptop GPU is only for short tests, which the owner runs by hand. Code
+that can use a GPU must read `compute.device` from `configs/config.yaml`, which defaults to `cpu`, so
+a job script is given the GPU explicitly on the machine where it runs.
 
 ## Workflow
 

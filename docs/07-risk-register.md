@@ -136,8 +136,27 @@ asynchronous in the UI; templated fallback always available.
 
 ---
 
-### 🟠 R-14 — No GPU secured for Phase 3
-**L 3 · I 3 · Score 9 · Owner P3 · Status: OPEN** · *opened 2026-09-18*
+### 🟡 R-14 — Heavy jobs depend on free cloud tiers and university access *(was: No GPU secured for Phase 3)*
+**L 2 · I 3 · Score 6 · Owner P3 · Status: OPEN** · *opened 2026-09-18, re-scoped the same day* ·
+~~L 3 · I 3 · Score 9~~
+
+*Update 2026-09-18, from the owner's compute policy (D-7,
+[11-compute-runbook.md](11-compute-runbook.md)).* Heavy jobs run on the cloud (Colab free, Kaggle,
+Lightning AI / Studio Lab) or the university GPU, and the owner chooses per job. The laptop GPU is
+available for the owner's own short tests. Free GPU tiers exist, so the risk is no longer "no GPU
+at all". It is now the free tiers' limits: sessions that end without warning, weekly quotas, and
+GPUs that are not guaranteed.
+
+*Mitigation, current:*
+1. Job scripts save outputs as they go and can resume (docs/06 §1). Kaggle's background runs suit
+   long jobs.
+2. There are three platforms, so a quota running out on one does not stop the work.
+3. Nothing before Phase 3 needs a GPU. Long CPU jobs go to the cloud too.
+4. The CPU fallbacks still exist: the templated explainer, and the LLM explainer being last in the
+   cut line.
+5. Start the university setup as soon as access is granted (docs/09 §1.4, docs/11 §6).
+
+*Original assessment, kept for the record:*
 
 The LLM explainer (3b), its baselines B3/B4 (EXP-009/010) and embedding the evidence corpus (3a) need
 a GPU to run at a usable speed. The team is seeking access to a **university GPU**. The project
@@ -157,8 +176,13 @@ the CPU and R-05 fires.
 
 ---
 
-### 🟡 R-06 — Neo4j setup consumes disproportionate time
-**L 2 · I 3 · Score 6 · Owner P1 · Status: OPEN*
+### 🟢 R-06 — Neo4j setup consumes disproportionate time
+**L 1 · I 2 · Score 2 · Owner P1 · Status: MITIGATED 2026-09-18** · ~~L 2 · I 3 · Score 6 · OPEN~~
+
+*Update 2026-09-18:* Neo4j will run on **AuraDB Free** (decision D-6), so no Docker is needed on the
+laptop. Two small dependencies replace it: an internet connection, and a free instance that pauses
+when unused (resume it from the Aura console). The NetworkX backend covers both (docs/02 §7), and it
+already works.
 
 *Mitigation:* the `GraphStore` Protocol means a **NetworkX in-memory backend** is a drop-in
 substitute. If Docker is not working by end of Week 2, switch and move on. Do not lose days to
@@ -227,3 +251,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-18 | **R-03 resolved** on projection (EXP-002: min ≈10,880 train cases, 2.7× imbalance); **R-13 opened** (closed-world assumption, found by EXP-002) | — |
 | 1 | 2026-09-18 | **R-14 opened** (no GPU secured for Phase 3): the laptop GPU is used only with the owner's permission, and a university GPU is being sought | — |
 | 1 | 2026-09-18 | **R-13 extended** by EXP-013: the ground-truth differentials are open-world too (Recall@5 ceiling 0.434), which raises decision D-8 | — |
+| 1 | 2026-09-18 | **R-14 re-scoped** (9 → 6) by the owner's compute policy: heavy jobs on the cloud or the university GPU, the laptop GPU for the owner's own tests. **R-06 mitigated** (6 → 2): Neo4j on AuraDB Free, no Docker | — |

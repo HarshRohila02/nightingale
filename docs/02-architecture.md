@@ -292,8 +292,9 @@ independent ones (R-12, docs/05 §8.7).
 5. **The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
    crosswalk first.
 
-**Backend status:** NetworkX ✅, the working backend. Neo4j is pending Docker (decision D-6). Both
-are built from the same `KnowledgeGraph`.
+**Backend status:** NetworkX ✅, the working backend. Neo4j will run on **AuraDB Free** (decision
+D-6) once the project owner creates the instance ([11](11-compute-runbook.md) §5). Both backends are
+built from the same `KnowledgeGraph`.
 
 ---
 
@@ -326,7 +327,8 @@ The UI must always render `degraded_components` — a silently degraded medical 
 problem.
 
 *Until Neo4j runs (D-6), NetworkX is the configured backend rather than a fallback, so nothing is
-reported as degraded. The automatic Neo4j → NetworkX switch arrives with the Neo4j store.*
+reported as degraded. The automatic Neo4j → NetworkX switch arrives with the Neo4j store. With
+AuraDB, "unavailable" also covers a paused instance or no internet connection.*
 
 ---
 
@@ -345,7 +347,7 @@ nightingale/
 ├── scripts/              # download_data.py, decode_ddxplus.py, build_ddxplus_chestpain.py,
 │                         # build_cardiac_kg.py
 ├── configs/  notebooks/  tests/  data/   # data/ is gitignored
-└── docker-compose.yml    # Neo4j
+└── docker-compose.yml    # optional local Neo4j (the team uses AuraDB Free, D-6)
 ```
 
 ---
@@ -360,4 +362,4 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | A-1 | KG backbone: BODHI-S vs DDXPlus co-occurrence | ✅ **Resolved 2026-09-17:** DDXPlus `release_conditions.json`, with BODHI-S as enrichment ([10](10-spike-r01-crosswalk.md)) | P1 |
 | A-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
 | A-3 | Embedding model for retrieval | Phase 3 | P3 |
-| A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is D-7 | P3 |
+| A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |

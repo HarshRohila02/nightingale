@@ -1,4 +1,6 @@
-# Neo4j for the cardiac medical knowledge graph.
+# Neo4j for the cardiac medical knowledge graph: the OPTIONAL local route.
+# The team runs Neo4j on AuraDB Free instead (decision D-6, docs/11 §5), which
+# keeps Docker off the owner's laptop. Use this file only for a local copy.
 #
 #   docker compose up -d      start
 #   docker compose logs -f    watch startup

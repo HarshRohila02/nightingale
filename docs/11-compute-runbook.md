@@ -1,0 +1,196 @@
+# 11 — Compute Runbook: where jobs run, laptop GPU tests, cloud jobs
+
+**Version:** 1.0 · 2026-09-18 · **Set by:** the project owner (decisions D-4, D-6 and D-7 in
+`PROGRESS.md` §6)
+
+> **The owner's laptop is a development machine, not a compute server.** Heavy work goes to the
+> cloud or the university GPU. The laptop GPU is only for short tests, and the owner runs those by
+> hand. Claude writes the steps and reads the output the owner pastes back.
+
+---
+
+## 1. Where each job runs
+
+| Job | Runs on | Ask first? |
+|---|---|---|
+| Tests, lint, formatting, editing | Laptop CPU | No |
+| Short scripts expected to finish in **under ~5 minutes** (data builds, the KG card, quick checks) | Laptop CPU | No |
+| **Every model training or tuning run**, however short | Cloud or university GPU; the laptop only if the owner picks it | **Yes: where it runs** |
+| **Any other job expected to take over ~5 minutes**, CPU jobs included | Cloud or university GPU | **Yes: where it runs** |
+| Batch LLM or embedding runs (B3/B4 baselines, embedding the corpus) | Cloud or university GPU | **Yes: where it runs** |
+| **GPU tests on the laptop**: does CUDA work, a short model load, an Ollama smoke test | Laptop GPU, **run by the owner by hand** (§2–§3) | Claude only writes the steps |
+| The Neo4j graph database | Neo4j AuraDB Free, in Neo4j's cloud (§5) | — |
+| Installing packages | Laptop, one task at a time, only what that task needs | Yes, before each download |
+
+**What counts as training.** Training a model on project data, even a small sample, is a training
+run and needs asking. A unit test that fits a toy model on a few synthetic rows is a test.
+
+**How Claude asks.** Before any job in a "Yes" row, Claude says what the job does, how long it
+should take, what it produces, and asks where to run it: the university GPU (once available),
+Google Colab, Kaggle, Lightning AI / Studio Lab, or the laptop. The cloud is the default suggestion.
+
+---
+
+## 2. Laptop GPU: one-time setup (the owner, ~20 minutes plus a ~3 GB download)
+
+GPU tests run from a **separate environment, `.venv-gpu`**, which has the CUDA build of PyTorch. The
+main `.venv` keeps the CPU build, so everyday work *cannot* use the GPU. The GPU is used only when
+you deliberately run something with `.venv-gpu`.
+
+Run these in PowerShell, from the repository folder (`D:\PRJ-1\medical`).
+
+**Step 1. Check the driver.**
+
+```powershell
+nvidia-smi
+```
+
+The table must name the **NVIDIA GeForce RTX 5060 Laptop GPU**, and the top-right corner must show
+**CUDA Version: 12.8 or higher**. That figure is the newest CUDA your driver supports. If it is lower,
+update the driver with the NVIDIA App or from your laptop maker's support page, restart, and check
+again.
+
+**Step 2. Create the GPU environment.** `.venv-gpu/` is gitignored.
+
+```powershell
+py -3.11 -m venv .venv-gpu
+.\.venv-gpu\Scripts\python.exe -m pip install --upgrade pip
+.\.venv-gpu\Scripts\python.exe -m pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cu128
+.\.venv-gpu\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+The torch download is about 3 GB. The RTX 5060 is a Blackwell GPU, which needs torch 2.7 or newer
+**built for CUDA 12.8** (`cu128`). Older builds and CPU builds cannot use it.
+
+**Step 3. Check that it works.** This takes a few seconds.
+
+```powershell
+.\.venv-gpu\Scripts\python.exe scripts\check_gpu.py --device cuda
+```
+
+A good result has these lines: **CUDA available** is `True`, **device** names the RTX 5060,
+**compute capability** is `12.0`, **sm_120 in build** is `yes`, and **matmul test** is `OK`. Paste
+the whole output to Claude.
+
+| If you see | It means | Fix |
+|---|---|---|
+| **torch build CUDA** is `None` | The CPU build of torch was installed | Repeat the torch line of step 2 |
+| **sm_120 in build** is `NO` | The torch build is too old for Blackwell | Reinstall torch from the `cu128` index |
+| **CUDA available** is `False` | The driver is too old, or Windows is not exposing the GPU | Redo step 1; check the GPU in Device Manager |
+
+---
+
+## 3. Laptop GPU: starting and stopping a test session (the owner)
+
+**Before you start:** plug in the charger (laptop GPUs slow down on battery) and keep the vents clear.
+A test should finish within minutes. Anything longer is a cloud job (§4).
+
+**To watch the GPU (optional, in a second window):** `nvidia-smi -l 2` refreshes every 2 seconds
+(Ctrl+C stops it). Task Manager → Performance → GPU (NVIDIA) shows the same.
+
+**PyTorch tests.** Run the script Claude prepared, always with the GPU environment:
+
+```powershell
+.\.venv-gpu\Scripts\python.exe scripts\<script Claude names>.py --device cuda
+```
+
+The GPU is released when the script ends. Ctrl+C stops it early.
+
+**Ollama (local LLM) tests.** Nothing to download: `qwen2.5-coder:7b` is already installed.
+
+1. Start Ollama from the Start menu, or run `ollama serve` in a terminal.
+2. Run `ollama run qwen2.5-coder:7b "Reply with one word: ready"`.
+3. In a second window, run `ollama ps`. The PROCESSOR column should say **100% GPU**. If it says
+   CPU, update Ollama and the driver.
+
+**To stop Ollama:** `ollama stop qwen2.5-coder:7b` frees the GPU memory at once; otherwise the model
+stays loaded for about 5 minutes. Quit Ollama from its tray icon to stop the server itself. If Ollama
+launches when you sign in to Windows, you can switch that off in Settings → Apps → Startup.
+
+---
+
+## 4. Cloud jobs: Google Colab (free), Kaggle, Lightning AI / Studio Lab
+
+Every heavy job follows the same pattern, whatever the platform.
+
+1. **Claude prepares the job** as a committed script in `scripts/`. It tells you the commit to use,
+   the expected runtime, whether a GPU is needed, and the files the job will produce.
+2. **Open a notebook** on the platform you chose, and set it up. The repository is public, so no
+   token is needed:
+
+   ```python
+   !git clone https://github.com/HarshRohila02/nightingale.git
+   %cd nightingale
+   !git checkout <the commit Claude names>
+   !pip install -q -r requirements-dev.txt huggingface_hub   # plus any extras Claude lists
+   ```
+
+   Our pins can be older than the platform's defaults (numpy 1.26, for example). If the platform
+   asks you to **restart the session** after the install, restart, then carry on from
+   `%cd nightingale`. Cloud runtimes may also run a newer Python than the team's 3.11; the code
+   needs 3.10 or newer, and step 6 records the versions actually used.
+
+3. **Fetch the data from Hugging Face**, never from GitHub or from your laptop:
+
+   ```python
+   from huggingface_hub import hf_hub_download
+   for name in ["release_evidences.json", "release_conditions.json", "validate.csv"]:
+       hf_hub_download("aai530-group6/ddxplus", name, repo_type="dataset",
+                       revision="2ad986acc1ec62fb4a94171acc43f4fdd5bfde53",
+                       local_dir="data/raw/ddxplus")
+   ```
+
+   The pinned `revision` is the snapshot already on the laptop, so the cloud and the laptop work from
+   identical data. Training jobs add `train.csv` to the list. **`test.csv` is never fetched before
+   Phase 4.**
+4. **Run the commands Claude gives.** Job scripts save their outputs as they go, so a disconnect
+   loses little.
+5. **Bring back only small outputs**, such as a metrics JSON or a trained model file. Data and
+   models are never committed.
+6. **Log the run** in `docs/08`: the platform, the GPU type, the commit and the runtime. Save
+   `pip freeze` next to the outputs.
+
+| | Google Colab (free) | Kaggle Notebooks | Lightning AI / Studio Lab |
+|---|---|---|---|
+| **Choose a GPU** | Runtime → Change runtime type → T4 GPU | Settings → Accelerator → GPU. Needs a phone-verified account | Chosen when you start the studio or runtime |
+| **Internet** | On by default | Settings → Internet → On. Needs a phone-verified account | On |
+| **Limits** | A session ends after some hours, or sooner when idle. Free GPU access is not guaranteed | A weekly GPU-hour quota, shown in your account. **Save Version → Save & Run All** keeps running with the browser closed | Free monthly hours or credits. Storage persists between sessions |
+| **Where outputs go** | Google Drive: `from google.colab import drive; drive.mount('/content/drive')` | `/kaggle/working`, which becomes the notebook's Output tab | The studio's persistent storage |
+
+**Rules on every platform:**
+
+- **Keep notebooks and outputs private.** Never publish DDXPlus or BODHI-S data, or a model trained
+  on them, as a public notebook, dataset or model. BODHI-S is CC-BY-NC-4.0 (`docs/03` §1.2).
+- **Never put a secret in a cell.** Nothing here needs a token. If something ever does, use the
+  platform's secrets store: the key icon in Colab, Add-ons → Secrets in Kaggle.
+- **The test split stays closed until Phase 4.** The scripts refuse it unless `configs/config.yaml`
+  allows it, and that file comes with the pinned commit.
+
+---
+
+## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
+
+Neo4j runs in Neo4j's own cloud, so nothing extra runs on the laptop. The knowledge graph holds no
+patient data, and ours (~100 nodes) is far below the free tier's limits.
+
+1. Sign in to the Aura console at <https://console.neo4j.io> and create a **Free** instance. Only you
+   can create the account.
+2. When the instance is ready, **download the credentials file**. The password is shown only once.
+3. Copy `.env.example` to `.env` if you haven't already. Then copy the URI, the username and the
+   password from the credentials file into the `NEO4J_*` lines of `.env`. The URI looks like
+   `neo4j+s://<instance-id>.databases.neo4j.io`. `.env` is gitignored. **Never paste the password
+   into a chat or a commit.**
+4. Tell Claude it is done. The Neo4j store task (1b) will connect using `.env`. Claude does not open
+   or print `.env`.
+
+A free instance pauses after a while without use; resume it from the console. Once the Neo4j store
+exists, it falls back to the in-memory NetworkX graph whenever Aura cannot be reached
+(`docs/02` §7). `docker-compose.yml` remains for anyone who prefers a local Neo4j.
+
+---
+
+## 6. University GPU: when access is granted
+
+Access has not been granted yet (risk R-14). Whoever sets it up should first learn the skills in
+[09-prerequisites.md](09-prerequisites.md) §1.4 (SSH, the job scheduler, matching torch to the
+driver, serving Ollama remotely), and then add the connection steps to this section.

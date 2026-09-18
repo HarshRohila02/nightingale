@@ -20,10 +20,19 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ## Working agreements (set by the user)
 
 - **Ask before any lengthy process** — large downloads, model pulls, long training runs, heavy installs.
-- **Never use the laptop GPU without asking first.** The team is trying to get a university GPU; the
-  owner's RTX 5060 is used only with explicit permission, asked before each new use — a CUDA torch
-  install, a GPU training run, running a model through Ollama. A yes covers that use only. Default to
-  CPU (`compute.device: cpu` in `configs/config.yaml`). Where GPU work runs is decision **D-7**.
+- **Keep the owner's laptop light. Where each job runs is the owner's call** (`docs/11` §1, D-7):
+  - Run locally without asking: tests, lint, formatting, and short scripts expected to finish in
+    **under ~5 minutes**.
+  - **Ask first, and ask where**, before **every model training or tuning run on project data**
+    (however short or small the sample; a unit test fitting a toy model on synthetic rows is a
+    test) and before **any job expected to take over ~5 minutes, CPU jobs included**. The options are the
+    university GPU, Colab, Kaggle, Lightning AI / Studio Lab, or the laptop. Suggest the cloud, and
+    give the expected runtime.
+  - **The laptop GPU is for tests only, and the owner runs them by hand.** Never start GPU work on
+    the laptop yourself: no CUDA install, no GPU script, no Ollama model. Write the steps
+    (`docs/11` §2–§3) and read the output the owner pastes back.
+  - Install packages **per task, as needed** (D-4), and ask before each download. Code stays on the
+    CPU unless `compute.device` in `configs/config.yaml` says otherwise.
 - **Commit and push at every sub-phase boundary**, with `PROGRESS.md` updated in the same commit.
 - **Do not delete or move files** without explicit approval.
 - If something contradicts what was previously reported to the user, say so plainly.
@@ -76,11 +85,15 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   **3.14**, so plain `python` silently bypasses the venv — always use `./.venv/Scripts/python.exe`.
 - Tool versions live in **`requirements-dev.txt`**, the single source shared with CI. Bump black or
   ruff there, never in one place only.
-- The laptop GPU is an **RTX 5060 (Blackwell)**. If the owner ever approves using it, torch must be
-  ≥ 2.7 with CUDA 12.8 (the cu128 index). Until then, install the **CPU** torch build. A
-  university GPU would need the CUDA build that matches its own driver.
-- **Ollama puts a model on the GPU automatically.** Even a smoke test of a local model counts as
-  using the laptop GPU, so ask first, or force the CPU with the request option `num_gpu: 0`.
+- The laptop GPU is an **RTX 5060 (Blackwell, `sm_120`)**. GPU tests run from a separate
+  **`.venv-gpu`** (torch ≥ 2.7 built for CUDA 12.8), which the owner sets up (`docs/11` §2). The
+  main `.venv` stays CPU-only, so everyday work cannot touch the GPU. A cloud or university GPU
+  needs the CUDA build that matches its own driver.
+- **Ollama puts a model on the GPU automatically**, so running any local model is laptop-GPU use,
+  and the owner does it by hand (`docs/11` §3). Forcing the CPU (`num_gpu: 0`) just turns it into a
+  heavy CPU job, which also needs asking.
+- **Neo4j runs on AuraDB Free** (D-6). Its credentials live only in `.env`: never open, print or
+  commit `.env`.
 
 ## Commands (Windows venv)
 
@@ -98,4 +111,5 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 `docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
 chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
-decoding · `src/medical_kg/` the KG and its NetworkX store (card: `docs/02` §5.1)
+decoding · `src/medical_kg/` the KG and its NetworkX store (card: `docs/02` §5.1) · `docs/11`
+compute runbook: where jobs run, the owner's GPU steps, cloud jobs, AuraDB

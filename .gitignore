@@ -11,8 +11,9 @@ __pycache__/
 .coverage
 htmlcov/
 
-# Virtual environments
+# Virtual environments (.venv-gpu is the owner's GPU test environment, docs/11 §2)
 .venv/
+.venv-*/
 venv/
 env/
 

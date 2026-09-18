@@ -52,6 +52,8 @@ Full project documentation is in [`docs/`](docs/README.md). New contributors sho
 | [06 · Engineering Conventions](docs/06-engineering-conventions.md) | Branching, style, testing, definition of done |
 | [07 · Risk Register](docs/07-risk-register.md) | Scored risks, owners, pre-approved fallbacks |
 | [08 · Experiment Log](docs/08-experiment-log.md) | Running record of every experiment |
+| [10 · Spike R-01: Crosswalk](docs/10-spike-r01-crosswalk.md) | The measured result that set the knowledge-graph strategy |
+| [11 · Compute Runbook](docs/11-compute-runbook.md) | Where each job runs; laptop-GPU tests, cloud jobs, Neo4j AuraDB |
 
 ---
 
@@ -430,8 +432,7 @@ before any model is trained. Each stub is replaced independently — nothing dow
 # Optional, when you start on real data and the knowledge graph
 pip install "torch~=2.7" --index-url https://download.pytorch.org/whl/cpu    # CPU build first (see below)
 pip install -r requirements.txt         # full stack, roughly 1 GB with the CPU torch build
-cp .env.example .env
-docker compose up -d                    # Neo4j
+cp .env.example .env                    # then add the Neo4j AuraDB details (docs/11 §5)
 python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
 ```
 
@@ -439,10 +440,11 @@ python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
 > score is `0.00` — yet the knowledge graph ranks it first and fires a red flag. That single output
 > is the architecture's whole argument.
 
-> **GPU use is opt-in.** Nothing before Phase 3 needs a GPU (the ML baseline is XGBoost on the
-> CPU). The team is seeking a university GPU for the LLM and embedding work; the project owner's
-> laptop GPU is used only with their explicit permission. Install the CUDA build of torch only on a
-> machine approved for GPU work — see decision D-7 in [`PROGRESS.md`](PROGRESS.md).
+> **Where things run.** Heavy jobs go to the cloud (Google Colab, Kaggle, Lightning AI / Studio
+> Lab) or to the university GPU, and the project owner picks where for each job. Heavy jobs means
+> every training or tuning run, anything over a few minutes, and batch LLM or embedding runs. The
+> owner's laptop GPU is only for short tests, which the owner runs by hand. Neo4j runs on AuraDB
+> Free. See the [compute runbook](docs/11-compute-runbook.md).
 
 ---
 
