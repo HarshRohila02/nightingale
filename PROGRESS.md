@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (compute placement D-7 + D-4/D-6 set by the user; runbook `docs/11`) · **Last verified commit:** `6709697`
+**Last updated:** 2026-09-18 · by Claude (compute placement D-7 + D-4/D-6 set by the user; runbook `docs/11`) · **Last verified commit:** `d3683a7`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Next action** | **Claude:** the 1b **crosswalk** (`DDX:E_nn` ↔ `SYM:*`). It needs no download and runs in seconds. **The user, when convenient:** create the **AuraDB Free** instance (`docs/11` §5); optionally set up the laptop-GPU test environment (`docs/11` §2). **The team:** **D-8** |
 | **Blocked on** | The Neo4j store ← the user's AuraDB instance · any Precision@3 / Recall@5 number ← **D-8** (team) · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 91 tests passing locally (88 in CI, where the 3 real-data tests skip) · CI green on GitHub at `0b15496` |
+| **Health** | 91 tests passing locally (88 in CI, where the 3 real-data tests skip) · CI green on GitHub at `d3683a7` |
 
 **Handoff note for the next session:** Nothing is in flight. The chest-pain parquet exists for
 **validate** only (`docs/03` §2.1). EXP-013 found two things everyone must know. First, **a listed
@@ -181,7 +181,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] Fix local-vs-CI tool drift: new `requirements-dev.txt` is the single source of truth for pytest/black/ruff; CI and `requirements.txt` both read it — `1ccb06a`
 - [x] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` → `~=2.7`. 2.7 is the first release that supports the RTX 5060; the CPU and every CUDA build satisfy it — `8dced77`
 - [x] Record the GPU policy (**D-7**, set by the user): laptop GPU only with explicit permission; university GPU being sought. Now in `CLAUDE.md`, the setup guides, `configs/` (`compute.device: cpu`), charter, SRS, R-14 and `docs/09` §1.4 — `8dced77` *(refined the same day into D-7's compute placement, §6)*
-- [x] Compute placement set by the user (**D-7**), plus **D-4** and **D-6**: runbook `docs/11`, `scripts/check_gpu.py` (the user's manual GPU check), `.venv-gpu` gitignored, and the rules in `CLAUDE.md` and the setup guides — → pending
+- [x] Compute placement set by the user (**D-7**), plus **D-4** and **D-6**: runbook `docs/11`, `scripts/check_gpu.py` (the user's manual GPU check), `.venv-gpu` gitignored, and the rules in `CLAUDE.md` and the setup guides — `d3683a7`
 - [ ] ~~Full `pip install -r requirements.txt` (D-4); commit `requirements.lock.txt`~~ → replaced by per-task installs (D-4). Each cloud run saves its `pip freeze` next to its outputs
 - [ ] ~~Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474` (D-6)~~ → **the user creates the AuraDB Free instance** and fills `.env` (`docs/11` §5); Claude then connects from the 1b Neo4j store task
 - [ ] ~~`ollama pull llama3.1:8b`; smoke test (D-5)~~ → moved to **3b** (D-5 deferred; laptop GPU tests are the user's, `docs/11` §3)
@@ -284,7 +284,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Item | State |
 |---|---|
 | Git | clean · the repository is **public** on GitHub, so cloud notebooks clone it without a token |
-| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `0b15496`) · Python 3.11 |
+| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `d3683a7`) · Python 3.11 |
 | Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub. Full install is D-4 |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
@@ -303,7 +303,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-18 | Claude | The user set compute placement (**D-7**): the laptop GPU for tests only, run by the user by hand; training runs, and any job over ~5 min (CPU included), go to the cloud (Colab free · Kaggle · Lightning AI / Studio Lab) or the university GPU, asked per job. Also **D-4** (per-task installs) and **D-6** (Neo4j on AuraDB Free). New runbook `docs/11` with the user's GPU setup and start/stop steps; `scripts/check_gpu.py`; R-14 re-scoped, R-06 mitigated | → pending |
+| 2026-09-18 | Claude | The user set compute placement (**D-7**): the laptop GPU for tests only, run by the user by hand; training runs, and any job over ~5 min (CPU included), go to the cloud (Colab free · Kaggle · Lightning AI / Studio Lab) or the university GPU, asked per job. Also **D-4** (per-task installs) and **D-6** (Neo4j on AuraDB Free). New runbook `docs/11` with the user's GPU setup and start/stop steps; `scripts/check_gpu.py`; R-14 re-scoped, R-06 mitigated | `d3683a7` |
 | 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8**. **1b:** KG loader + NetworkX store, with edge provenance for R-12. KG card: questions not answers; stable ⊂ unstable angina, so overlap ranks the benign one first. Corrected the stale README/charter claims that the KG is built from BODHI-S. Protocol note: the session was interrupted once, mid-way through updating this file for task 2, and recovered from §2 | `8dced77` `4d640a8` `6709697` |
 | 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `843c5fb` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
