@@ -33,7 +33,21 @@ must be disclosed in results. The evaluation protocol (`docs/05`) is **frozen**.
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-_Nothing in flight._
+- **Task:** Apply user decisions **D-1** (download DDXPlus `validate.csv`, run EXP-002),
+  **D-2** (Python 3.11), **D-3** (archive the reference docs)
+- **Sub-phase:** 1.0 (D-2, D-3) and 1a (D-1)
+- **Started:** 2026-09-18 by Claude
+- **Files expected to change:** `PROGRESS.md` · root reference docs → `docs/archive/` (+ delete the
+  byte-identical duplicate) · `docs/archive/README.md` · `.venv` (rebuilt on 3.11, gitignored) ·
+  `data/raw/ddxplus/validate.csv` (gitignored) · `scripts/class_balance.py` ·
+  `docs/08-experiment-log.md` · `docs/07-risk-register.md`
+- **Done so far:** decisions approved by the user 2026-09-18; duplicate re-verified identical
+  (SHA-256 `fc0212c3…`); Python 3.11 confirmed not installed (only 3.14, 3.12) ·
+  ① **D-3 done** — 3 docs archived and renamed, duplicate deleted, `docs/archive/README.md` written
+- **Remaining:** ② D-2 `py install 3.11`, rebuild `.venv`, tests green → commit ·
+  ③ D-1 download `validate.csv`, EXP-002 → commit · then clear this marker
+- **Safe to resume blindly?** No — check `git log` for which of ①②③ committed, and run
+  `./.venv/Scripts/python.exe --version` to see whether the venv is already 3.11.
 
 <!-- Template — copy above the line when a task starts:
 - **Task:** <one line>
@@ -51,9 +65,8 @@ _Nothing in flight._
 
 | ID | Decision needed | Options | Recommended | Blocks |
 |---|---|---|---|---|
-| **D-1** | DDXPlus patient CSV download — **lengthy, needs permission** | `validate.csv` only (87 MB) · all three (847 MB) | `validate.csv` first; the rest when training starts | 1a · EXP-002 |
-| **D-2** | Team-wide Python version | stay on 3.14 · move to 3.11/3.12 | **3.11** — matches CI; torch/faiss/numpy have wheels | 1.0 install |
-| **D-3** | Untracked reference docs in the repo root (prompt ×2, PDF, `deep-research-report.md`) | archive to `docs/archive/` · delete · leave | archive; delete only the byte-identical duplicate `(2).md` | nothing — housekeeping |
+| **D-4** | Full `pip install -r requirements.txt` into the 3.11 venv — **lengthy (~2–3 GB), needs permission** | CPU-only torch · CUDA 12.8 torch for the RTX 5060 | **CUDA 12.8 torch first** (`--index-url …/whl/cu128`), then the rest | 1.0 · all real modelling |
+| **D-5** | `ollama pull llama3.1:8b` — **lengthy (~4.9 GB), needs permission** | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b** — a general instruct model; the coder model is tuned for code, not clinical prose | 1.0 · Phase 3 explainer |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
 
@@ -73,7 +86,7 @@ members.
    as `chore(progress): record commit hashes`.
 4. The state is **inconsistent** if any of these is true:
    - §2 In-flight is not empty;
-   - `git status` shows changes other than the known untracked files in §3 D-3;
+   - `git status` shows any uncommitted or untracked changes;
    - `git log` shows commits after the **Last verified commit** that §5/§8 do not account for
      (commits touching only `PROGRESS.md` / `CLAUDE.md` are exempt).
 5. **Inconsistent** → follow §4.4 before any new work. **Consistent** → tell the user in one line:
@@ -160,8 +173,10 @@ evaluation protocol frozen ✅ · **Neo4j + Ollama running ⚠️ not met — ca
 **Exit criteria:** 🎯 **W3 milestone** — a case produces a ranked differential from the **real** ML
 ranker with **real** KG-matched supporting findings, end to end · CI green.
 
-**1.0 — Environment bring-up · ⬜** *(carried over from Phase 0)*
-- [ ] Decide the Python version (D-2); rebuild `.venv`; `pip install -r requirements.txt`; commit `requirements.lock.txt`
+**1.0 — Environment bring-up · 🔄** *(carried over from Phase 0)*
+- [x] Archive the reference docs to `docs/archive/`; delete the byte-identical duplicate (D-3) — `→ pending`
+- [ ] Python 3.11 (D-2): `py install 3.11`; rebuild `.venv`; tests green
+- [ ] Full `pip install -r requirements.txt` (D-4 — **ask first**); commit `requirements.lock.txt`
 - [ ] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` cannot use the RTX 5060 (Blackwell needs torch ≥ 2.7 / CUDA 12.8)
 - [ ] Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474`
 - [ ] `ollama pull llama3.1:8b` (the configured model; only `qwen2.5-coder:7b` is present) — **lengthy, ask first**; smoke test
@@ -236,6 +251,9 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | 2026-09-17 | KG backbone: DDXPlus `release_conditions.json`; BODHI-S enrichment only (R-01 fallback) | `docs/10` |
 | 2026-09-17 | Headline metric: must-not-miss recall | `docs/05` |
 | 2026-09-17 | Evaluation protocol frozen at v1.1 | `docs/05` |
+| 2026-09-18 | **D-1:** download DDXPlus `validate.csv` only (87 MB) now; train/test CSVs when training starts | user · §8 |
+| 2026-09-18 | **D-2:** the team standardises on **Python 3.11** (matches CI; safest for scispacy/medspaCy) | user · §8 |
+| 2026-09-18 | **D-3:** reference docs archived to `docs/archive/`; the byte-identical duplicate prompt deleted | user · `docs/archive/README.md` |
 
 ---
 
@@ -243,7 +261,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 
 | Item | State |
 |---|---|
-| Git | clean, apart from the 4 untracked reference docs (D-3) |
+| Git | clean — reference docs archived to `docs/archive/` (D-3) |
 | CI (GitHub Actions) | ✅ green on every push so far (`efc10e9`, `8b682e9`, `51b49ce`) · Python 3.11 |
 | Local Python | 3.14.7 in `.venv` — only pydantic, pytest, pyyaml, black, ruff, huggingface_hub installed |
 | Docker | 29.7.2 installed · **daemon not running** — start Docker Desktop |
