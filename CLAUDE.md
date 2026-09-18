@@ -45,6 +45,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   decode its UUIDs. BODHI-S identifies conditions by SNOMED, DDXPlus by ICD-10.
 - The KG backbone is DDXPlus `release_conditions.json`, not BODHI-S (R-01). That creates
   **circularity risk R-12**, which must be disclosed wherever results claim value for the KG.
+- The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced
+  into one of them. Say so wherever results are reported.
+- DDXPlus demographics are synthetic: every condition is ~50% female, and MI has a median age of 45.
+  **Near-equal by-sex results are an artifact, not evidence of fairness** (EXP-002).
+- Patient evidence tokens come in three kinds: categorical codes, **numeric ordinal scales**
+  (`E_56_@_4`, 12.6% of tokens — encode as ordered, not one-hot), and the `V_11` "NA" sentinel.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still

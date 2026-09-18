@@ -63,6 +63,71 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-002 — Class balance of the 13 conditions (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-18 |
+| Author | P2 |
+| Config / ablation | — (data audit) |
+| Split used | **validate** (132,448 rows) · test **not read** |
+| Git commit | step 3/3 of decisions D-1..D-3 |
+| Seed | n/a (deterministic) |
+
+**Question:** Are any in-scope conditions too rare to learn (risk R-03 — trigger: < 500 training
+cases)? Can every evidence token in real patient rows be decoded?
+
+**Setup:** `scripts/class_balance.py` on DDXPlus `validate.csv` (decision D-1: validate only, 87 MB).
+Training counts projected by the exact split ratio train/validate = 1,025,602 / 132,448 = **7.743**
+(sizes from the Hugging Face datasets-server API). Only `PATHOLOGY`, `SEX`, `AGE` and `EVIDENCES` are
+read; `DIFFERENTIAL_DIAGNOSIS` is untouched.
+
+**Results:**
+
+| Condition | Validate | Share | Train ≈ | % female | Median age | DDXPlus severity |
+|---|---:|---:|---:|---:|---:|---:|
+| Pulmonary embolism | 3,725 | 11.0% | 28,844 | 52% | 38 | 2 |
+| GERD | 3,426 | 10.1% | 26,529 | 52% | 36 | 3 |
+| Panic attack | 3,237 | 9.5% | 25,065 | 51% | 39 | 5 |
+| Pericarditis | 3,032 | 8.9% | 23,478 | 51% | 40 | 4 |
+| Possible NSTEMI / STEMI | 2,943 | 8.7% | 22,789 | 50% | 45 | 1 |
+| Unstable angina | 2,748 | 8.1% | 21,279 | 54% | 44 | 2 |
+| Atrial fibrillation | 2,609 | 7.7% | 20,203 | 52% | 36 | 3 |
+| Acute pulmonary edema | 2,500 | 7.4% | 19,359 | 51% | 47 | 1 |
+| PSVT | 2,376 | 7.0% | 18,398 | 49% | 40 | 2 |
+| Stable angina | 2,340 | 6.9% | 18,120 | 52% | 46 | 2 |
+| Boerhaave syndrome | 2,075 | 6.1% | 16,068 | 51% | 40 | 2 |
+| Myocarditis | 1,547 | 4.6% | 11,979 | 54% | 35 | 2 |
+| Spontaneous pneumothorax | 1,405 | 4.1% | 10,880 | 52% | 38 | 2 |
+| **Total in scope** | **33,963** | 25.6% of validate | **≈262,990** | | | |
+
+Imbalance (largest / smallest): **2.7×**. Evidence tokens in in-scope rows: **87.2%** decode
+directly · **12.6%** numeric ordinal (e.g. pain intensity `E_56_@_4`) · **0.1%** unknown — every one
+of them `E_54_@_V_11`, the "NA" sentinel that `decode_ddxplus.py` deliberately skips.
+
+**Interpretation:**
+
+1. **R-03 does not trigger.** The rarest condition projects to ≈10,880 training cases — about 22× the
+   threshold — and a 2.7× imbalance is mild. `class_weight="balanced"` remains sensible but is not
+   load-bearing.
+2. **The system is closed-world — a new, undisclosed limitation (→ R-13).** Only 25.6% of DDXPlus
+   cases fall inside our 13 conditions. The model will only ever see those, so any presentation is
+   forced into one of 13 — including genuine chest-pain causes outside our set, such as pneumonia.
+   The other 36 DDXPlus pathologies could later train an out-of-scope / abstention signal.
+3. **Synthetic demographics are unrealistic — concrete evidence for `docs/04` §6.** Every condition
+   is ~50% female; median MI age is 45 (real-world first MI is typically in the 60s); spontaneous
+   pneumothorax is 52% female (in reality strongly male-predominant). The model therefore cannot learn
+   real epidemiological priors. **A near-parity by-sex breakdown in Phase 4 will be an artifact of
+   generation, not evidence of fairness — it must not be reported as such.**
+4. **Feature encoding (1c) must handle three token kinds:** categorical codes (binary /
+   multi-choice), **numeric ordinal scales** as ordered numeric features rather than one-hot, and the
+   `V_11` "NA" sentinel explicitly.
+
+**Next action:** R-03 resolved on projection — re-confirm when `train.csv` is downloaded. Open R-13.
+Carry the three token kinds into 1c.
+
+---
+
 ### EXP-001 — R-01 crosswalk spike: DDXPlus ↔ BODHI-S
 
 | Field | Value |

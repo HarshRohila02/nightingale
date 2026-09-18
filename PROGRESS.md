@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (progress-tracker setup) · **Last verified commit:** `51b49ce`
+**Last updated:** 2026-09-18 · by Claude (decisions D-1–D-3 applied) · **Last verified commit:** `1ccb06a`
 
 ---
 
@@ -15,16 +15,19 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** · ⬜ not started |
-| **Next action** | Get the user's answers to **D-1** and **D-2** (§3), then start Docker Desktop and bring up Neo4j |
-| **Blocked on** | User decisions D-1 (CSV download) and D-2 (Python version) |
+| **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅; heavy downloads await D-4–D-6) · **1a — Data** · 🔄 (`validate.csv` + EXP-002 ✅) |
+| **Next action** | Get the user's permission for **D-4, D-5, D-6** (§3) — the environment downloads. Unblocked meanwhile: 1a `validate.csv` → parquet, and the 1b KG loader on NetworkX |
+| **Blocked on** | D-4 (full requirements, ~2–3 GB) · D-5 (LLM pull, ~4.9 GB) · D-6 (Neo4j image, ~0.5 GB) — all lengthy, need permission |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 33 tests passing locally · CI green on GitHub at `51b49ce` |
+| **Health** | 33 tests passing locally · CI green on GitHub at `1ccb06a` |
 
-**Handoff note for the next session:** Phase 0 is done and nothing is in flight. Before touching the
-knowledge graph, read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus
-`release_conditions.json`, **not** BODHI-S, and that choice creates a circularity risk (R-12) that
-must be disclosed in results. The evaluation protocol (`docs/05`) is **frozen**.
+**Handoff note for the next session:** Nothing is in flight. Before touching the knowledge graph,
+read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus `release_conditions.json`,
+**not** BODHI-S, which creates circularity risk R-12. EXP-002 added two things every result must
+respect: the system is **closed-world** (R-13 — only 13 conditions exist for it), and DDXPlus
+demographics are synthetic (~50% female everywhere), so **by-sex parity is an artifact, not
+fairness**. The evaluation protocol (`docs/05`) is **frozen**. Use `./.venv/Scripts/python.exe` —
+plain `python` is 3.14, not the team's 3.11.
 
 ---
 
@@ -33,22 +36,7 @@ must be disclosed in results. The evaluation protocol (`docs/05`) is **frozen**.
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-- **Task:** Apply user decisions **D-1** (download DDXPlus `validate.csv`, run EXP-002),
-  **D-2** (Python 3.11), **D-3** (archive the reference docs)
-- **Sub-phase:** 1.0 (D-2, D-3) and 1a (D-1)
-- **Started:** 2026-09-18 by Claude
-- **Files expected to change:** `PROGRESS.md` · root reference docs → `docs/archive/` (+ delete the
-  byte-identical duplicate) · `docs/archive/README.md` · `.venv` (rebuilt on 3.11, gitignored) ·
-  `data/raw/ddxplus/validate.csv` (gitignored) · `scripts/class_balance.py` ·
-  `docs/08-experiment-log.md` · `docs/07-risk-register.md`
-- **Done so far:** decisions approved by the user 2026-09-18; duplicate re-verified identical
-  (SHA-256 `fc0212c3…`); Python 3.11 confirmed not installed (only 3.14, 3.12) ·
-  ① **D-3 done** — 3 docs archived and renamed, duplicate deleted, `docs/archive/README.md` written ·
-  ② **D-2 done** — Python 3.11.9 installed, `.venv` rebuilt and verified; `requirements-dev.txt`
-  added to stop local/CI tool drift
-- **Remaining:** ③ D-1 download `validate.csv`, EXP-002 → commit · then clear this marker
-- **Safe to resume blindly?** No — check `git log` for which of ①②③ committed, and run
-  `./.venv/Scripts/python.exe --version` to see whether the venv is already 3.11.
+_Nothing in flight._
 
 <!-- Template — copy above the line when a task starts:
 - **Task:** <one line>
@@ -68,6 +56,7 @@ must be disclosed in results. The evaluation protocol (`docs/05`) is **frozen**.
 |---|---|---|---|---|
 | **D-4** | Full `pip install -r requirements.txt` into the 3.11 venv — **lengthy (~2–3 GB), needs permission** | CPU-only torch · CUDA 12.8 torch for the RTX 5060 | **CUDA 12.8 torch first** (`--index-url …/whl/cu128`), then the rest | 1.0 · all real modelling |
 | **D-5** | `ollama pull llama3.1:8b` — **lengthy (~4.9 GB), needs permission** | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b** — a general instruct model; the coder model is tuned for code, not clinical prose | 1.0 · Phase 3 explainer |
+| **D-6** | Start Docker Desktop and pull the `neo4j:5-community` image — **lengthy (~0.5 GB), needs permission** | Neo4j now · NetworkX only until 1b needs a real graph DB | **Neo4j now** — 1b (P1) needs it, and Docker setup problems are better found early (R-06) | 1.0 · 1b KG |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
 
@@ -95,7 +84,9 @@ members.
 
 ### 4.2 Before starting a task — write-ahead
 Fill in §2 In-flight **before editing any other file.** A *task* is a unit of work that ends in a
-commit. If the task will take a long time or download something large, ask the user first.
+commit — **so every commit is a task boundary.** If one piece of work is split across several
+commits, each commit must refresh §1 as well as §2; otherwise §1 goes stale between them. *(Lesson
+learned 2026-09-18: §1 was left saying "blocked on D-1/D-2" across two intermediate commits.)* If the task will take a long time or download something large, ask the user first.
 
 ### 4.3 After finishing a task — in the same commit as the work
 1. Tick the task in §5 and mark it `→ pending` (a commit cannot contain its own hash; §4.1 step 3
@@ -175,19 +166,20 @@ evaluation protocol frozen ✅ · **Neo4j + Ollama running ⚠️ not met — ca
 ranker with **real** KG-matched supporting findings, end to end · CI green.
 
 **1.0 — Environment bring-up · 🔄** *(carried over from Phase 0)*
-- [x] Archive the reference docs to `docs/archive/`; delete the byte-identical duplicate (D-3) — `→ pending`
-- [x] Python 3.11 (D-2): `py install 3.11` → 3.11.9; `.venv` rebuilt; tests, black, ruff green — `→ pending`
-- [x] Fix local-vs-CI tool drift: new `requirements-dev.txt` is the single source of truth for pytest/black/ruff; CI and `requirements.txt` both read it — `→ pending`
+- [x] Archive the reference docs to `docs/archive/`; delete the byte-identical duplicate (D-3) — `5ce3725`
+- [x] Python 3.11 (D-2): `py install 3.11` → 3.11.9; `.venv` rebuilt; tests, black, ruff green — `1ccb06a`
+- [x] Fix local-vs-CI tool drift: new `requirements-dev.txt` is the single source of truth for pytest/black/ruff; CI and `requirements.txt` both read it — `1ccb06a`
 - [ ] Full `pip install -r requirements.txt` (D-4 — **ask first**); commit `requirements.lock.txt`
 - [ ] Fix the torch pin in `requirements-nlp.txt`: `~=2.4` cannot use the RTX 5060 (Blackwell needs torch ≥ 2.7 / CUDA 12.8)
-- [ ] Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474`
-- [ ] `ollama pull llama3.1:8b` (the configured model; only `qwen2.5-coder:7b` is present) — **lengthy, ask first**; smoke test
+- [ ] Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474` (**D-6**)
+- [ ] `ollama pull llama3.1:8b` (the configured model; only `qwen2.5-coder:7b` is present); smoke test (**D-5**)
 - [ ] Optional: pre-commit hooks for black + ruff
 
-**1a — Data & class balance · ⬜** · P2
-- [ ] DDXPlus patient CSVs (D-1) — **lengthy, ask first**
+**1a — Data & class balance · 🔄** · P2
+- [x] DDXPlus `validate.csv` downloaded (D-1, 87 MB); `train.csv` / `test.csv` deferred until training — `→ pending`
+- [x] EXP-002 on validate: R-03 not triggered (rarest ≈10,880 projected training cases; 2.7× imbalance); **R-13 opened** (closed-world) — `→ pending`
 - [ ] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain.parquet`
-- [ ] EXP-002: per-condition counts per split; flag any condition with < 500 training cases (R-03)
+- [ ] Re-confirm EXP-002 counts on `train.csv` once it is downloaded
 
 **1b — Cardiac medical KG · ⬜** · P1
 - [ ] KG loader from `data/interim/ddxplus_chestpain_conditions.json`
@@ -197,7 +189,9 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [ ] Crosswalk: DDXPlus evidence codes ↔ the `SYM:*` concept ids the red-flag rules use
 
 **1c — Baseline ML ranker · ⬜** · P2
-- [ ] Feature encoding from decoded evidence **codes** (not English labels)
+- [ ] Feature encoding from decoded evidence **codes** (not English labels), handling the three token
+  kinds EXP-002 found: categorical codes · **numeric ordinal scales** (12.6% of tokens, e.g. pain
+  intensity `E_56_@_4`) as ordered features, not one-hot · the `V_11` "NA" sentinel, explicitly
 - [ ] EXP-003: B0 prevalence baseline
 - [ ] EXP-004: B1 LogReg → XGBoost; `ConditionRanker` replacing `ConstantRanker`
 
@@ -271,7 +265,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Neo4j | never started |
 | Ollama | 0.34.1 installed · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` |
 | GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (torch ≥ 2.7 / CUDA 12.8) |
-| Data on disk (gitignored) | `data/raw/ddxplus/release_*.json`, `data/raw/bodhi_s/*.jsonl`, `data/interim/ddxplus_*.json` · **patient CSVs not downloaded** |
+| Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json` · `train.csv` / `test.csv` **not downloaded** |
 
 Re-verify this table whenever the environment changes, and date it.
 
@@ -281,6 +275,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `→ pending` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |
 | 2026-09-17 | Claude | Phase 0b: scaffold + walking skeleton, 33 tests, CI | `efc10e9` |

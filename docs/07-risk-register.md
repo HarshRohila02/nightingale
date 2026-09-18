@@ -69,8 +69,15 @@ LLM explainer). The prototype, red-flag layer, and ablation study are never cut.
 
 ---
 
-### 🟠 R-03 — Severe class imbalance across the 13 conditions
-**L 4 · I 3 · Score 12 · Owner P2 · Status: OPEN**
+### 🟢 R-03 — Severe class imbalance across the 13 conditions
+**L 1 · I 3 · Score 3 · Owner P2 · Status: ✅ RESOLVED 2026-09-18 on projection — re-confirm on train.csv**
+
+*Measured* (EXP-002, validate split): the rarest condition (spontaneous pneumothorax) projects to
+**≈10,880 training cases** — about 22× the trigger — and the imbalance across all 13 is only
+**2.7×**. Projection uses the exact train/validate ratio 7.743; re-confirm with real counts when
+`train.csv` is downloaded. Original assessment kept below for the record.
+
+~~**L 4 · I 3 · Score 12 · Owner P2 · Status: OPEN**~~
 
 Rare conditions (Boerhaave, myocarditis) may have too few DDXPlus cases to learn, producing a model
 that never ranks them — directly harming the must-not-miss metric.
@@ -88,6 +95,24 @@ splits; per-condition metrics always reported. If a condition is unlearnable, co
 *Mitigation:* generation constrained to retrieved evidence; claim-support checking; output validated
 against the 13-condition set; unsupported claims flagged. Fallback to **templated explanations from
 KG paths**, which cannot hallucinate. Measured as unsupported-claim rate in the evaluation.
+
+---
+
+### 🟠 R-13 — Closed-world assumption: out-of-scope causes are forced into our 13
+**L 5 · I 3 · Score 15 · Owner P3 · Status: OPEN — accepted, must be disclosed** · *found by EXP-002*
+
+Only 25.6% of DDXPlus cases fall inside the 13 in-scope conditions, and the model is trained only on
+those. It therefore has no notion of "none of the above": a chest-pain presentation caused by
+something outside the set — pneumonia is the obvious example — will still be ranked as one of our 13,
+possibly with confidence.
+
+*Mitigation:*
+1. **Disclose** it wherever results are reported, and in the UI ("ranks 13 conditions only — other
+   causes are not considered").
+2. The **must-not-miss red flags still fire independently** of the ranking, so the safety layer is
+   not closed-world in the same way.
+3. *Stretch:* DDXPlus's other 36 pathologies are a ready-made source of out-of-scope examples for an
+   abstention / out-of-distribution signal.
 
 ---
 
@@ -167,3 +192,4 @@ knowledge; daily standup surfaces absence early.
 |---|---|---|---|
 | 1 | 2026-09-17 | Register created; R-01 spike scheduled | — |
 | 1 | 2026-09-17 | **R-01 closed** (31% < 60% gate → fallback adopted); **R-12 opened** (circularity, spawned by the R-01 resolution) | — |
+| 1 | 2026-09-18 | **R-03 resolved** on projection (EXP-002: min ≈10,880 train cases, 2.7× imbalance); **R-13 opened** (closed-world assumption, found by EXP-002) | — |

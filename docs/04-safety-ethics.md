@@ -120,6 +120,12 @@ demographic variation in presentation. Known concerns to report rather than clai
 Report per-condition and by-sex breakdowns where sample size permits; do not claim fairness that
 has not been measured.
 
+**Measured evidence (EXP-002, 2026-09-18):** in DDXPlus every one of the 13 conditions is roughly
+50% female, median age for acute MI is 45 (real-world first MI typically occurs in the 60s), and
+spontaneous pneumothorax is 52% female (in reality strongly male-predominant). The training data
+carries **no real sex or age priors.** Consequently, **near-parity by-sex results in Phase 4 are an
+artifact of how the data was generated and must not be presented as evidence of fairness.**
+
 ---
 
 ## 7. Limitations to state explicitly
@@ -129,8 +135,10 @@ Every report, presentation, and demo must state:
 1. Trained and evaluated on **synthetic** data; performance on real patients is **unknown**.
 2. Scope is **acute chest pain only**; behaviour on any other presentation is undefined.
 3. Aortic dissection is handled by rule, not learned.
-4. No clinical validation; no prospective study; no clinician user study at scale.
-5. Confidence values are estimates from a research model, not clinical probabilities.
+4. **Closed-world:** only 13 conditions are ranked. A presentation caused by anything else (e.g.
+   pneumonia) is still forced into one of the 13 (risk R-13). Red flags fire independently.
+5. No clinical validation; no prospective study; no clinician user study at scale.
+6. Confidence values are estimates from a research model, not clinical probabilities.
 
 ---
 
