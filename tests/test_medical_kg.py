@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 import networkx as nx
@@ -174,7 +175,7 @@ class TestNetworkXGraphStore:
         assert set(scores) == {c.id for c in CONDITIONS}
         assert scores[PE] == pytest.approx(2 / 4)
         assert scores[GERD] == pytest.approx(1 / 4)
-        assert scores["COND:aortic_dissection"] == 0.0, "no edges until hand-authored"
+        assert scores["COND:aortic_dissection"] == 0.0, "DDXPlus alone has no aortic dissection"
 
     def test_risk_factors_count_towards_the_score(self, store):
         scores = store.score_by_connectivity(_case(present=["DDX:E_53"], risk_factors=["DDX:E_2"]))
@@ -261,8 +262,9 @@ def test_build_script_fails_when_trainable_conditions_have_no_evidence(tmp_path)
     )
     assert result.returncode == 1
     summary = json.loads((tmp_path / "cardiac_kg_summary.json").read_text("utf-8"))
-    assert summary["edges_by_source"] == {"ddxplus": 8}
+    assert summary["edges_by_source"] == {"ddxplus": 8, "hand_authored": 20}
     assert len(summary["trainable_without_edges"]) == 11
+    assert summary["conditions_without_edges"] == summary["trainable_without_edges"]
 
 
 # --------------------------------------------------------------------------- #
@@ -281,14 +283,21 @@ class TestRealGraph:
         types = [data["type"] for _, data in real.graph.nodes(data=True)]
         assert (types.count("Condition"), types.count("Symptom"), types.count("RiskFactor")) == (
             14,
-            41,
-            43,
+            53,
+            49,
         )
-        relations = [d["relation"] for _, _, d in real.graph.edges(data=True)]
-        assert (relations.count("HAS_SYMPTOM"), relations.count("HAS_RISK_FACTOR")) == (160, 85)
-        assert {d["source"] for _, _, d in real.graph.edges(data=True)} == {"ddxplus"}
+        by_source = Counter((d["source"], d["relation"]) for _, _, d in real.graph.edges(data=True))
+        assert by_source == {
+            ("ddxplus", "HAS_SYMPTOM"): 160,
+            ("ddxplus", "HAS_RISK_FACTOR"): 85,
+            ("hand_authored", "HAS_SYMPTOM"): 13,
+            ("hand_authored", "HAS_RISK_FACTOR"): 7,
+        }
 
-    def test_every_trainable_condition_has_evidence_and_only_e16_is_odd(self, real):
-        assert all(real.expected_findings(cid) for cid in trainable_ids())
-        assert real.expected_findings("COND:aortic_dissection") == []
+    def test_every_condition_has_evidence_and_only_e16_is_odd(self, real):
+        assert all(real.expected_findings(c.id) for c in CONDITIONS)
+        dissection = {
+            d["source"] for _, _, d in real.graph.out_edges("COND:aortic_dissection", data=True)
+        }
+        assert dissection == {"hand_authored"}, "DDXPlus has no aortic dissection"
         assert len(real.anomalies) == 1 and real.anomalies[0].startswith("E_16 ")

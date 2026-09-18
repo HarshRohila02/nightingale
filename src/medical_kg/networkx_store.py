@@ -21,7 +21,8 @@ import networkx as nx
 
 from src.contracts import Assertion, Finding, PatientCase, ReasoningPath
 from src.ddxplus import CONCEPT_PREFIX, code_sort_key
-from src.medical_kg.loader import KnowledgeGraph, NodeType, Relation, load_ddxplus_kg
+from src.medical_kg.cardiac_kg import build_cardiac_kg
+from src.medical_kg.loader import KnowledgeGraph, NodeType, Relation
 
 __all__ = ["NetworkXGraphStore"]
 
@@ -55,8 +56,12 @@ class NetworkXGraphStore:
 
     @classmethod
     def from_files(cls, conditions_path: Path, vocabulary_path: Path) -> NetworkXGraphStore:
-        """Load the DDXPlus-derived KG from the interim files and build the store."""
-        return cls(load_ddxplus_kg(conditions_path, vocabulary_path))
+        """Build the store over the whole cardiac KG: DDXPlus plus the hand-authored facts.
+
+        For one source only, build the graph with :func:`src.medical_kg.cardiac_kg.build_cardiac_kg`,
+        filter it with :func:`src.medical_kg.loader.only_sources`, and pass it to the constructor.
+        """
+        return cls(build_cardiac_kg(conditions_path, vocabulary_path))
 
     # -- GraphStore -------------------------------------------------------- #
 

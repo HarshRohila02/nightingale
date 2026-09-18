@@ -67,7 +67,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   `docs/02` §5.2). DDXPlus questions are `DDX:E_nn`; the red-flag rules and golden cases use
   hand-authored `SYM:*` / `RF:*` ids. Pass a hand-authored case through `expand_case()` before the
   real graph scores it, and get a DDXPlus patient's concepts with `concepts_from_evidences()`. Every
-  new `SYM:*` / `RF:*` id needs a crosswalk entry, and a test enforces it.
+  new `SYM:*` / `RF:*` id needs a crosswalk entry, and a test enforces it;
+  `canonical_concept_id()` decides which graph node it lives on.
 - **The red-flag rules over-fire on DDXPlus** (EXP-014, R-15). 59% of validate patients get a flag,
   and the aortic-dissection rule flags 50%, because back radiation alone fires it. The golden cases
   pass on the real graph only because flagged candidates rank first: by graph score alone, GC-001's
@@ -75,7 +76,11 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - **The KG knows questions, not answers** (`docs/02` §5.1). Stable angina's evidence set also sits
   entirely inside unstable angina's. So with rest pain present, overlap scoring still ranks stable
   angina (1.00) above must-not-miss unstable angina (0.875). 2a must fix this; until then, don't
-  trust a KG-only ranking of the anginas.
+  trust a KG-only ranking of the anginas. (DDXPlus's edges are question-level; the hand-authored
+  edges, and BODHI-S's, are answer-level and weighted by likelihood bands, open decision A-6.)
+- **On DDXPlus patients the graph alone scores 88% top-1, and that is circularity** (EXP-015,
+  R-12): DDXPlus generated them from the definitions the graph is built from. Never report a KG
+  number on DDXPlus data without saying so. Unstable angina is first for only 21% of its own.
 - The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced
   into one of them. Say so wherever results are reported.
 - DDXPlus demographics are synthetic: every condition is ~50% female, and MI has a median age of 45.

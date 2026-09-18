@@ -102,7 +102,9 @@ Expect the honest headline finding to be that the KG earns its place on **safety
   `src/medical_kg/` builds a NetworkX store, and every edge records its source. See the KG card in
   [02-architecture.md](02-architecture.md) §5.1
 - [ ] P1: add BODHI-S enrichment for the 4 exact matches, with likelihood weights
-- [ ] P1: hand-author aortic dissection into the KG
+- [x] P1: hand-author aortic dissection into the KG. Done 2026-09-19: 20 edges from the ADD-RS
+  and the IRAD registry (`src/medical_kg/hand_authored.py`; KG card in
+  [02-architecture.md](02-architecture.md) §5.1)
 - [x] P4: record the circularity caveat in the evaluation protocol's limitations. Done 2026-09-17
   as docs/05 §8.7, before the freeze
 - [ ] All: treat DDXPlus English labels as unreliable — prefer codes, check the French

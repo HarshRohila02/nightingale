@@ -67,12 +67,15 @@ __all__ = [
     "LEFT_LEG",
     "PARENT_QUESTION",
     "RIGHT_LEG",
+    "SEVERE_PAIN_MIN",
+    "SHARP",
     "SIDE_OF",
     "SUDDEN_ONSET_MIN",
     "CrosswalkEntry",
     "Match",
     "Pattern",
     "Side",
+    "canonical_concept_id",
     "case_from_ddxplus",
     "concepts_from_evidences",
     "expand_case",
@@ -155,12 +158,20 @@ LEFT_LEG = frozenset(
 
 SIDE_OF: Mapping[str, str] = {**{v: "R" for v in RIGHT_LEG}, **{v: "L" for v in LEFT_LEG}}
 
+SHARP = frozenset({"V_192", "V_179", "V_112"})
+"""Answers to ``E_54``, "characterize your pain": vive (sharp), un coup de couteau (stabbing),
+lancinante (shooting). The English for lancinante, "haunting", is a mistranslation."""
+
 SUDDEN_ONSET_MIN = 8
 """Lowest answer to ``E_59``, "how fast did the pain appear?" (0-10), that counts as sudden.
 
 A judgment call, recorded as open decision A-5 in docs/02 §9. DDXPlus draws this answer
 uniformly within a range for each condition (5-10 for MI, 0-10 for PE), so it separates
 conditions only by the ends of their ranges."""
+
+SEVERE_PAIN_MIN = 7
+"""Lowest answer to ``E_56``, "how intense is the pain?" (0-10), that counts as severe: the
+usual numeric-rating-scale bands are 1-3 mild, 4-6 moderate and 7-10 severe."""
 
 PARENT_QUESTION: Mapping[str, str] = {
     "E_54": "E_53",
@@ -249,6 +260,13 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
            note="'déchirante'. Its English label, 'heartbreaking', is a mistranslation"),
     _entry("SYM:pain_character_burning", "Burning pain", Match.EXACT, "E_54",
            values=frozenset({"V_181"}), note="'une brûlure'"),
+    _entry("SYM:pain_character_sharp", "Sharp or stabbing pain", Match.CLOSE, "E_54",
+           values=SHARP, note="'vive', 'un coup de couteau' or 'lancinante'"),
+    _entry("SYM:severe_pain", "Severe pain", Match.CLOSE, "E_56", min_ordinal=SEVERE_PAIN_MIN,
+           note="E_56 'Quelle est l'intensité de la douleur?' >= 7 of 10"),
+    _entry("SYM:back_pain", "Back pain", Match.CLOSE, "E_55", values=BACK,
+           note="pain located in the thoracic or lumbar spine, the scapulae or the posterior "
+           "chest wall"),
     _entry("SYM:pleuritic", "Pleuritic pain", Match.EXACT, "E_220",
            note="'douleur qui est pire à l'inspiration profonde'"),
     _entry("SYM:sudden_onset", "Sudden onset", Match.NARROWER, "E_59",
@@ -318,6 +336,32 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
            note="'plusieurs vomissements ou ... plusieurs efforts pour vomir'"),
     _entry("SYM:recent_viral_illness", "Recent viral illness", Match.EXACT, "E_0",
            note="'infecté par un virus récemment'"),
+    # --- Aortic dissection's ADD-RS markers (src/medical_kg/hand_authored.py) --------- #
+    _entry("SYM:syncope", "Syncope", Match.EXACT, "E_159", note="'Avez-vous perdu conscience?'"),
+    _entry("SYM:pulse_deficit", "Pulse deficit", Match.NONE,
+           note="Found on examination. DDXPlus records symptoms and history only"),
+    _entry("SYM:focal_neuro_deficit", "Focal neurological deficit", Match.NONE,
+           note="Found on examination. The nearest question, E_84, asks about weakness in both "
+           "arms or both legs, which is not focal"),
+    _entry("SYM:aortic_regurgitation_murmur", "New aortic regurgitation murmur", Match.NONE,
+           note="Found on auscultation"),
+    _entry("SYM:hypotension", "Hypotension or shock", Match.NONE,
+           note="A blood-pressure measurement, which DDXPlus does not record. PatientCase.vitals "
+           "could supply it later"),
+    _entry("RF:connective_tissue_disease", "Connective tissue disease (e.g. Marfan)",
+           Match.NONE, note="Marfan, Loeys-Dietz or Ehlers-Danlos syndrome"),
+    _entry("RF:family_history_aortic_disease", "Family history of aortic disease",
+           Match.RELATED, "E_225",
+           note="E_225 covers any cardiovascular disease in a close relative before 50"),
+    _entry("RF:aortic_valve_disease", "Known aortic valve disease", Match.BROADER, "E_22",
+           note="E_22 covers a known problem with any heart valve"),
+    _entry("RF:thoracic_aortic_aneurysm", "Known thoracic aortic aneurysm", Match.NONE),
+    _entry("RF:aortic_manipulation", "Recent aortic manipulation", Match.RELATED, "E_196",
+           note="cardiac surgery or catheterisation. E_196 is any surgery in the last month, "
+           "and a catheterisation is not surgery"),
+    _entry("RF:cocaine_use", "Cocaine use", Match.RELATED, "E_62",
+           note="E_62 asks about regular use of any illicit stimulant; dissection follows "
+           "cocaine use itself, regular or not"),
     # --- Risk factors ---------------------------------------------------------------- #
     _entry("RF:diabetes", "Diabetes mellitus", Match.EXACT, "E_69"),
     _entry("RF:smoking", "Smoking", Match.CLOSE, "E_79",
@@ -330,6 +374,30 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
 ``STUB_SYMPTOM_MAP``. tests/test_crosswalk.py fails if one is missing."""
 
 BY_CONCEPT: Mapping[str, CrosswalkEntry] = {e.concept_id: e for e in CROSSWALK}
+
+
+def canonical_concept_id(concept: str) -> str:
+    """The knowledge-graph node that stands for a concept.
+
+    A concept that means the same as a yes/no DDXPlus question (an exact or close match) lives on
+    that question's node: ``SYM:diaphoresis`` is ``DDX:E_50``. Then a fact that DDXPlus and another
+    source both state is one node with two parallel edges, and it is counted once (R-12). Every
+    other concept, such as an answer to a multiple-choice question or a finding DDXPlus lacks,
+    keeps its own id. ``DDX:`` ids are already canonical.
+
+    Raises:
+        ValueError: for a concept the crosswalk does not list. Add it to CROSSWALK first, so that
+            cases can be matched to it.
+    """
+    if concept.startswith(CONCEPT_PREFIX):
+        return concept
+    entry = BY_CONCEPT.get(concept)
+    if entry is None:
+        raise ValueError(f"{concept} is not in the crosswalk; add it to CROSSWALK first")
+    pattern = entry.pattern
+    if pattern is not None and pattern.whole_question and entry.match in (Match.EXACT, Match.CLOSE):
+        return concept_id(pattern.code)
+    return concept
 
 
 # --------------------------------------------------------------------------- #

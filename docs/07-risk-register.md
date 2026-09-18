@@ -54,8 +54,15 @@ trained on DDXPlus, the KG is no longer an *independent* knowledge source. The a
 4. BODHI-S enrichment supplies independent evidence for 4 conditions.
 5. *(Added 2026-09-18.)* **Every KG edge records its `source`** (`ddxplus`, `bodhi_s` or
    `hand_authored`), so the KG's shared-source contribution can be separated from its independent
-   ones mechanically. Today all 245 edges are `ddxplus`: the KG is still entirely shared-source (KG
-   card, [02-architecture.md](02-architecture.md) §5.1).
+   ones mechanically. ~~Today all 245 edges are `ddxplus`: the KG is still entirely shared-source.~~
+   *Updated 2026-09-19:* 20 of the 265 edges are `hand_authored` (aortic dissection, from the
+   ADD-RS and IRAD); BODHI-S is next (KG card, [02-architecture.md](02-architecture.md) §5.1).
+
+*Measured 2026-09-19 (EXP-015).* On DDXPlus validate patients, the graph alone ranks the true
+condition first for **88%** and in the top 3 for **99.8%**, because DDXPlus generated them from
+the definitions the graph is built from. The hand-written golden cases show the other side: the
+same graph puts GC-001's MI fifth. No KG number on DDXPlus data may be reported without this
+caveat.
 
 *Expected honest finding:* the KG earns its place on **safety and explainability**, not raw
 accuracy. Predicting this in advance is better science than discovering it at the end. Recorded as
@@ -278,3 +285,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-18 | **R-14 re-scoped** (9 → 6) by the owner's compute policy: heavy jobs on the cloud or the university GPU, the laptop GPU for the owner's own tests. **R-06 mitigated** (6 → 2): Neo4j on AuraDB Free, no Docker | — |
 | 1 | 2026-09-18 | R-14: the laptop GPU is set up and verified (`.venv-gpu` with torch 2.11.0+cu128; Ollama runs at 100% GPU). Laptop tests now run only after the owner says yes (D-9). Score unchanged | — |
 | 1 | 2026-09-18 | **R-15 opened** (red flags over-fire, found by EXP-014 when the crosswalk let the rules run on DDXPlus): 59% of validate patients flagged; the aortic-dissection rule flags 50% | — |
+| 1 | 2026-09-19 | R-12 measured by EXP-015: the graph alone scores 88% top-1 on DDXPlus patients, which is circularity. The first independent edges exist: 20 hand-authored for aortic dissection. Score unchanged | — |

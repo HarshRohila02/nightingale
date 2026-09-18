@@ -38,6 +38,7 @@ from src.medical_kg.crosswalk import (
     expand_case,
     validate_crosswalk,
 )
+from src.medical_kg.hand_authored import FACTS as HAND_AUTHORED_FACTS
 from src.medical_kg.loader import EdgeSource, KGEdge, KGNode, KnowledgeGraph, NodeType, Relation
 from src.medical_kg.networkx_store import NetworkXGraphStore
 from src.pipeline import DiagnosisPipeline
@@ -88,6 +89,7 @@ def _derived(case: PatientCase) -> dict[str, str]:
 def _concepts_in_use() -> set[str]:
     used = {c for rule in RULES for c in rule.any_of | rule.all_of}
     used |= {c for concepts in STUB_SYMPTOM_MAP.values() for c in concepts}
+    used |= {fact.concept for fact in HAND_AUTHORED_FACTS}
     used |= {
         f["concept_id"]
         for golden in GOLDEN

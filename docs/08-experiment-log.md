@@ -63,6 +63,59 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-015 — The graph alone on validate patients: circularity made visible (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Author | P1 |
+| Config / ablation | graph score only (no ML ranker, no red flags), on two graphs: DDXPlus only, and DDXPlus plus the hand-authored aortic dissection. **Unplanned**; EXP-003–012 keep their planned numbers |
+| Split used | **validate** · test **not read** |
+| Git commit | task 1b, "hand-author aortic dissection into the KG" |
+| Seed | n/a (deterministic; ties broken at random, in expectation) |
+
+**Question:** How well does the knowledge graph rank DDXPlus patients on its own? And does the
+hand-authored aortic dissection, which no DDXPlus patient has, push its way into their
+differentials?
+
+**Setup:** `scripts/build_cardiac_kg.py` (about 7 s on the laptop CPU). Each validate patient
+becomes a case through `case_from_ddxplus`, which reads the input columns only, and is ranked by
+`score_by_connectivity` alone. A condition tied with t others for the places after a higher-scoring
+ones counts as top-k with probability (k − a) / t. Written to `data/interim/cardiac_kg_summary.json`.
+
+**Results:**
+
+| Measure | DDXPlus only | + hand-authored |
+|---|---|---|
+| Top-1 accuracy | **0.880** | 0.879 |
+| Top-3 accuracy | **0.998** | 0.998 |
+| Aortic dissection ranked first | 0% | 0% |
+| Aortic dissection in the top 3 | 0% | 3.1% |
+| Weakest condition, top-1: unstable angina | **0.21** | 0.21 |
+| Next weakest: myocarditis | 0.68 | 0.68 |
+
+**Interpretation:**
+
+1. **This is circularity, not skill (R-12).** DDXPlus generated its patients from
+   `release_conditions.json`, the file the graph is built from, drawing each patient's evidence
+   from their condition's evidence set. Overlap scoring therefore recognises the condition almost
+   perfectly. On the hand-written golden cases, the same graph ranks GC-001's classic MI fifth
+   (EXP-014). docs/05 §8.7 names the risk; this is its size. A KG number measured on DDXPlus data
+   must always be reported with this caveat, and the ablation (EXP-012) cannot credit the KG with
+   accuracy on DDXPlus patients. A point for the team, next to D-8.
+2. **Unstable angina is the graph's blind spot.** It is ranked first for only 21% of its own
+   patients, because stable angina's evidence set sits inside unstable angina's (KG card,
+   limitation 2). 2a must fix this.
+3. **The hand-authored aortic dissection costs DDXPlus patients almost nothing.** Top-1 moves by
+   0.001. Dissection takes a top-3 place for 3.1% of patients, through answer-level markers such as
+   tearing pain and sudden onset, and first place for none. On GC-003 it now ranks first on graph
+   score alone (0.48), where it used to score 0.
+
+**Next action:** 2a fixes unstable angina and the dilution EXP-014 found, and re-measures here.
+Report graph-only numbers on DDXPlus only with the circularity caveat.
+
+---
+
 ### EXP-014 — Crosswalk check: concepts, red flags and golden cases on real data (validate split)
 
 | Field | Value |
@@ -353,3 +406,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-012 | **Full ablation A0–A6** `[TEST]` | 4 | H1, H2, H4 |
 | EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |
 | EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |
+| EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
