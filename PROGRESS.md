@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (1b BODHI-S enrichment + EXP-016) · **Last verified commit:** `d181586`
+**Last updated:** 2026-09-19 · by Claude (1b BODHI-S enrichment + EXP-016) · **Last verified commit:** `cc2a9cd`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Next action** | **Claude:** 1c **feature encoding** from evidence codes: code and tests on synthetic rows, no download, runs in seconds. Training B0/B1 then needs `train.csv` and a place to run it, which the user chooses (D-7). **The user, when convenient:** create the **AuraDB Free** instance (`docs/11` §5). **The team:** **D-8**, and read EXP-014 / **R-15** (the red flags over-fire; the fix is 2d) |
 | **Blocked on** | The Neo4j store ← the user's AuraDB instance · any Precision@3 / Recall@5 number ← **D-8** (team) · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 167 tests passing locally (156 in CI, where the 11 real-data tests skip, as a data-free copy confirmed) · CI green on GitHub at `d181586` |
+| **Health** | 167 tests passing locally (156 in CI, where the 11 real-data tests skip, as a data-free copy confirmed) · CI green on GitHub at `cc2a9cd` |
 
 **Handoff note for the next session:** Nothing is in flight. The KG now has three sources:
 DDXPlus, the hand-authored aortic dissection and BODHI-S. **The graph alone ranks DDXPlus
@@ -208,7 +208,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] KG loader from `data/interim/ddxplus_chestpain_conditions.json` → a backend-neutral `KnowledgeGraph` (`src/medical_kg/loader.py`): 14 conditions, 84 `DDX:E_nn` evidence nodes, 245 edges, **each with a `source`** (R-12). KG card in `docs/02` §5.1 — `6709697`
 - [x] NetworkX `GraphStore` (`src/medical_kg/networkx_store.py`): a drop-in for `InMemoryGraphStore`, proven by running the pipeline on it in a test. 20 tests — `6709697`
 - [x] Crosswalk, `SYM:*`/`RF:*` ↔ DDXPlus evidence (`src/medical_kg/crosswalk.py`): 33 concepts with SKOS match types (11 exact, 12 close, 3 broader, 3 narrower, 1 related, 3 with no DDXPlus equivalent), validated against the release. `expand_case` (concept → graph) and `concepts_from_evidences` / `case_from_ddxplus` (DDXPlus → concept). `scripts/check_crosswalk.py`, 52 tests, card in `docs/02` §5.2. **EXP-014**: the red flags over-fire (**R-15**); the golden cases pass on the real graph only through red flags — `249b968`
-- [x] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights, `source = bodhi_s`): 107 facts, 98 mapped to 56 edges, 7 unmappable with reasons, 2 of zero strength (`src/medical_kg/bodhi_s.py`, keyed by BODHI-S id, no BODHI-S text committed); 17 new crosswalk concepts (64 in all). **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients the graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions (a 2a fix) — → pending
+- [x] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights, `source = bodhi_s`): 107 facts, 98 mapped to 56 edges, 7 unmappable with reasons, 2 of zero strength (`src/medical_kg/bodhi_s.py`, keyed by BODHI-S id, no BODHI-S text committed); 17 new crosswalk concepts (64 in all). **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients the graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions (a 2a fix) — `cc2a9cd`
 - [x] Hand-author aortic dissection into the KG (`source = hand_authored`): 20 edges from the ADD-RS markers, weighted by IRAD frequencies (`src/medical_kg/hand_authored.py`), with 14 new crosswalk concepts. `cardiac_kg.build_cardiac_kg` merges the sources, `canonical_concept_id` puts a yes/no-equivalent concept on its DDXPlus node, and `only_sources` filters for ablations. GC-003 now ranks dissection first on graph score alone. **EXP-015**: the graph alone scores 88% top-1 on DDXPlus patients, which is circularity (R-12) — `d181586`
 - [ ] Neo4j-backed `GraphStore` from the same `KnowledgeGraph`, with NetworkX as the fallback (**D-6**)
 
@@ -307,7 +307,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Item | State |
 |---|---|
 | Git | clean · the repository is **public** on GitHub, so cloud notebooks clone it without a token |
-| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `d181586`) · Python 3.11 |
+| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `cc2a9cd`) · Python 3.11 |
 | Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub. Full install is D-4 |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
@@ -326,7 +326,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-19 | Claude | **1b BODHI-S enrichment**: 107 facts about MI, pericarditis, PE and GERD; 98 mapped to 56 edges weighted by P(finding \| condition), keyed by BODHI-S id so that no BODHI-S text is committed (CC-BY-NC); 17 crosswalk concepts added (64). 21 facts restate DDXPlus and count once. **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions. 2a must replace it. 1b is done except the Neo4j store, which waits for AuraDB | → pending |
+| 2026-09-19 | Claude | **1b BODHI-S enrichment**: 107 facts about MI, pericarditis, PE and GERD; 98 mapped to 56 edges weighted by P(finding \| condition), keyed by BODHI-S id so that no BODHI-S text is committed (CC-BY-NC); 17 crosswalk concepts added (64). 21 facts restate DDXPlus and count once. **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions. 2a must replace it. 1b is done except the Neo4j store, which waits for AuraDB | `cc2a9cd` |
 | 2026-09-19 | Claude | **1b aortic dissection hand-authored**: 20 edges from the ADD-RS markers with IRAD frequencies (Hagan 2000; Evangelista 2016) as likelihood bands, each with its reference; 14 crosswalk concepts added (47 in all); the graph is now merged from sources, and a fact two sources state is counted once. GC-003 ranks dissection first on graph score alone. **EXP-015**: the graph alone ranks DDXPlus validate patients 88% top-1, 99.8% top-3, which is circularity (R-12, now measured); unstable angina is first for only 21%. Open decision A-6 (the band weights) added | `d181586` |
 | 2026-09-19 | Claude | **1b crosswalk**: 33 hand-authored concepts mapped to DDXPlus answers, with SKOS match types that allow only sound inferences. Validated against the release. `expand_case` lets the real graph score hand-authored cases, and `concepts_from_evidences` lets the red-flag rules run on DDXPlus patients. **EXP-014** on validate: the mapping behaves sensibly; the **red flags over-fire** (59% of patients; the aortic-dissection rule flags 50%) → **R-15**; the golden cases pass on the real graph, but only because red flags rank first (by graph score alone, GC-001's MI is fifth). Open decision A-5 (the sudden-onset cut-off) added to `docs/02` §9 | `249b968` |
 | 2026-09-18 | Claude | The user decided **D-9**: Claude runs each laptop-GPU test only after the user says yes in chat. Recorded in `CLAUDE.md`, `docs/11` (v1.1) and every doc that still said the user runs the tests by hand | `4007807` |
