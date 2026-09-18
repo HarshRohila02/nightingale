@@ -372,7 +372,8 @@ result.
 
 **Phase 1 — Core (MVP, must ship)**
 - [ ] Decode DDXPlus evidences; filter to the ~13 chest-pain conditions; train a ranker
-- [ ] Build the Cardiac KG from DDXPlus's condition KB, enriched from BODHI-S (→ NetworkX / Neo4j)
+- [x] Build the Cardiac KG from DDXPlus's condition KB, enriched from BODHI-S, with aortic
+  dissection hand-authored: NetworkX ✅ 2026-09-19; the Neo4j store waits for the AuraDB instance
 - [ ] Build the Patient KG (from Synthea + entered cases)
 - [ ] Fusion + reasoning: ranked differential with supporting ✓ / missing ? symptoms
 - [ ] Red-flag rules (ACS / PE / pneumothorax / dissection)

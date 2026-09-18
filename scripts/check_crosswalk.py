@@ -8,8 +8,9 @@
    puts pain in the chest.
 3. The red-flag rules on the validate patients, a preview of EXP-008 (task 2d): for each rule,
    the share of its own condition's patients it flags, and of everyone else (false alarms).
-4. The golden cases on the real knowledge graph: each case expanded through the crosswalk and
-   run through the pipeline with the NetworkX store in place of the stub.
+4. The golden cases on the real knowledge graph (DDXPlus, hand-authored and, when present,
+   BODHI-S): each case expanded through the crosswalk and run through the pipeline with the
+   NetworkX store in place of the stub.
 
 Validate only: the test split stays closed until Phase 4. Runs in seconds. Writes
 data/interim/crosswalk_check.json. Exits 1 if the crosswalk is invalid.
@@ -44,6 +45,7 @@ from src.stubs import ConstantRanker, EmptyRetriever, TemplateExplainer  # noqa:
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RAW = REPO_ROOT / "data" / "raw" / "ddxplus"
+BODHI_DIR = REPO_ROOT / "data" / "raw" / "bodhi_s"
 INTERIM = REPO_ROOT / "data" / "interim"
 GOLDEN = REPO_ROOT / "tests" / "fixtures" / "golden_cases.yaml"
 
@@ -142,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--raw-dir", type=Path, default=RAW)
     parser.add_argument("--interim", type=Path, default=INTERIM)
+    parser.add_argument("--bodhi-dir", type=Path, default=BODHI_DIR)
     args = parser.parse_args(argv)
 
     release_path = args.raw_dir / "release_evidences.json"
@@ -201,7 +204,9 @@ def main(argv: list[str] | None = None) -> int:
     ]
     if all(p.exists() for p in kg_files):
         summary["golden_on_real_graph"] = golden_on_real_graph(
-            NetworkXGraphStore.from_files(*kg_files)
+            NetworkXGraphStore.from_files(
+                *kg_files, args.bodhi_dir if (args.bodhi_dir / "triples.jsonl").exists() else None
+            )
         )
         print("\nGolden cases on the real graph (expanded through the crosswalk):")
         for row in summary["golden_on_real_graph"]:

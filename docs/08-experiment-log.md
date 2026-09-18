@@ -63,6 +63,67 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-016 — BODHI-S enrichment: coverage, and what it does to the graph (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 |
+| Author | P1 |
+| Config / ablation | graph score only, on three graphs: DDXPlus, plus hand-authored, plus BODHI-S. **Unplanned**; EXP-003–012 keep their planned numbers |
+| Split used | **validate** · test **not read** |
+| Git commit | task 1b, "enrich MI, pericarditis, PE and GERD from BODHI-S" |
+| Seed | n/a (deterministic; ties broken at random, in expectation) |
+
+**Question:** What does BODHI-S add, how much of it fits our vocabulary, and how does it change the
+graph's rankings, on DDXPlus patients and on the golden cases?
+
+**Setup:** `src/medical_kg/bodhi_s.py` maps each BODHI-S fact about MI, pericarditis, PE and GERD
+to the crosswalk concepts it implies, each at least as broad as the fact. `scripts/build_cardiac_kg.py`
+reports coverage and the graph-only ranking, as in EXP-015. `scripts/check_crosswalk.py` re-runs the
+golden cases.
+
+**Results:**
+
+| Measure | Value |
+|---|---|
+| BODHI-S facts about the four conditions | 107: 90 symptom facts, 17 risk-factor facts |
+| Mapped | 98, giving 56 edges (MI 20, GERD 15, PE 12, pericarditis 9) |
+| Unmappable | 7: belching, hiccups, indigestion, spicy food, lack of exercise, past tuberculosis, a vague "myocardial problem" |
+| Zero strength (no edge) | 2: lupus and rheumatoid arthritis, for pericarditis |
+| Condition-concept pairs that DDXPlus also states | 21, counted once |
+| Graph-only top-1 on validate | 0.879 → **0.856** (top-3 0.998 → 0.996) |
+| … MI | 0.856 → **0.602** |
+| … PE · GERD · pericarditis | 0.969 → 0.896 · 0.897 → 0.853 · 1.000 → 0.989 |
+| … myocarditis | 0.682 → 0.930 |
+| Golden cases on the full graph | **all 4 expectations hold** |
+| GC-001 (classic MI), by graph score alone | MI 5th → **3rd** (0.358), behind Boerhaave 0.385 and pericarditis 0.366 |
+| GC-004 (reflux), by graph score alone | GERD still 2nd (0.248), behind pericarditis (0.273) |
+
+**Interpretation:**
+
+1. **On the golden case, the independent knowledge helps.** MI climbs from fifth to third, because
+   BODHI-S knows MI's answers (squeezing pain, radiation to the jaw) where DDXPlus knows only the
+   questions.
+2. **On DDXPlus patients, it costs: top-1 falls by 2.3 points, and MI's from 86% to 60%.** There
+   are two causes. Circularity cuts both ways: the DDXPlus-only graph matches its own generator
+   (EXP-015), and knowledge from outside that generator fits its synthetic patients less well. The
+   fixable cause is the scoring. Overlap divides the matched weight by all of a condition's
+   evidence, so enriching 4 of the 13 conditions penalises those four. MI now carries edges that no
+   DDXPlus patient can match (hypotension; DDXPlus records no blood pressure), or that DDXPlus's MI
+   patients lack (syncope, palpitations). This is the dilution EXP-014 found, made worse by uneven
+   enrichment.
+3. **Neither number is the system's accuracy.** The DDXPlus figure is circular, and there are four
+   golden cases. The overlap score has to change before the enriched graph ranks anything: for
+   example a likelihood-ratio or naive-Bayes score over the likelihood bands, or PPR.
+   `only_sources()` can keep BODHI-S out of scoring meanwhile, and its edges still serve the
+   explanations, as supporting findings with likelihoods.
+
+**Next action:** 2a replaces the overlap score with one that neither punishes a condition for
+knowing more nor mis-ranks the anginas, then re-runs EXP-015 and EXP-016 with
+`scripts/build_cardiac_kg.py`.
+
+---
+
 ### EXP-015 — The graph alone on validate patients: circularity made visible (validate split)
 
 | Field | Value |
@@ -407,3 +468,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |
 | EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
+| EXP-016 | BODHI-S enrichment: coverage and effect *(unplanned, run 2026-09-19)* | 1 | 2a: a score that does not punish enriched conditions |

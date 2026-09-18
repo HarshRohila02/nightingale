@@ -1,6 +1,6 @@
 # 02 — Architecture & Interface Contracts
 
-**Version:** 1.3 · 2026-09-19 (the §5.1 KG card covers the hand-authored aortic dissection and the graph's sources; open decision A-6; v1.2 added the §5.2 crosswalk card and A-5; the §4 contracts are unchanged)
+**Version:** 1.4 · 2026-09-19 (the §5.1 KG card covers BODHI-S; §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5; the §4 contracts are unchanged)
 **Owners:** P1 (knowledge graph) + P2 (data/ML)
 
 > **This is the most important Phase 0 document.** The schemas in §4 are what let four people work
@@ -252,14 +252,15 @@ erDiagram
 backend-neutral `KnowledgeGraph`: DDXPlus `release_conditions.json`, read from
 `data/interim/ddxplus_chestpain_conditions.json` and `ddxplus_evidences.json`
 (`src/medical_kg/loader.py`), and the hand-authored aortic dissection
-(`src/medical_kg/hand_authored.py`). BODHI-S is next. `NetworkXGraphStore`
+(`src/medical_kg/hand_authored.py`), and BODHI-S for MI, pericarditis, PE and GERD
+(`src/medical_kg/bodhi_s.py`) when `data/raw/bodhi_s` is present. `NetworkXGraphStore`
 (`src/medical_kg/networkx_store.py`) serves it. Print this card with
 `python scripts/build_cardiac_kg.py`.
 
 **Ids and provenance.** Conditions keep their registry ids (`COND:*`). DDXPlus evidence questions
 become `DDX:E_nn` (`concept_id()` in `src/ddxplus.py`). That keeps them apart from the hand-authored
 `SYM:*` / `RF:*` ids that the red-flag rules and golden cases use; the crosswalk (§5.2) links the
-two. **Every edge carries a `source`**: `ddxplus` and `hand_authored`, and `bodhi_s` next. A
+two. **Every edge carries a `source`**: `ddxplus`, `hand_authored` or `bodhi_s`. A
 concept that means the same as a yes/no DDXPlus question sits on that question's node
 (`canonical_concept_id`, §5.2). The store is a `MultiDiGraph` keyed by source, so a fact that two
 sources both state is kept twice but counted once. This lets the report separate the KG's
@@ -268,12 +269,12 @@ shared-source contribution from its independent ones (R-12, docs/05 §8.7), and
 
 | Measure | Value |
 |---|---|
-| Nodes | 14 Condition · 53 Symptom · 49 RiskFactor: the 84 DDXPlus questions, one question node added by aortic dissection (syncope, `E_159`), and 18 answer-level concept nodes |
-| Edges | 265: **245 `ddxplus`** (160 `HAS_SYMPTOM` · 85 `HAS_RISK_FACTOR`, weight 1.0) and **20 `hand_authored`** (13 · 7, weighted by likelihood) |
+| Nodes | 129: 14 Condition · 66 Symptom · 49 RiskFactor. They are the 84 DDXPlus questions, 2 more that BODHI-S uses (dysphagia `E_65`, fever `E_91`), and 29 answer-level concept nodes: 18 from the hand-authored facts and 11 from BODHI-S |
+| Edges | 321: **245 `ddxplus`** (160 `HAS_SYMPTOM` · 85 `HAS_RISK_FACTOR`, weight 1.0), **56 `bodhi_s`** (45 · 11) and **20 `hand_authored`** (13 · 7). The last two are weighted by likelihood. DDXPlus and BODHI-S both state 21 condition-concept pairs, and each is counted once |
 | Conditions without edges | none. ~~Aortic dissection (hand-authoring pending)~~ hand-authored 2026-09-19 |
 | Evidence questions unique to one condition | 49 of 84 DDXPlus questions |
 | Questions shared by ≥ 75% of the conditions | 9: the seven pain questions (`E_53`–`E_59`), breathlessness (`E_66`) and travel (`E_204`, all 13) |
-| Anomaly | `E_16` "Do you feel anxious?" is a symptom of PSVT and panic attack, but DDXPlus flags it as an antecedent. It is typed by its use |
+| Anomalies | `E_16` "Do you feel anxious?" is a symptom of PSVT and panic attack, but DDXPlus flags it as an antecedent; it is typed by its use. `E_110` (immobilisation) is a risk factor in DDXPlus, but our concept `SYM:recent_immobilisation` calls it a symptom; DDXPlus's typing is kept |
 
 **Known limitations. Read these before using the scores.**
 
@@ -325,12 +326,29 @@ frequency (Hagan, JAMA 2000; Evangelista, Glob Cardiol Sci Pract 2016):
 Every edge records its evidence and reference. **In GC-003, aortic dissection now ranks first
 on graph score alone (0.48)**; before, it scored 0 and only its red flag surfaced it.
 
+**BODHI-S enrichment** (`src/medical_kg/bodhi_s.py`, 2026-09-19). For MI, pericarditis, PE and
+GERD, BODHI-S knows the answers where DDXPlus knows only the questions: squeezing pain and
+radiation to the jaw for MI, relief on leaning forward for pericarditis. Each of its 107 facts
+about these conditions maps to the crosswalk concepts it implies, and each concept is at least as
+broad as the fact, so the fact's likelihood is a floor for the concept's. Where several facts land
+on one concept, the strongest wins. 98 facts map, giving 56 edges (MI 20, GERD 15, PE 12,
+pericarditis 9). 31 sit on DDXPlus question nodes, 21 of them restating a DDXPlus fact, and 25 on
+concept nodes. Their weights are P(finding | condition): 9 very high, 29 high, 13 medium, 5 low.
+Seven facts cannot be mapped: belching, hiccups, indigestion, spicy food, lack of exercise, past
+tuberculosis, and a vague "myocardial problem". Two have zero strength. The module holds no
+BODHI-S text: facts are keyed by BODHI-S's ids (licence: docs/03 §1.2).
+
 **The graph alone on DDXPlus patients** (EXP-015, validate, ties broken at random): **top-1
 0.880, top-3 0.998.** That is circularity, not skill (R-12). DDXPlus generated these patients
 from the same condition definitions the graph is built from, so the graph recognises them almost
 perfectly. On the hand-written golden cases, the same graph puts GC-001's MI fifth. Adding aortic
 dissection moved top-1 by 0.001. It takes a top-3 place for 3.1% of patients and first place for
-none; no validate patient has it.
+none; no validate patient has it. **BODHI-S lowers top-1 to 0.856, and MI's to 0.60** (EXP-016).
+The overlap score divides by all of a condition's evidence, so the four enriched conditions are
+penalised for knowing more, including findings DDXPlus never records, such as hypotension. On
+GC-001, BODHI-S lifts MI from fifth to third. **2a must change the score before the enriched graph
+ranks anything**; until then, `only_sources()` can leave BODHI-S out of scoring and keep it for
+explanations.
 
 **Backend status:** NetworkX ✅, the working backend. Neo4j will run on **AuraDB Free** (decision
 D-6) once the project owner creates the instance ([11](11-compute-runbook.md) §5). Both backends are
@@ -338,10 +356,11 @@ built from the same `KnowledgeGraph`.
 
 ### 5.2 Crosswalk card: hand-authored concepts ↔ DDXPlus evidence · *built 2026-09-18*
 
-`CROSSWALK` in `src/medical_kg/crosswalk.py` has one entry for each of the **47 hand-authored
+`CROSSWALK` in `src/medical_kg/crosswalk.py` has one entry for each of the **64 hand-authored
 concepts** the codebase uses: every `SYM:*` / `RF:*` id in the red-flag rules, the golden cases,
-`STUB_SYMPTOM_MAP` and the hand-authored graph facts. A test fails if one is missing. (It had 33
-on 2026-09-18; the 14 aortic-dissection markers were added on 2026-09-19.) Each entry names the DDXPlus answers that express
+`STUB_SYMPTOM_MAP`, the hand-authored graph facts and the BODHI-S mapping. A test fails if one is
+missing. (It had 33 on 2026-09-18. On 2026-09-19, 14 aortic-dissection markers and 17 concepts
+for BODHI-S were added.) Each entry names the DDXPlus answers that express
 the concept: a question (`E_nn`) and, depending on its type, the answers that count (`V_nn`), the
 lowest value on a 0–10 scale, or one side versus both sides of paired body locations. Validate it
 and see its effect with `python scripts/check_crosswalk.py`.
@@ -351,11 +370,11 @@ Each allows only the inferences that are logically sound:
 
 | Match | Entries | Concept present ⇒ answer | Answer ⇒ concept | Concept denied ⇒ question denied |
 |---|---|---|---|---|
-| `exact` | 12 | ✓ | ✓ | ✓, for a yes/no question |
-| `close` | 15 | ✓ | ✓ | ✓, for a yes/no question |
+| `exact` | 22 | ✓ | ✓ | ✓, for a yes/no question |
+| `close` | 21 | ✓ | ✓ | ✓, for a yes/no question |
 | `broader` | 4 | ✓ | — | — |
 | `narrower` | 3 | — | ✓ | ✓, for a yes/no question |
-| `related` | 4 (irregular pulse, family history of aortic disease, aortic manipulation, cocaine use) | — | — | — |
+| `related` | 5 (irregular pulse, regurgitation, family history of aortic disease, aortic manipulation, cocaine use) | — | — | — |
 | `none` | 9 (inter-arm BP difference, pulse deficit, focal neurological deficit, aortic regurgitation murmur, hypotension, connective tissue disease, thoracic aortic aneurysm, frothy sputum, hyperventilation) | — | — | — |
 
 A denial carries over only to a yes/no question: denying "radiation to the jaw or arm" says nothing
@@ -393,6 +412,8 @@ the English is machine-translated.
 - *Leg* runs from thigh to sole, toes excluded.
 - *Severe pain* is `E_56` ≥ 7 of 10, the usual numeric-rating-scale band.
 - *Sharp pain* is `vive`, `un coup de couteau` or `lancinante`.
+- *Abdominal pain* covers the belly, epigastrium, hypochondria, flanks and iliac fossae; *neck
+  radiation* covers the throat and the sides and back of the neck.
 - ***Sudden onset* is `E_59` ≥ 8 (open decision A-5).** DDXPlus draws the onset speed uniformly
   within a range for each condition, so it is weak evidence.
 - *Exertional* and *relieved by rest* are narrower than `E_218`, which asks both at once. A

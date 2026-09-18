@@ -56,15 +56,18 @@ from src.ddxplus import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ABDOMEN",
     "ARM",
     "BACK",
     "BY_CONCEPT",
+    "CALF",
     "CHEST",
     "CROSSWALK",
     "DDXPLUS_SOURCE",
     "DERIVED_SOURCE",
     "JAW",
     "LEFT_LEG",
+    "NECK",
     "PARENT_QUESTION",
     "RIGHT_LEG",
     "SEVERE_PAIN_MIN",
@@ -157,6 +160,15 @@ LEFT_LEG = frozenset(
 """The same locations, each (G)."""
 
 SIDE_OF: Mapping[str, str] = {**{v: "R" for v in RIGHT_LEG}, **{v: "L" for v in LEFT_LEG}}
+
+NECK = frozenset({"V_33", "V_174", "V_53", "V_54", "V_26"})
+"""cartilage thyroïdien, trachée, côté du cou (D/G), arrière du cou."""
+
+ABDOMEN = frozenset({"V_187", "V_197", "V_103", "V_104", "V_84", "V_85", "V_87", "V_88"})
+"""ventre, épigastre, hypochondre (D/G), flanc (D/G), fosse iliaque (D/G)."""
+
+CALF = frozenset({"V_119", "V_120"})
+"""mollet (D/G)."""
 
 SHARP = frozenset({"V_192", "V_179", "V_112"})
 """Answers to ``E_54``, "characterize your pain": vive (sharp), un coup de couteau (stabbing),
@@ -267,6 +279,12 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
     _entry("SYM:back_pain", "Back pain", Match.CLOSE, "E_55", values=BACK,
            note="pain located in the thoracic or lumbar spine, the scapulae or the posterior "
            "chest wall"),
+    _entry("SYM:abdominal_pain", "Abdominal pain", Match.CLOSE, "E_55", values=ABDOMEN,
+           note="the belly, epigastrium, hypochondria, flanks or iliac fossae"),
+    _entry("SYM:epigastric_pain", "Epigastric pain", Match.EXACT, "E_55",
+           values=frozenset({"V_197"}), note="'épigastre'"),
+    _entry("SYM:calf_pain", "Calf pain", Match.CLOSE, "E_55", values=CALF,
+           note="pain located in either calf"),
     _entry("SYM:pleuritic", "Pleuritic pain", Match.EXACT, "E_220",
            note="'douleur qui est pire à l'inspiration profonde'"),
     _entry("SYM:sudden_onset", "Sudden onset", Match.NARROWER, "E_59",
@@ -292,6 +310,8 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
            values=JAW | ARM,
            note="jaw, under the jaw, chin; shoulder to fingertips, either side. The neck and "
            "throat (V_33 thyroid cartilage, V_174 trachea) are a different concept"),
+    _entry("SYM:radiation_neck", "Radiation to neck", Match.CLOSE, "E_57", values=NECK,
+           note="the throat (thyroid cartilage, trachea) and the sides and back of the neck"),
     # --- Breathing, heart, general -------------------------------------------------- #
     _entry("SYM:breathlessness", "Breathlessness", Match.CLOSE, "E_66",
            note="'essoufflé ou ... de la difficulté à respirer de façon importante'"),
@@ -303,6 +323,9 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
     _entry("SYM:hyperventilation", "Hyperventilation", Match.NONE,
            note="No DDXPlus question. The nearest, E_75 (a feeling of choking or suffocating), "
            "is a different panic symptom"),
+    _entry("SYM:nausea_or_vomiting", "Nausea or vomiting", Match.EXACT, "E_148",
+           note="'des nausées ou envie de vomir'"),
+    _entry("SYM:fever", "Fever", Match.EXACT, "E_91", note="'objectivé ou ressenti de la fièvre'"),
     _entry("SYM:diaphoresis", "Diaphoresis", Match.EXACT, "E_50",
            note="'des sueurs importantes'"),
     _entry("SYM:palpitations", "Palpitations", Match.CLOSE, "E_155",
@@ -322,7 +345,19 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
     _entry("SYM:interarm_bp_difference", "Inter-arm BP difference", Match.NONE,
            note="A blood-pressure measurement. DDXPlus records symptoms and history only, so "
            "the aortic-dissection rule can use tearing pain and back radiation, never this"),
+    # --- Gastro-oesophageal ----------------------------------------------------------- #
+    _entry("SYM:heartburn", "Heartburn", Match.CLOSE, "E_173",
+           note="a burning that rises from the stomach towards the mouth, sometimes with a bitter "
+           "taste"),
+    _entry("SYM:regurgitation", "Regurgitation", Match.RELATED, "E_173",
+           note="E_173's bitter taste can come with regurgitation, but it asks about a burning"),
+    _entry("SYM:dysphagia", "Dysphagia", Match.EXACT, "E_65",
+           note="'difficulté à avaler ... gêne ou blocage lors de la déglutition'"),
+    _entry("SYM:haematemesis", "Haematemesis", Match.EXACT, "E_210",
+           note="vomited blood or coffee-ground material"),
     # --- Thrombosis, vomiting, infection -------------------------------------------- #
+    _entry("SYM:leg_swelling", "Leg swelling", Match.EXACT, "E_152", values=RIGHT_LEG | LEFT_LEG,
+           note="E_152 swelling locations on either leg or both"),
     _entry("SYM:leg_swelling_unilateral", "Unilateral leg swelling", Match.EXACT, "E_152",
            values=RIGHT_LEG | LEFT_LEG, side=Side.ONE,
            note="E_152 swelling locations on one leg only"),
@@ -368,6 +403,15 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
            note="'fumez-vous la cigarette quotidiennement'"),
     _entry("RF:hypertension", "Hypertension", Match.EXACT, "E_104",
            note="high blood pressure, or medication for it"),
+    _entry("RF:hypercholesterolaemia", "Hypercholesterolaemia", Match.EXACT, "E_71",
+           note="high cholesterol, or medication for it"),
+    _entry("RF:obesity", "Obesity", Match.CLOSE, "E_70", note="'un surpoids important'"),
+    _entry("RF:pregnancy", "Pregnancy", Match.CLOSE, "E_167",
+           note="'croyez-vous être enceinte ou êtes-vous présentement enceinte'"),
+    _entry("RF:previous_dvt", "Previous deep vein thrombosis", Match.EXACT, "E_109"),
+    _entry("RF:heart_failure", "Heart failure", Match.EXACT, "E_106"),
+    _entry("RF:recent_surgery", "Recent surgery", Match.EXACT, "E_196",
+           note="surgery within the last month"),
 )
 # fmt: on
 """Every hand-authored concept the codebase uses: the red-flag rules, the golden cases and

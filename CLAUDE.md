@@ -81,6 +81,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - **On DDXPlus patients the graph alone scores 88% top-1, and that is circularity** (EXP-015,
   R-12): DDXPlus generated them from the definitions the graph is built from. Never report a KG
   number on DDXPlus data without saying so. Unstable angina is first for only 21% of its own.
+  BODHI-S lowers the figure to 86%, and MI's to 60% (EXP-016): the overlap score punishes the four
+  conditions BODHI-S enriches. 2a must replace the score before the enriched graph ranks anything.
+- **BODHI-S is CC-BY-NC: never commit its text.** `src/medical_kg/bodhi_s.py` keys facts by
+  BODHI-S's ids, with paraphrased notes, and the KG card prints counts only.
 - The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced
   into one of them. Say so wherever results are reported.
 - DDXPlus demographics are synthetic: every condition is ~50% female, and MI has a median age of 45.
@@ -127,6 +131,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 `docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
 chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
-decoding · `src/medical_kg/` the KG, its NetworkX store and the crosswalk (cards: `docs/02`
+decoding · `src/medical_kg/` the KG from its three sources (DDXPlus, `hand_authored.py`,
+`bodhi_s.py`, merged by `cardiac_kg.py`), its NetworkX store and the crosswalk (cards: `docs/02`
 §5.1–§5.2) · `docs/11`
 compute runbook: where jobs run, the owner's GPU steps, cloud jobs, AuraDB

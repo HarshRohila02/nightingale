@@ -20,6 +20,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from src.ddxplus import concept_id
+from src.medical_kg.bodhi_s import load_bodhi_kg
 from src.medical_kg.hand_authored import load_hand_authored_kg
 from src.medical_kg.loader import KnowledgeGraph, load_ddxplus_kg, merge_graphs
 
@@ -39,13 +40,22 @@ def question_labels(vocabulary_path: Path) -> dict[str, str]:
     }
 
 
-def build_cardiac_kg(conditions_path: Path, vocabulary_path: Path) -> KnowledgeGraph:
-    """DDXPlus plus the hand-authored aortic dissection, merged into one graph.
+def build_cardiac_kg(
+    conditions_path: Path, vocabulary_path: Path, bodhi_dir: Path | None = None
+) -> KnowledgeGraph:
+    """DDXPlus, the hand-authored aortic dissection and, if given, BODHI-S, merged into one graph.
 
     Args:
         conditions_path: ``data/interim/ddxplus_chestpain_conditions.json``.
         vocabulary_path: ``data/interim/ddxplus_evidences.json``.
+        bodhi_dir: ``data/raw/bodhi_s``, or None to leave BODHI-S out (it is not in CI).
+
+    Raises:
+        FileNotFoundError: if ``bodhi_dir`` is given but holds no ``triples.jsonl``.
     """
     ddxplus = load_ddxplus_kg(conditions_path, vocabulary_path)
     labels = question_labels(vocabulary_path)
-    return merge_graphs(ddxplus, load_hand_authored_kg(labels))
+    graphs = [ddxplus, load_hand_authored_kg(labels)]
+    if bodhi_dir is not None:
+        graphs.append(load_bodhi_kg(bodhi_dir, labels))
+    return merge_graphs(*graphs)

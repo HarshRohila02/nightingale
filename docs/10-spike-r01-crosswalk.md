@@ -101,7 +101,9 @@ Expect the honest headline finding to be that the KG earns its place on **safety
 - [x] P1: build the KG loader from `ddxplus_chestpain_conditions.json`. Done 2026-09-18:
   `src/medical_kg/` builds a NetworkX store, and every edge records its source. See the KG card in
   [02-architecture.md](02-architecture.md) §5.1
-- [ ] P1: add BODHI-S enrichment for the 4 exact matches, with likelihood weights
+- [x] P1: add BODHI-S enrichment for the 4 exact matches, with likelihood weights. Done
+  2026-09-19: 56 edges (`src/medical_kg/bodhi_s.py`); EXP-016 in
+  [08-experiment-log.md](08-experiment-log.md)
 - [x] P1: hand-author aortic dissection into the KG. Done 2026-09-19: 20 edges from the ADD-RS
   and the IRAD registry (`src/medical_kg/hand_authored.py`; KG card in
   [02-architecture.md](02-architecture.md) §5.1)

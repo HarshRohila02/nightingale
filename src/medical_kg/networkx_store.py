@@ -55,13 +55,16 @@ class NetworkXGraphStore:
         self._expected = {cid: self._collect_expected(cid) for cid in self._conditions}
 
     @classmethod
-    def from_files(cls, conditions_path: Path, vocabulary_path: Path) -> NetworkXGraphStore:
-        """Build the store over the whole cardiac KG: DDXPlus plus the hand-authored facts.
+    def from_files(
+        cls, conditions_path: Path, vocabulary_path: Path, bodhi_dir: Path | None = None
+    ) -> NetworkXGraphStore:
+        """Build the store over the cardiac KG: DDXPlus, the hand-authored facts and, when
+        ``bodhi_dir`` is given, BODHI-S.
 
-        For one source only, build the graph with :func:`src.medical_kg.cardiac_kg.build_cardiac_kg`,
+        For some sources only, build the graph with :func:`src.medical_kg.cardiac_kg.build_cardiac_kg`,
         filter it with :func:`src.medical_kg.loader.only_sources`, and pass it to the constructor.
         """
-        return cls(build_cardiac_kg(conditions_path, vocabulary_path))
+        return cls(build_cardiac_kg(conditions_path, vocabulary_path, bodhi_dir))
 
     # -- GraphStore -------------------------------------------------------- #
 

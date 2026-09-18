@@ -253,7 +253,7 @@ def test_build_script_fails_when_trainable_conditions_have_no_evidence(tmp_path)
     _write(tmp_path, CONDITIONS_JSON, VOCABULARY)  # only 2 of the 13 trainable conditions
     result = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts" / "build_cardiac_kg.py")]
-        + ["--interim", str(tmp_path)],
+        + ["--interim", str(tmp_path), "--bodhi-dir", str(tmp_path / "no_bodhi")],
         capture_output=True,
         text=True,
         encoding="utf-8",

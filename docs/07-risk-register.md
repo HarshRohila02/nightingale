@@ -55,14 +55,17 @@ trained on DDXPlus, the KG is no longer an *independent* knowledge source. The a
 5. *(Added 2026-09-18.)* **Every KG edge records its `source`** (`ddxplus`, `bodhi_s` or
    `hand_authored`), so the KG's shared-source contribution can be separated from its independent
    ones mechanically. ~~Today all 245 edges are `ddxplus`: the KG is still entirely shared-source.~~
-   *Updated 2026-09-19:* 20 of the 265 edges are `hand_authored` (aortic dissection, from the
-   ADD-RS and IRAD); BODHI-S is next (KG card, [02-architecture.md](02-architecture.md) §5.1).
+   *Updated 2026-09-19:* 76 of the 321 edges do not come from DDXPlus: 20 `hand_authored`
+   (aortic dissection, from the ADD-RS and IRAD) and 56 `bodhi_s` (MI, pericarditis, PE, GERD).
+   KG card: [02-architecture.md](02-architecture.md) §5.1.
 
 *Measured 2026-09-19 (EXP-015).* On DDXPlus validate patients, the graph alone ranks the true
 condition first for **88%** and in the top 3 for **99.8%**, because DDXPlus generated them from
 the definitions the graph is built from. The hand-written golden cases show the other side: the
 same graph puts GC-001's MI fifth. No KG number on DDXPlus data may be reported without this
-caveat.
+caveat. The independent BODHI-S edges lower the graph-only score on DDXPlus patients (top-1
+0.856; MI 0.60, EXP-016) while lifting GC-001's MI from fifth to third: circularity rewards
+DDXPlus's own knowledge, so independent knowledge looks worse on DDXPlus data.
 
 *Expected honest finding:* the KG earns its place on **safety and explainability**, not raw
 accuracy. Predicting this in advance is better science than discovering it at the end. Recorded as
@@ -253,7 +256,9 @@ desired answer appears.
 **L 2 · I 2 · Score 4 · Owner P2 · Status: MITIGATED**
 
 *Mitigation:* documented in [03-data-management.md](03-data-management.md) §1.2; attribution and
-non-commercial statement in README, report, and UI credits.
+non-commercial statement in README, report, and UI credits. *(2026-09-19)* The enrichment code
+(`src/medical_kg/bodhi_s.py`) keys facts by BODHI-S ids with paraphrased notes, so no BODHI-S
+text is committed.
 
 ---
 
@@ -286,3 +291,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-18 | R-14: the laptop GPU is set up and verified (`.venv-gpu` with torch 2.11.0+cu128; Ollama runs at 100% GPU). Laptop tests now run only after the owner says yes (D-9). Score unchanged | — |
 | 1 | 2026-09-18 | **R-15 opened** (red flags over-fire, found by EXP-014 when the crosswalk let the rules run on DDXPlus): 59% of validate patients flagged; the aortic-dissection rule flags 50% | — |
 | 1 | 2026-09-19 | R-12 measured by EXP-015: the graph alone scores 88% top-1 on DDXPlus patients, which is circularity. The first independent edges exist: 20 hand-authored for aortic dissection. Score unchanged | — |
+| 1 | 2026-09-19 | R-12: 56 BODHI-S edges added (76 of 321 now independent of DDXPlus). EXP-016: they lower the graph-only score on DDXPlus and raise MI on GC-001. R-10: no BODHI-S text committed | — |

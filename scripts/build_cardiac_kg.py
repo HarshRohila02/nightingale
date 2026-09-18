@@ -3,11 +3,13 @@
     python scripts/build_cardiac_kg.py
 
 Loads data/interim/ddxplus_chestpain_conditions.json and ddxplus_evidences.json (run
-scripts/decode_ddxplus.py first), builds the NetworkX store over the whole cardiac KG (DDXPlus
-plus the hand-authored facts, src/medical_kg/cardiac_kg.py), and reports what the graph contains
-and what it cannot do:
+scripts/decode_ddxplus.py first), and BODHI-S from data/raw/bodhi_s when it is there. Builds the
+NetworkX store over the whole cardiac KG (DDXPlus, the hand-authored facts and BODHI-S,
+src/medical_kg/cardiac_kg.py), and reports what the graph contains and what it cannot do:
 
 - edges by source, overall and per condition, for the R-12 circularity disclosure;
+- BODHI-S coverage: facts mapped, unmappable, or of zero likelihood (counts only; no
+  BODHI-S text is printed);
 - evidence questions shared by most conditions, which barely discriminate;
 - self-retrieval: give the store a case holding exactly one condition's expected
   findings. That condition always scores 1.0, so a *tie* marks a condition whose whole
@@ -31,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.conditions import BY_ID, CONDITIONS  # noqa: E402
 from src.contracts import Finding, PatientCase  # noqa: E402
+from src.medical_kg.bodhi_s import TRIPLES_FILE, bodhi_coverage  # noqa: E402
 from src.medical_kg.cardiac_kg import build_cardiac_kg  # noqa: E402
 from src.medical_kg.crosswalk import case_from_ddxplus  # noqa: E402
 from src.medical_kg.loader import EdgeSource, only_sources  # noqa: E402
@@ -38,6 +41,7 @@ from src.medical_kg.networkx_store import NetworkXGraphStore  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INTERIM = REPO_ROOT / "data" / "interim"
+BODHI_DIR = REPO_ROOT / "data" / "raw" / "bodhi_s"
 AORTIC_DISSECTION = "COND:aortic_dissection"
 
 LOW_DISCRIMINATION_SHARE = 0.75
@@ -180,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--interim", type=Path, default=INTERIM)
+    parser.add_argument("--bodhi-dir", type=Path, default=BODHI_DIR)
     args = parser.parse_args(argv)
 
     paths = [
@@ -190,13 +195,20 @@ def main(argv: list[str] | None = None) -> int:
     if missing:
         raise SystemExit(f"Missing {missing}. Run: python scripts/decode_ddxplus.py")
 
-    kg = build_cardiac_kg(*paths)
+    bodhi_dir = args.bodhi_dir if (args.bodhi_dir / TRIPLES_FILE).exists() else None
+    kg = build_cardiac_kg(*paths, bodhi_dir)
     store = NetworkXGraphStore(kg)
     summary = card(store)
 
     print(f"Nodes      : {summary['nodes']}")
     print(f"Edges      : {summary['edges']}  {summary['edges_by_relation']}")
     print(f"By source  : {summary['edges_by_source']}   (R-12: report the KG by source)")
+    if bodhi_dir is None:
+        print(f"BODHI-S    : not found in {args.bodhi_dir}; the graph is built without it")
+    else:
+        summary["bodhi_coverage"] = bodhi_coverage(bodhi_dir)
+        for condition_id, row in summary["bodhi_coverage"].items():
+            print(f"BODHI-S    : {BY_ID[condition_id].label:<26} {row}")
     print(f"No edges   : {', '.join(summary['conditions_without_edges']) or '—'}")
     print(f"Degree     : {summary['degree_histogram']}  (conditions sharing a question -> count)")
     print(f"Questions shared by ≥{LOW_DISCRIMINATION_SHARE:.0%} of conditions:")
@@ -220,6 +232,9 @@ def main(argv: list[str] | None = None) -> int:
     if parquet.exists():
         stores = {
             "ddxplus only": NetworkXGraphStore(only_sources(kg, [EdgeSource.DDXPLUS])),
+            "+ hand-authored": NetworkXGraphStore(
+                only_sources(kg, [EdgeSource.DDXPLUS, EdgeSource.HAND_AUTHORED])
+            ),
             "all sources": store,
         }
         summary["graph_only_ranking_validate"] = ranking = graph_only_ranking(stores, parquet)

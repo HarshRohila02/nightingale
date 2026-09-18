@@ -58,6 +58,10 @@ terms change.
     it may not be commercialised or redistributed without checking the licence terms.
 - If the project is ever taken commercial, BODHI-S must be replaced (Hetionet, CC0, is the
   candidate substitute).
+- **The enrichment as built (2026-09-19).** `src/medical_kg/bodhi_s.py` keys BODHI-S facts by
+  BODHI-S's own ids, and its notes are paraphrases, so the repository holds no BODHI-S text. The
+  built graph exists only in memory, or in a later Neo4j instance that stays private, and
+  `data/` stays gitignored. The KG card reports coverage as counts only.
 
 ### 1.3 Synthea
 Generator, not a fixed dataset. Generated output is explicitly free of cost, privacy, and security

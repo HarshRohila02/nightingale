@@ -20,6 +20,8 @@ import yaml
 
 from src.contracts import Assertion, EvidenceRole, PatientCase
 from src.ddxplus import EvidenceSpec
+from src.medical_kg.bodhi_s import RISK_FACTORS as BODHI_RISK_FACTORS
+from src.medical_kg.bodhi_s import SYMPTOMS as BODHI_SYMPTOMS
 from src.medical_kg.crosswalk import (
     BY_CONCEPT,
     CROSSWALK,
@@ -90,6 +92,8 @@ def _concepts_in_use() -> set[str]:
     used = {c for rule in RULES for c in rule.any_of | rule.all_of}
     used |= {c for concepts in STUB_SYMPTOM_MAP.values() for c in concepts}
     used |= {fact.concept for fact in HAND_AUTHORED_FACTS}
+    for table in (BODHI_SYMPTOMS, BODHI_RISK_FACTORS):
+        used |= {c for mapping in table.values() for c in mapping.concepts}
     used |= {
         f["concept_id"]
         for golden in GOLDEN
@@ -324,9 +328,15 @@ class TestConceptsFromEvidences:
     @pytest.mark.parametrize(
         ("tokens", "expected"),
         [
-            (["E_152_@_V_119"], ["SYM:leg_swelling_unilateral"]),
-            (["E_152_@_V_119", "E_152_@_V_34"], ["SYM:leg_swelling_unilateral"]),
-            (["E_152_@_V_119", "E_152_@_V_120"], ["SYM:leg_swelling_bilateral"]),
+            (["E_152_@_V_119"], ["SYM:leg_swelling", "SYM:leg_swelling_unilateral"]),
+            (
+                ["E_152_@_V_119", "E_152_@_V_34"],
+                ["SYM:leg_swelling", "SYM:leg_swelling_unilateral"],
+            ),
+            (
+                ["E_152_@_V_119", "E_152_@_V_120"],
+                ["SYM:leg_swelling", "SYM:leg_swelling_bilateral"],
+            ),
             (["E_152_@_V_123"], []),
         ],
     )

@@ -124,17 +124,21 @@ before Phase 3:
 | **NetworkX** *(added 2026-09-18)*: the KG's working backend until Neo4j runs (D-6) | `MultiDiGraph` with keyed parallel edges, node and edge attributes, `out_edges(data=True)`, `nx.freeze`; `pagerank(personalization=…)` for 2a | NetworkX tutorial |
 | **Vocabulary mapping** *(added 2026-09-19)*: how the crosswalk links hand-authored concepts to DDXPlus answers | The SKOS mapping relations (exact, close, broader, narrower, related) and **which way each lets a finding travel**: a broader answer is implied by the concept, a narrower one implies it, and a denial carries over only to a yes/no question. Why UMLS and OMOP record mappings the same way | W3C SKOS Primer §4.5 (mapping properties); `src/medical_kg/crosswalk.py` and [02-architecture.md](02-architecture.md) §5.2 |
 
-*Where to start (updated 2026-09-19):* the KG loader, the NetworkX store and the crosswalk exist.
-Read `src/medical_kg/`, the KG card and the crosswalk card in [02-architecture.md](02-architecture.md)
-§5.1–§5.2, above all their **known limitations**, and EXP-014 in [08](08-experiment-log.md). The
-next P1 tasks are:
+*Where to start (updated 2026-09-19):* the KG is built from three sources (DDXPlus, the
+hand-authored aortic dissection, BODHI-S), with the crosswalk linking the vocabularies. Read
+`src/medical_kg/`, the KG card and the crosswalk card in [02-architecture.md](02-architecture.md)
+§5.1–§5.2, above all their **known limitations**, and EXP-014 to EXP-016 in
+[08](08-experiment-log.md). Done so far:
 1. ~~**The crosswalk** from `DDX:E_nn` to the `SYM:*` / `RF:*` ids used by the red-flag rules and the
    golden cases.~~ Done 2026-09-19 (§5.2).
-2. **BODHI-S enrichment.** BODHI-S stores relations as English sentences with qualifiers
-   (`Chest pain <radiate> to jaw (Symptom) is a symptom present in Acute myocardial infarction
-   (Condition)`). Design a parser that keeps those qualifiers, and add the edges with
-   `source = bodhi_s`.
-3. **Aortic dissection**, hand-authored with `source = hand_authored`.
+2. ~~**BODHI-S enrichment.**~~ Done 2026-09-19: each fact maps to the concepts it implies,
+   keeping its qualifiers where the vocabulary has a concept for them (`src/medical_kg/bodhi_s.py`).
+3. ~~**Aortic dissection**, hand-authored.~~ Done 2026-09-19 from the ADD-RS and IRAD
+   (`src/medical_kg/hand_authored.py`).
+
+Next: the Neo4j store on AuraDB (once the owner's instance exists), then 2a, **a score that does
+not punish a condition for having more evidence** (EXP-016) and separates the anginas
+(EXP-015). Read up on naive-Bayes and likelihood-ratio scoring as well as Personalised PageRank.
 
 Every edge must carry its `source`, because the R-12 disclosure reports the KG by source.
 

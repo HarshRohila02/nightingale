@@ -1,12 +1,14 @@
 """Tests for composing the knowledge graph from its sources (task 1b).
 
 Covers the shared likelihood scale, canonical concept nodes, merging and filtering by source,
-and the hand-authored aortic-dissection facts. The test that reads the real interim files skips
-when data/ is absent, as it is in CI.
+the hand-authored aortic-dissection facts, and the BODHI-S enrichment. The tests that read the real
+interim files or BODHI-S skip when data/ is absent, as it is in CI.
 """
 
 from __future__ import annotations
 
+import json
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,9 @@ import yaml
 
 from src.conditions import BY_ID
 from src.contracts import PatientCase
+from src.medical_kg.bodhi_s import BODHI_CONDITIONS, bodhi_coverage, load_bodhi_kg
+from src.medical_kg.bodhi_s import RISK_FACTORS as BODHI_RISK_FACTORS
+from src.medical_kg.bodhi_s import SYMPTOMS as BODHI_SYMPTOMS
 from src.medical_kg.crosswalk import BY_CONCEPT, canonical_concept_id, expand_case
 from src.medical_kg.hand_authored import (
     AORTIC_DISSECTION,
@@ -201,3 +206,140 @@ def test_gc003_puts_aortic_dissection_first_by_graph_score_on_the_real_graph():
         expand_case(PatientCase(**GOLDEN["GC-003"]["case"]), labels)
     )
     assert max(scores, key=scores.get) == AORTIC_DISSECTION
+
+
+# --------------------------------------------------------------------------- #
+# BODHI-S enrichment
+# --------------------------------------------------------------------------- #
+
+MI = "COND:nstemi_stemi"
+MI_SNOMED = "57054005"
+CHEST_PAIN_ID = "4722e7c8-a65c-11eb-8d02-1e003a340630"  # chest pain
+SQUEEZING_ID = "47239e2a-a65c-11eb-8d02-1e003a340630"  # squeezing chest pain
+JAW_ID = "1fd1d8f4-af36-11eb-8fc3-1e003a340631"  # chest pain spreading to the jaw
+SWEATING_ID = "cbade44f-adca-4d70-a02d-a607e57bddf7"  # bouts of sweating
+HYPERTENSION_SNOMED = "38341003"
+
+
+def _present(symptom: str, condition: str, p_symptom: str, p_condition: str = "medium") -> dict:
+    return {
+        "head": symptom,
+        "head_type": "Symptom",
+        "relation": "PRESENT_IN",
+        "tail": condition,
+        "tail_type": "Condition",
+        "properties": {
+            "likelihood_condition_given_symptom": p_condition,
+            "likelihood_symptom_given_condition": p_symptom,
+        },
+    }
+
+
+def _influenced(condition: str, by: str, strength: str, polarity: str = "positive") -> dict:
+    return {
+        "head": condition,
+        "head_type": "Condition",
+        "relation": "IS_INFLUENCED_BY",
+        "tail": by,
+        "tail_type": "Condition",
+        "properties": {"relation_polarity": polarity, "relation_strength": strength},
+    }
+
+
+def _bodhi_dir(tmp_path: Path, triples: list[dict]) -> Path:
+    folder = tmp_path / "bodhi_s"
+    folder.mkdir()
+    lines = "\n".join(json.dumps(t) for t in triples)
+    (folder / "triples.jsonl").write_text(lines + "\n", encoding="utf-8")
+    return folder
+
+
+SYNTHETIC_BODHI = [
+    _present(CHEST_PAIN_ID, MI_SNOMED, "high", "medium"),
+    _present(SQUEEZING_ID, MI_SNOMED, "very_high", "very_high"),
+    _present(JAW_ID, MI_SNOMED, "High"),  # BODHI-S capitalises a few bands
+    _present(SWEATING_ID, MI_SNOMED, "zero"),
+    _present(CHEST_PAIN_ID, "999999999", "very_high"),  # not one of our conditions
+    _influenced(MI_SNOMED, HYPERTENSION_SNOMED, "high"),
+    _influenced(MI_SNOMED, "44054006", "high", polarity="negative"),  # protective: skipped
+]
+
+
+class TestBodhiS:
+    def test_each_fact_lands_on_every_concept_it_implies(self, tmp_path):
+        kg = load_bodhi_kg(_bodhi_dir(tmp_path, SYNTHETIC_BODHI), {"DDX:E_104": "High BP?"})
+        edges = {e.concept_id: e for e in kg.edges}
+        assert set(edges) == {
+            "SYM:chest_pain",
+            "SYM:pain_character_pressure",
+            "SYM:radiation_jaw_arm",
+            "DDX:E_104",
+        }
+        assert {e.condition_id for e in kg.edges} == {MI}
+        assert {e.source for e in kg.edges} == {EdgeSource.BODHI_S}
+
+    def test_a_concept_keeps_its_strongest_fact(self, tmp_path):
+        kg = load_bodhi_kg(_bodhi_dir(tmp_path, SYNTHETIC_BODHI))
+        chest = next(e for e in kg.edges if e.concept_id == "SYM:chest_pain")
+        assert chest.weight == LIKELIHOOD_WEIGHT[Likelihood.VERY_HIGH], "squeezing, not plain"
+        assert chest.properties["bodhi_ids"] == sorted([CHEST_PAIN_ID, SQUEEZING_ID, JAW_ID])
+        assert chest.properties["p_condition_given_finding"] == "very_high"
+
+    def test_risk_factors_and_zero_or_protective_facts(self, tmp_path):
+        kg = load_bodhi_kg(_bodhi_dir(tmp_path, SYNTHETIC_BODHI))
+        hypertension = next(e for e in kg.edges if e.concept_id == "DDX:E_104")
+        assert hypertension.relation is Relation.HAS_RISK_FACTOR
+        assert "DDX:E_50" not in {e.concept_id for e in kg.edges}, "zero likelihood: no edge"
+        assert "DDX:E_69" not in {e.concept_id for e in kg.edges}, "a protective influence"
+
+    def test_an_unlisted_fact_about_our_conditions_is_an_error(self, tmp_path):
+        folder = _bodhi_dir(tmp_path, [_present("not-in-the-mapping", MI_SNOMED, "high")])
+        with pytest.raises(ValueError, match="not in the mapping"):
+            load_bodhi_kg(folder)
+
+    def test_an_unknown_band_is_an_error(self, tmp_path):
+        folder = _bodhi_dir(tmp_path, [_present(CHEST_PAIN_ID, MI_SNOMED, "sometimes")])
+        with pytest.raises(ValueError, match="sometimes"):
+            load_bodhi_kg(folder)
+
+    def test_coverage_counts_what_happened_to_each_fact(self, tmp_path):
+        coverage = bodhi_coverage(_bodhi_dir(tmp_path, SYNTHETIC_BODHI))
+        assert coverage == {MI: {"facts": 5, "mapped": 4, "zero_likelihood": 1}}
+
+    def test_every_mapped_concept_is_in_the_crosswalk_and_unmapped_facts_say_why(self):
+        for table in (BODHI_SYMPTOMS, BODHI_RISK_FACTORS):
+            for fact_id, mapping in table.items():
+                assert mapping.note, fact_id
+                for concept in mapping.concepts:
+                    canonical_concept_id(concept)  # raises for a concept the crosswalk lacks
+
+
+BODHI_DIR = REPO_ROOT / "data" / "raw" / "bodhi_s"
+needs_bodhi = pytest.mark.skipif(
+    not (BODHI_DIR / "triples.jsonl").exists() or not all(p.exists() for p in KG_FILES),
+    reason="data/ is not committed (CI)",
+)
+
+
+@needs_bodhi
+class TestRealBodhiS:
+    def test_the_mapping_covers_exactly_the_release(self):
+        """Every fact about our four conditions is mapped, and no mapping is stale."""
+        symptoms, risk_factors = set(), set()
+        for line in (BODHI_DIR / "triples.jsonl").read_text(encoding="utf-8").splitlines():
+            triple = json.loads(line)
+            if triple["relation"] == "PRESENT_IN" and triple["tail"] in BODHI_CONDITIONS:
+                symptoms.add(triple["head"])
+            elif triple["relation"] == "IS_INFLUENCED_BY" and triple["head"] in BODHI_CONDITIONS:
+                risk_factors.add(triple["tail"])
+        assert symptoms == set(BODHI_SYMPTOMS)
+        assert risk_factors == set(BODHI_RISK_FACTORS)
+
+    def test_the_full_graph_matches_the_kg_card(self):
+        """docs/02 §5.1. If this changes, update the card."""
+        store = NetworkXGraphStore.from_files(*KG_FILES, BODHI_DIR)
+        types = Counter(d["type"] for _, d in store.graph.nodes(data=True))
+        assert (types["Condition"], types["Symptom"], types["RiskFactor"]) == (14, 66, 49)
+        sources = Counter(d["source"] for _, _, d in store.graph.edges(data=True))
+        assert sources == {"ddxplus": 245, "bodhi_s": 56, "hand_authored": 20}
+        assert len(store.anomalies) == 2, store.anomalies  # E_16, and E_110's typing
