@@ -21,8 +21,8 @@ cp .env.example .env          # Neo4j runs on AuraDB Free; add its details (docs
   [11-compute-runbook.md](11-compute-runbook.md)). Tests, lint and scripts under ~5 minutes run
   locally. **Every training or tuning run, and any job over ~5 minutes (CPU jobs too), runs where
   the project owner decides**: the cloud (Colab, Kaggle, Lightning AI / Studio Lab), the
-  university GPU, or the laptop. The owner's **laptop GPU is only for short tests the owner runs by
-  hand**, from a separate `.venv-gpu`. Code that can use a GPU reads `compute.device` from
+  university GPU, or the laptop. The owner's **laptop GPU is only for short tests, each run only after
+  the owner says yes** (D-9), from a separate `.venv-gpu`. Code that can use a GPU reads `compute.device` from
   `configs/config.yaml` (default `cpu`) and never picks CUDA on its own. That rules out
   `torch.cuda.is_available()` auto-selection, XGBoost `device="cuda"` by default, and Ollama
   calls, since Ollama puts a model on the GPU unless told `num_gpu: 0`.

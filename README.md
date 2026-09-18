@@ -443,7 +443,7 @@ python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
 > **Where things run.** Heavy jobs go to the cloud (Google Colab, Kaggle, Lightning AI / Studio
 > Lab) or to the university GPU, and the project owner picks where for each job. Heavy jobs means
 > every training or tuning run, anything over a few minutes, and batch LLM or embedding runs. The
-> owner's laptop GPU is only for short tests, which the owner runs by hand. Neo4j runs on AuraDB
+> owner's laptop GPU is only for short tests, each run only after the owner says yes. Neo4j runs on AuraDB
 > Free. See the [compute runbook](docs/11-compute-runbook.md).
 
 ---

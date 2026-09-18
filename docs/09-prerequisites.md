@@ -83,7 +83,7 @@ The rules are in [11-compute-runbook.md](11-compute-runbook.md) §1 (decision D-
 - **Every training or tuning run, and any job over ~5 minutes, runs where the project owner
   decides.** That is usually the cloud or the university GPU. Code that could use a GPU reads
   `compute.device` from `configs/config.yaml`, which defaults to `cpu`.
-- **The owner's laptop GPU is only for short tests, which the owner runs by hand.** Three things use
+- **The owner's laptop GPU is only for short tests, each needing the owner's yes first** (D-9). Three things use
   a GPU without saying so:
   - torch code that picks CUDA automatically, once the CUDA build is installed;
   - XGBoost with `device="cuda"`;

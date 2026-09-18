@@ -1,7 +1,7 @@
 """scripts/check_gpu.py must fail politely where torch is absent.
 
 These tests run only where torch is NOT installed (the main .venv and CI), so they can never
-touch a GPU. The real check is run by the owner, by hand, in .venv-gpu (docs/11 §2).
+touch a GPU. The real check runs in .venv-gpu, only after the owner's yes (docs/11 §2, D-9).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_gpu.py"
 
 @pytest.mark.skipif(
     importlib.util.find_spec("torch") is not None,
-    reason="torch is installed here; the GPU check is for the owner to run by hand",
+    reason="torch is installed here; the real GPU check needs the owner's yes (D-9)",
 )
 @pytest.mark.parametrize("args", [[], ["--device", "cuda"]])
 def test_without_torch_it_points_to_the_gpu_environment(args):

@@ -28,11 +28,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
     test) and before **any job expected to take over ~5 minutes, CPU jobs included**. The options are the
     university GPU, Colab, Kaggle, Lightning AI / Studio Lab, or the laptop. Suggest the cloud, and
     give the expected runtime.
-  - **The laptop GPU is for tests only, and the owner runs them by hand.** Never start GPU work on
-    the laptop yourself: no CUDA install, no GPU script, no Ollama model. Write the steps
-    (`docs/11` §2–§3) and read the output the owner pastes back. The exception: the owner asks you
-    in chat to run a specific test. That covers that test only. They did so for the one-time setup
-    on 2026-09-18. Whether that becomes the standing rule is D-9.
+  - **The laptop GPU is for short tests only, and each test needs the owner's yes in chat (D-9).**
+    Before any GPU use on the laptop (a CUDA check, a short model load, any Ollama model), say
+    what the test does and how long it takes, then ask. Run it only after a yes. A yes covers that
+    one test, never later ones. Keep tests to minutes; anything longer is a cloud job. Afterwards,
+    unload the model or release the GPU, and report the result. The owner can also run tests by
+    hand (`docs/11` §2–§3).
   - Install packages **per task, as needed** (D-4), and ask before each download. Code stays on the
     CPU unless `compute.device` in `configs/config.yaml` says otherwise.
 - **Commit and push at every sub-phase boundary**, with `PROGRESS.md` updated in the same commit.
@@ -92,9 +93,9 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   and verified with `scripts/check_gpu.py --device cuda` (`docs/11` §2). The
   main `.venv` stays CPU-only, so everyday work cannot touch the GPU. A cloud or university GPU
   needs the CUDA build that matches its own driver.
-- **Ollama puts a model on the GPU automatically**, so running any local model is laptop-GPU use,
-  and the owner does it by hand (`docs/11` §3). Forcing the CPU (`num_gpu: 0`) just turns it into a
-  heavy CPU job, which also needs asking.
+- **Ollama puts a model on the GPU automatically**, so running any local model is laptop-GPU use
+  and needs the owner's yes first (D-9, `docs/11` §3). Forcing the CPU (`num_gpu: 0`) just turns it
+  into a heavy CPU job, which also needs asking. `ollama stop <model>` frees the GPU at once.
 - **Neo4j runs on AuraDB Free** (D-6). Its credentials live only in `.env`: never open, print or
   commit `.env`.
 

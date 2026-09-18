@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (laptop-GPU setup and tests, run at the user's request; D-9 opened) · **Last verified commit:** `e956594`
+**Last updated:** 2026-09-18 · by Claude (D-9 recorded: laptop-GPU tests run after the user's yes) · **Last verified commit:** `e956594`
 
 ---
 
@@ -16,7 +16,7 @@
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
 | **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · compute placement **D-7** + **D-4**/**D-6** set by the user ✅ · laptop-GPU test environment `.venv-gpu` ✅ (torch 2.11.0+cu128); the AuraDB instance awaits the user) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split waits, and the user picks where it is built) · **1b — KG** · 🔄 (loader + NetworkX store ✅; crosswalk, BODHI-S, aortic dissection, Neo4j store to go) |
-| **Next action** | **Claude:** the 1b **crosswalk** (`DDX:E_nn` ↔ `SYM:*`). It needs no download and runs in seconds. **The user, when convenient:** create the **AuraDB Free** instance (`docs/11` §5); decide **D-9** (who runs laptop-GPU tests from now on). **The team:** **D-8** |
+| **Next action** | **Claude:** the 1b **crosswalk** (`DDX:E_nn` ↔ `SYM:*`). It needs no download and runs in seconds. **The user, when convenient:** create the **AuraDB Free** instance (`docs/11` §5). **The team:** **D-8** |
 | **Blocked on** | The Neo4j store ← the user's AuraDB instance · any Precision@3 / Recall@5 number ← **D-8** (team) · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
 | **Health** | 91 tests passing locally in `.venv` (88 in CI, where the 3 real-data tests skip). In `.venv-gpu`, 89 pass and the 2 torch-missing checks skip · CI green on GitHub at `e956594` |
@@ -36,11 +36,9 @@ demographics are synthetic (~50% female everywhere), so **by-sex parity is an ar
 fairness**. The evaluation protocol (`docs/05`) is **frozen**. Use `./.venv/Scripts/python.exe` —
 plain `python` is 3.14, not the team's 3.11. **Compute (D-7, `docs/11`):** before every training or
 tuning run on project data, and any job over ~5 minutes (CPU jobs too), ask the user **where** to
-run it, suggesting the cloud. **Never start GPU work on the laptop yourself.** GPU tests are the
-user's to run by hand, and that includes any Ollama model, which uses the GPU automatically. On
-2026-09-18 the user asked Claude to run the one-time setup and tests, and `.venv-gpu` now works
-(`docs/11` §2). That request covered only those tests. **D-9** asks whether Claude may run such tests
-from now on.
+run it, suggesting the cloud. **The laptop GPU is for short tests only, and each one needs the
+user's yes in chat first (D-9).** That includes any Ollama model, which uses the GPU automatically.
+A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 
 ---
 
@@ -67,9 +65,8 @@ _Nothing in flight._
 
 | ID | Decision needed | Options | Recommended | Blocks |
 |---|---|---|---|---|
-| **D-5** | Which LLM, and pulling it (`ollama pull llama3.1:8b`, ~4.9 GB) | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Deferred to Phase 3** (Week 6). Under D-7, laptop tests are the user's to run by hand (`docs/11` §3, which uses the installed `qwen2.5-coder:7b`, so no download), and batch runs pull the model on the chosen cloud runtime | Phase 3 explainer |
+| **D-5** | Which LLM, and pulling it (`ollama pull llama3.1:8b`, ~4.9 GB) | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Deferred to Phase 3** (Week 6). Under D-7 and D-9, a laptop test runs only after the user's yes (`docs/11` §3, which uses the installed `qwen2.5-coder:7b`, so no download), and batch runs pull the model on the chosen cloud runtime | Phase 3 explainer |
 | **D-8** 🆕 | **What the ground-truth differential D means** in Precision@3 and Recall@5 (`docs/05` §3.1). EXP-013: 91.8% of in-scope patients' D contain conditions we cannot output (33% of the probability mass), so **Recall@5 as written tops out at 0.434 for a perfect system**. `docs/05` is **frozen**, so any change is a dated amendment in its §9, approved by the team **before any model is evaluated** | Keep as written · **restrict D to the 13 in-scope conditions** (ceiling 0.753) · restrict and renormalise the probabilities | **Restrict D to the in-scope conditions** for the headline figure, and report the as-written figure alongside it for comparison with published DDXPlus results. Top-k accuracy, MRR and must-not-miss recall are unaffected | 1e metrics · any Precision@3 / Recall@5 number |
-| **D-9** 🆕 | **Who runs short laptop-GPU tests from now on.** D-7 says the user runs them by hand. On 2026-09-18 the user asked Claude to run the setup and tests itself ("just run and complete the setup and test yourself"). Claude treated that as covering those tests only | The user, by hand (D-7 as written) · **Claude runs each test after the user says yes in chat** · Claude runs short tests without asking | **Claude runs each test after a yes in chat.** The user still decides every use of the GPU but no longer types the commands. Tests stay short, and anything longer still goes to the cloud (D-7) | Nothing now. The next laptop-GPU test is in Phase 3 (3b) |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
 
@@ -190,6 +187,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [ ] ~~Start Docker Desktop → `docker compose up -d` → confirm Neo4j Browser at `localhost:7474` (D-6)~~ → **the user creates the AuraDB Free instance** and fills `.env` (`docs/11` §5); Claude then connects from the 1b Neo4j store task
 - [ ] ~~`ollama pull llama3.1:8b`; smoke test (D-5)~~ → moved to **3b** (D-5 deferred; laptop GPU tests are the user's, `docs/11` §3)
 - [x] ~~Optional, the user, whenever convenient:~~ Laptop-GPU setup and the first checks (`docs/11` §2–§3), **run by Claude at the user's request** on 2026-09-18: `.venv-gpu` with torch 2.11.0+cu128 · `check_gpu.py --device cuda` ✅ (`sm_120`, 6.6 TFLOP/s) · the test suite passes inside it · Ollama smoke test ✅, 100% GPU. Also aligned one line of `check_gpu.py`'s report — `e956594`
+- [x] Record **D-9** (set by the user): Claude runs each laptop-GPU test only after the user's yes in chat. Updated in `CLAUDE.md`, `docs/11`, and every doc that described the old rule (README, CONTRIBUTING, `docs/00`/`06`/`07`/`09`, `configs/`, `check_gpu.py`) — → pending
 - [ ] Optional: pre-commit hooks for black + ruff
 
 **1a — Data & class balance · 🔄** · P2
@@ -277,9 +275,10 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | 2026-09-18 | **D-2:** the team standardises on **Python 3.11** (matches CI; safest for scispacy/medspaCy) | user · §8 |
 | 2026-09-18 | **D-3:** reference docs archived to `docs/archive/`; the byte-identical duplicate prompt deleted | user · `docs/archive/README.md` |
 | 2026-09-18 | ~~**GPU policy:** the laptop GPU (RTX 5060) is used **only with the user's explicit permission, asked before each use**; the team is seeking a university GPU. Which machine does GPU work stays open as D-7~~ → superseded the same day by **D-7** below | user · `CLAUDE.md`, R-14 |
-| 2026-09-18 | **D-7, compute placement:** the **laptop GPU is for tests only, set up and run by the user by hand** from Claude's steps (`docs/11` §2–§3). **Main training runs on the university GPU and the cloud** (Google Colab free · Kaggle · Lightning AI / Studio Lab). Claude **asks where, per job**, before every training or tuning run and any job expected to take **over ~5 minutes, CPU jobs included**, and suggests the cloud | user · `CLAUDE.md`, `docs/11` |
+| 2026-09-18 | **D-7, compute placement:** the **laptop GPU is for tests only**, ~~set up and run by the user by hand from Claude's steps~~ → who runs them is refined by **D-9** below (`docs/11` §2–§3). **Main training runs on the university GPU and the cloud** (Google Colab free · Kaggle · Lightning AI / Studio Lab). Claude **asks where, per job**, before every training or tuning run and any job expected to take **over ~5 minutes, CPU jobs included**, and suggests the cloud | user · `CLAUDE.md`, `docs/11` |
 | 2026-09-18 | **D-4:** packages go onto the laptop **per task, as needed**, not the full ~1 GB stack. Next: scikit-learn + XGBoost (~200 MB) when 1c starts, asked at that time | user · `docs/11` §1 |
 | 2026-09-18 | **D-6:** Neo4j runs on **AuraDB Free** (cloud). The user creates the account and keeps its credentials in `.env`; no Docker on the laptop. NetworkX stays the fallback | user · `docs/11` §5, R-06 |
+| 2026-09-18 | **D-9, laptop-GPU tests:** Claude runs each short laptop-GPU test (a CUDA check, a short model load, any Ollama model) **only after the user says yes in chat**, and a yes covers one test. The user can still run tests by hand. Claude checks the laptop is on the charger, frees the GPU afterwards and reports the result | user · `CLAUDE.md`, `docs/11` §1–§3 |
 
 ---
 
@@ -293,8 +292,8 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
 | Neo4j | **AuraDB Free**: instance not yet created (the user, `docs/11` §5) |
-| Ollama | **0.34.2** installed (it updates itself; it was 0.34.1) · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` · runs models **on the GPU by default**. Smoke test on 2026-09-18 ✅: 100% GPU, ~71 tokens/s, first prompt 13.6 s, then 0.3 s (`docs/11` §3). Because it uses the GPU, **the user runs it by hand**, unless they ask Claude to |
-| GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (`sm_120`; torch ≥ 2.7 / CUDA 12.8) · driver 591.91 (CUDA 13.1) · **`.venv-gpu` set up 2026-09-18** (4.3 GB on D:): torch 2.11.0+cu128, `check_gpu.py --device cuda` ✅ 6.6 TFLOP/s float32 (`docs/11` §2) · **tests only**. The user runs them by hand unless they ask Claude to (D-9) · `compute.device: cpu` in `configs/` |
+| Ollama | **0.34.2** installed (it updates itself; it was 0.34.1) · only `qwen2.5-coder:7b` pulled — a coding model, not the configured `llama3.1:8b` · runs models **on the GPU by default**. Smoke test on 2026-09-18 ✅: 100% GPU, ~71 tokens/s, first prompt 13.6 s, then 0.3 s (`docs/11` §3). Because it uses the GPU, **each run needs the user's yes first** (D-9) |
+| GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (`sm_120`; torch ≥ 2.7 / CUDA 12.8) · driver 591.91 (CUDA 13.1) · **`.venv-gpu` set up 2026-09-18** (4.3 GB on D:): torch 2.11.0+cu128, `check_gpu.py --device cuda` ✅ 6.6 TFLOP/s float32 (`docs/11` §2) · **tests only**, each run by Claude only after the user's yes (D-9) · `compute.device: cpu` in `configs/` |
 | Heavy compute | **Google Colab (free), Kaggle Notebooks, Lightning AI / Studio Lab**, chosen per job by the user (`docs/11` §4) · university GPU not yet granted (R-14) |
 | Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json`, **`ddxplus_chestpain_validate.parquet`** (4.6 MB) + `.summary.json` · `train.csv` / `test.csv` **not downloaded** |
 | CI dependency set | `requirements-dev.txt`: the tools plus pydantic, pyyaml, pandas, numpy, pyarrow and networkx. These moved from `requirements.txt` so CI runs the parquet-builder and KG tests (CI went from ~15 s to ~35 s) |
@@ -307,6 +306,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-18 | Claude | The user decided **D-9**: Claude runs each laptop-GPU test only after the user says yes in chat. Recorded in `CLAUDE.md`, `docs/11` (v1.1) and every doc that still said the user runs the tests by hand | → pending |
 | 2026-09-18 | Claude | The user asked Claude to run the laptop-GPU setup and tests itself ("just run and complete the setup and test yourself"). Claude treated that as covering these tests only: `.venv-gpu` with torch 2.11.0+cu128 (2.75 GB download, no pip cache kept), `check_gpu.py --device cuda` ✅ (`sm_120`, 6.6 TFLOP/s), the test suite passes inside it, Ollama smoke test ✅ at 100% GPU, and the model was unloaded afterwards. `docs/11` now records the results. Whether Claude may run GPU tests from now on is **D-9** | `e956594` |
 | 2026-09-18 | Claude | The user set compute placement (**D-7**): the laptop GPU for tests only, run by the user by hand; training runs, and any job over ~5 min (CPU included), go to the cloud (Colab free · Kaggle · Lightning AI / Studio Lab) or the university GPU, asked per job. Also **D-4** (per-task installs) and **D-6** (Neo4j on AuraDB Free). New runbook `docs/11` with the user's GPU setup and start/stop steps; `scripts/check_gpu.py`; R-14 re-scoped, R-06 mitigated | `d3683a7` |
 | 2026-09-18 | Claude | Recorded the user's GPU policy as **D-7** (laptop GPU only with permission; university GPU sought) and **R-14**; D-4 re-framed to CPU torch, D-5 deferred to D-7; torch pin fixed. **1a:** validate parquet (33,963 rows) + label audit **EXP-013**. Found that a listed token can mean "no", and that the ground-truth differentials are open-world (Recall@5 ceiling 0.434) → **D-8**. **1b:** KG loader + NetworkX store, with edge provenance for R-12. KG card: questions not answers; stable ⊂ unstable angina, so overlap ranks the benign one first. Corrected the stale README/charter claims that the KG is built from BODHI-S. Protocol note: the session was interrupted once, mid-way through updating this file for task 2, and recovered from §2 | `8dced77` `4d640a8` `6709697` |

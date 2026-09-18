@@ -5,10 +5,10 @@ seed: 42 # used for splits, Synthea generation, and model training
 
 compute:
   # cpu | cuda. Code must read this value and never switch to CUDA on its own.
-  # Leave it at cpu on the owner's laptop. GPU tests there run by hand from the
-  # separate .venv-gpu; heavy jobs run on the cloud or the university GPU, and the
-  # owner picks where for each one (docs/11, decision D-7). Cloud job commands
-  # set cuda explicitly.
+  # Leave it at cpu on the owner's laptop. GPU tests there run from the separate
+  # .venv-gpu, each only after the owner says yes (D-9); heavy jobs run on the cloud
+  # or the university GPU, and the owner picks where for each one (docs/11, D-7).
+  # Cloud job commands set cuda explicitly.
   device: cpu
 
 paths:
@@ -64,8 +64,8 @@ retrieval:
 llm:
   provider: ollama
   model: llama3.1:8b # quantised (~4.9 GB); pulled where it runs (D-5, Phase 3)
-  # Ollama puts the model on a GPU automatically. On the owner's laptop only the
-  # owner runs it, by hand, for tests (docs/11 §3). Batch runs (the B3/B4
+  # Ollama puts the model on a GPU automatically. On the owner's laptop it runs only
+  # for short tests, each after the owner's yes (docs/11 §3, D-9). Batch runs (the B3/B4
   # baselines) go to the cloud or the university GPU, and the owner picks where.
   temperature: 0.1 # low — this is an explainer, not a writer
   max_tokens: 512

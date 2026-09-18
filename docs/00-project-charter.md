@@ -129,8 +129,8 @@ complete ablation study showing which components help.
   for heavy jobs. No paid API budget; the language model is self-hosted via Ollama. *(Updated
   2026-09-18, decision D-7.)* Every training or tuning run, and any job over ~5 minutes, runs where
   the project owner decides: normally Google Colab, Kaggle, Lightning AI / Studio Lab or the
-  university GPU. The owner's laptop GPU (RTX 5060, 8 GB) is **only for short tests the owner runs
-  by hand**. Neo4j runs on AuraDB Free. See [11-compute-runbook.md](11-compute-runbook.md) and risk
+  university GPU. The owner's laptop GPU (RTX 5060, 8 GB) is **only for short tests, each run only
+  after the owner says yes** (D-9). Neo4j runs on AuraDB Free. See [11-compute-runbook.md](11-compute-runbook.md) and risk
   R-14.
 - **Time:** 8–10 weeks with daily work.
 - **Licensing:** BODHI-S is CC-BY-NC-4.0 — the project must remain **non-commercial**.

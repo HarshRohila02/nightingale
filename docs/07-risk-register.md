@@ -143,7 +143,8 @@ asynchronous in the UI; templated fallback always available.
 *Update 2026-09-18, from the owner's compute policy (D-7,
 [11-compute-runbook.md](11-compute-runbook.md)).* Heavy jobs run on the cloud (Colab free, Kaggle,
 Lightning AI / Studio Lab) or the university GPU, and the owner chooses per job. The laptop GPU is
-available for the owner's own short tests. Free GPU tiers exist, so the risk is no longer "no GPU
+available for short tests, each run only after the owner says yes (D-9). It is set up and
+verified (docs/11 §2). Free GPU tiers exist, so the risk is no longer "no GPU
 at all". It is now the free tiers' limits: sessions that end without warning, weekly quotas, and
 GPUs that are not guaranteed.
 
@@ -252,3 +253,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-18 | **R-14 opened** (no GPU secured for Phase 3): the laptop GPU is used only with the owner's permission, and a university GPU is being sought | — |
 | 1 | 2026-09-18 | **R-13 extended** by EXP-013: the ground-truth differentials are open-world too (Recall@5 ceiling 0.434), which raises decision D-8 | — |
 | 1 | 2026-09-18 | **R-14 re-scoped** (9 → 6) by the owner's compute policy: heavy jobs on the cloud or the university GPU, the laptop GPU for the owner's own tests. **R-06 mitigated** (6 → 2): Neo4j on AuraDB Free, no Docker | — |
+| 1 | 2026-09-18 | R-14: the laptop GPU is set up and verified (`.venv-gpu` with torch 2.11.0+cu128; Ollama runs at 100% GPU). Laptop tests now run only after the owner says yes (D-9). Score unchanged | — |

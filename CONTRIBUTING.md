@@ -32,7 +32,7 @@ python scripts/download_data.py       # fetches DDXPlus, BODHI-S, UCI Heart
 **Where jobs run** ([docs/11](docs/11-compute-runbook.md)). Heavy jobs run on the cloud (Colab,
 Kaggle, Lightning AI / Studio Lab) or the university GPU, and the project owner picks where for each
 one. Heavy jobs means every training or tuning run, anything over ~5 minutes, and batch LLM or
-embedding runs. The owner's laptop GPU is only for short tests, which the owner runs by hand. Code
+embedding runs. The owner's laptop GPU is only for short tests, each needing the owner's yes first (D-9). Code
 that can use a GPU must read `compute.device` from `configs/config.yaml`, which defaults to `cpu`, so
 a job script is given the GPU explicitly on the machine where it runs.
 

@@ -1,10 +1,10 @@
-"""Check that PyTorch can use a CUDA GPU. For the owner to run by hand (docs/11 §2).
+"""Check that PyTorch can use a CUDA GPU: a short laptop-GPU test (docs/11 §2).
 
     .\\.venv-gpu\\Scripts\\python.exe scripts\\check_gpu.py                # report only
     .\\.venv-gpu\\Scripts\\python.exe scripts\\check_gpu.py --device cuda   # plus a short GPU test
 
-Project rule (CLAUDE.md, docs/11 §1): the laptop GPU is for short tests that the owner runs
-manually; heavy work goes to the cloud or the university GPU. This script never chooses the
+Project rule (CLAUDE.md, docs/11 §1): the laptop GPU is for short tests, and each one runs only
+after the owner says yes (D-9); heavy work goes to the cloud or the university GPU. This script never chooses the
 GPU by itself. Without ``--device cuda`` it only reports how PyTorch was built and what it can
 see; with it, it runs about a second of matrix multiplication and releases the GPU.
 """
@@ -80,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
 
     del a, b, c
     torch.cuda.empty_cache()
-    print("GPU released. Paste this output to Claude.")
+    print("GPU released.")
     return 0
 
 

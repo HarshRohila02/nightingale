@@ -1,11 +1,12 @@
 # 11 — Compute Runbook: where jobs run, laptop GPU tests, cloud jobs
 
-**Version:** 1.0 · 2026-09-18 · **Set by:** the project owner (decisions D-4, D-6 and D-7 in
+**Version:** 1.1 · 2026-09-18 · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
 `PROGRESS.md` §6)
 
 > **The owner's laptop is a development machine, not a compute server.** Heavy work goes to the
-> cloud or the university GPU. The laptop GPU is only for short tests, and the owner runs those by
-> hand. Claude writes the steps and reads the output the owner pastes back.
+> cloud or the university GPU. The laptop GPU is only for short tests. **Claude runs each test only
+> after the owner says yes in chat** (D-9), and each yes covers one test. The owner can also run
+> them by hand from §2–§3.
 
 ---
 
@@ -18,7 +19,7 @@
 | **Every model training or tuning run**, however short | Cloud or university GPU; the laptop only if the owner picks it | **Yes: where it runs** |
 | **Any other job expected to take over ~5 minutes**, CPU jobs included | Cloud or university GPU | **Yes: where it runs** |
 | Batch LLM or embedding runs (B3/B4 baselines, embedding the corpus) | Cloud or university GPU | **Yes: where it runs** |
-| **GPU tests on the laptop**: does CUDA work, a short model load, an Ollama smoke test | Laptop GPU, **run by the owner by hand** (§2–§3) | Claude only writes the steps, unless the owner asks Claude to run a specific test (D-9 in `PROGRESS.md`) |
+| **GPU tests on the laptop**: does CUDA work, a short model load, an Ollama smoke test | Laptop GPU (§2–§3): Claude runs the test after the owner's yes, or the owner runs it by hand | **Yes: every test** (D-9) |
 | The Neo4j graph database | Neo4j AuraDB Free, in Neo4j's cloud (§5) | — |
 | Installing packages | Laptop, one task at a time, only what that task needs | Yes, before each download |
 
@@ -28,10 +29,13 @@ run and needs asking. A unit test that fits a toy model on a few synthetic rows 
 **How Claude asks.** Before any job in a "Yes" row, Claude says what the job does, how long it
 should take, what it produces, and asks where to run it: the university GPU (once available),
 Google Colab, Kaggle, Lightning AI / Studio Lab, or the laptop. The cloud is the default suggestion.
+For a **laptop-GPU test**, Claude says what the test does and how long it takes, runs it only after
+a yes in chat, then frees the GPU and reports the result. A yes covers that one test, never later
+ones.
 
 ---
 
-## 2. Laptop GPU: one-time setup (the owner, ~20 minutes plus a ~3 GB download)
+## 2. Laptop GPU: one-time setup (done 2026-09-18; ~20 minutes plus a ~3 GB download to redo)
 
 GPU tests run from a **separate environment, `.venv-gpu`**, which has the CUDA build of PyTorch. The
 main `.venv` keeps the CPU build, so everyday work *cannot* use the GPU. The GPU is used only when
@@ -71,8 +75,8 @@ keeping a second 3 GB copy of the download on the C: drive.
 ```
 
 A good result has these lines: **CUDA available** is `True`, **device** names the RTX 5060,
-**compute capability** is `12.0`, **sm_120 in build** is `yes`, and **matmul test** is `OK`. Paste
-the whole output to Claude.
+**compute capability** is `12.0`, **sm_120 in build** is `yes`, and **matmul test** is `OK`. If you
+ran it yourself, paste the whole output to Claude.
 
 | If you see | It means | Fix |
 |---|---|---|
@@ -89,18 +93,21 @@ after a driver update.
 
 ---
 
-## 3. Laptop GPU: starting and stopping a test session (the owner)
+## 3. Laptop GPU: running a test session
+
+Claude runs these after the owner says yes in chat (D-9). The owner can also run them by hand.
 
 **Before you start:** plug in the charger (laptop GPUs slow down on battery) and keep the vents clear.
-A test should finish within minutes. Anything longer is a cloud job (§4).
+Claude checks the power source before a test. A test should finish within minutes. Anything longer
+is a cloud job (§4).
 
 **To watch the GPU (optional, in a second window):** `nvidia-smi -l 2` refreshes every 2 seconds
 (Ctrl+C stops it). Task Manager → Performance → GPU (NVIDIA) shows the same.
 
-**PyTorch tests.** Run the script Claude prepared, always with the GPU environment:
+**PyTorch tests** always run with the GPU environment:
 
 ```powershell
-.\.venv-gpu\Scripts\python.exe scripts\<script Claude names>.py --device cuda
+.\.venv-gpu\Scripts\python.exe scripts\<the test script>.py --device cuda
 ```
 
 The GPU is released when the script ends. Ctrl+C stops it early.
