@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-18 · by Claude (decisions D-1–D-3 applied) · **Last verified commit:** `1ccb06a`
+**Last updated:** 2026-09-18 · by Claude (decisions D-1–D-3 applied) · **Last verified commit:** `843c5fb`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Next action** | Get the user's permission for **D-4, D-5, D-6** (§3) — the environment downloads. Unblocked meanwhile: 1a `validate.csv` → parquet, and the 1b KG loader on NetworkX |
 | **Blocked on** | D-4 (full requirements, ~2–3 GB) · D-5 (LLM pull, ~4.9 GB) · D-6 (Neo4j image, ~0.5 GB) — all lengthy, need permission |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 33 tests passing locally · CI green on GitHub at `1ccb06a` |
+| **Health** | 33 tests passing locally · CI green on GitHub at `843c5fb` |
 
 **Handoff note for the next session:** Nothing is in flight. Before touching the knowledge graph,
 read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus `release_conditions.json`,
@@ -176,8 +176,8 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [ ] Optional: pre-commit hooks for black + ruff
 
 **1a — Data & class balance · 🔄** · P2
-- [x] DDXPlus `validate.csv` downloaded (D-1, 87 MB); `train.csv` / `test.csv` deferred until training — `→ pending`
-- [x] EXP-002 on validate: R-03 not triggered (rarest ≈10,880 projected training cases; 2.7× imbalance); **R-13 opened** (closed-world) — `→ pending`
+- [x] DDXPlus `validate.csv` downloaded (D-1, 87 MB); `train.csv` / `test.csv` deferred until training — `843c5fb`
+- [x] EXP-002 on validate: R-03 not triggered (rarest ≈10,880 projected training cases; 2.7× imbalance); **R-13 opened** (closed-world) — `843c5fb`
 - [ ] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain.parquet`
 - [ ] Re-confirm EXP-002 counts on `train.csv` once it is downloaded
 
@@ -275,7 +275,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `→ pending` |
+| 2026-09-18 | Claude | Applied user decisions D-1–D-3: archived the reference docs (D-3); Python 3.11 + `requirements-dev.txt`, fixing local/CI tool drift (D-2); `validate.csv` + EXP-002 — R-03 resolved, **R-13 opened** (D-1). Protocol lesson: §1 was not refreshed at the two intermediate commits — fixed, and §4.2 now requires it | `5ce3725` `1ccb06a` `843c5fb` |
 | 2026-09-18 | Claude | Added `PROGRESS.md` + `CLAUDE.md` session protocol; verified the environment; corrected Phase 0 status — Neo4j/Ollama exit criteria were never met, now carried to 1.0 | `51b49ce` |
 | 2026-09-17 | Claude | Phase 0c: R-01 spike (31% → FALLBACK), R-12 opened, eval protocol frozen | `8b682e9` |
 | 2026-09-17 | Claude | Phase 0b: scaffold + walking skeleton, 33 tests, CI | `efc10e9` |
