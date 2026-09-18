@@ -63,9 +63,15 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - The KG backbone is DDXPlus `release_conditions.json`, not BODHI-S (R-01). That creates
   **circularity risk R-12**, which must be disclosed wherever results claim value for the KG.
   Every KG edge carries a `source` (`ddxplus` / `bodhi_s` / `hand_authored`); keep it that way.
-- **KG concept ids come in two vocabularies.** DDXPlus questions are `DDX:E_nn`; the red-flag
-  rules and golden cases use hand-authored `SYM:*` / `RF:*` ids. Until the crosswalk links them,
-  the pipeline and golden cases stay on the stub store.
+- **KG concept ids come in two vocabularies, linked by the crosswalk** (`src/medical_kg/crosswalk.py`,
+  `docs/02` §5.2). DDXPlus questions are `DDX:E_nn`; the red-flag rules and golden cases use
+  hand-authored `SYM:*` / `RF:*` ids. Pass a hand-authored case through `expand_case()` before the
+  real graph scores it, and get a DDXPlus patient's concepts with `concepts_from_evidences()`. Every
+  new `SYM:*` / `RF:*` id needs a crosswalk entry, and a test enforces it.
+- **The red-flag rules over-fire on DDXPlus** (EXP-014, R-15). 59% of validate patients get a flag,
+  and the aortic-dissection rule flags 50%, because back radiation alone fires it. The golden cases
+  pass on the real graph only because flagged candidates rank first: by graph score alone, GC-001's
+  MI ranks fifth. Neither result shows the system working.
 - **The KG knows questions, not answers** (`docs/02` §5.1). Stable angina's evidence set also sits
   entirely inside unstable angina's. So with rest pain present, overlap scoring still ranks stable
   angina (1.00) above must-not-miss unstable angina (0.875). 2a must fix this; until then, don't
@@ -108,6 +114,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe scripts/demo.py --case GC-003    # walking skeleton
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
+./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data
 ```
 
 ## Where things are
@@ -115,5 +122,6 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 `docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
 chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
-decoding · `src/medical_kg/` the KG and its NetworkX store (card: `docs/02` §5.1) · `docs/11`
+decoding · `src/medical_kg/` the KG, its NetworkX store and the crosswalk (cards: `docs/02`
+§5.1–§5.2) · `docs/11`
 compute runbook: where jobs run, the owner's GPU steps, cloud jobs, AuraDB

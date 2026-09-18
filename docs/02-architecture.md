@@ -1,6 +1,6 @@
 # 02 — Architecture & Interface Contracts
 
-**Version:** 1.1 · 2026-09-18 (added the §5.1 KG card; updated the §8 layout and §9 ids; the §4 contracts are unchanged)
+**Version:** 1.2 · 2026-09-18 (added the §5.2 crosswalk card and open decision A-5; v1.1 added the §5.1 KG card; the §4 contracts are unchanged)
 **Owners:** P1 (knowledge graph) + P2 (data/ML)
 
 > **This is the most important Phase 0 document.** The schemas in §4 are what let four people work
@@ -255,8 +255,8 @@ erDiagram
 
 **Ids and provenance.** Conditions keep their registry ids (`COND:*`). DDXPlus evidence questions
 become `DDX:E_nn` (`concept_id()` in `src/ddxplus.py`). That keeps them apart from the hand-authored
-`SYM:*` / `RF:*` ids that the red-flag rules and golden cases use; linking the two is the crosswalk
-task. **Every edge carries a `source`**: `ddxplus` now, later `bodhi_s` and `hand_authored`. The
+`SYM:*` / `RF:*` ids that the red-flag rules and golden cases use; the crosswalk (§5.2) links the
+two. **Every edge carries a `source`**: `ddxplus` now, later `bodhi_s` and `hand_authored`. The
 store is a `MultiDiGraph` keyed by source, so a fact that two sources both state is kept twice but
 counted once. This lets the report separate the KG's shared-source contribution from its
 independent ones (R-12, docs/05 §8.7).
@@ -286,15 +286,87 @@ independent ones (R-12, docs/05 §8.7).
    one of three must-not-miss conditions still without one (with myocarditis and acute pulmonary
    edema).
 3. **Node labels are DDXPlus's machine-translated questions**, such as "Have you had significantly
-   increased sweating?". There is no `body_system` yet. The crosswalk will attach clinical labels.
+   increased sweating?". There is no `body_system` yet. The crosswalk does not relabel nodes: a
+   finding it derives carries its question's label, so a reasoning path names the question that
+   matched (§5.2). Clinical labels for the 84 questions are still to do.
 4. **Scoring is the stub's weighted overlap**, kept so that the store is a drop-in replacement. The
    real scoring is 2a (EXP-005).
-5. **The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
-   crosswalk first.
+5. ~~**The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
+   crosswalk first.~~ *Updated 2026-09-18:* a hand-authored case now runs on this graph after
+   `expand_case` (§5.2). The golden cases pass on it, but **only because red flags rank first**: by
+   graph score alone, GC-001's MI ranks fifth (EXP-014). CI still runs them on the stub, because
+   data/ is not committed. Locally they run on both.
 
 **Backend status:** NetworkX ✅, the working backend. Neo4j will run on **AuraDB Free** (decision
 D-6) once the project owner creates the instance ([11](11-compute-runbook.md) §5). Both backends are
 built from the same `KnowledgeGraph`.
+
+### 5.2 Crosswalk card: hand-authored concepts ↔ DDXPlus evidence · *built 2026-09-18*
+
+`CROSSWALK` in `src/medical_kg/crosswalk.py` has one entry for each of the **33 hand-authored
+concepts** the codebase uses: every `SYM:*` / `RF:*` id in the red-flag rules, the golden cases and
+`STUB_SYMPTOM_MAP`. A test fails if one is missing. Each entry names the DDXPlus answers that express
+the concept: a question (`E_nn`) and, depending on its type, the answers that count (`V_nn`), the
+lowest value on a 0–10 scale, or one side versus both sides of paired body locations. Validate it
+and see its effect with `python scripts/check_crosswalk.py`.
+
+**Match types** are the SKOS mapping relations, read as "the DDXPlus answer is ___ the concept".
+Each allows only the inferences that are logically sound:
+
+| Match | Entries | Concept present ⇒ answer | Answer ⇒ concept | Concept denied ⇒ question denied |
+|---|---|---|---|---|
+| `exact` | 11 | ✓ | ✓ | ✓, for a yes/no question |
+| `close` | 12 | ✓ | ✓ | ✓, for a yes/no question |
+| `broader` | 3 | ✓ | — | — |
+| `narrower` | 3 | — | ✓ | ✓, for a yes/no question |
+| `related` | 1 (irregular pulse) | — | — | — |
+| `none` | 3 (inter-arm BP difference, frothy sputum, hyperventilation) | — | — | — |
+
+A denial carries over only to a yes/no question: denying "radiation to the jaw or arm" says nothing
+about radiation to the back, so it cannot deny `E_57`, "does the pain radiate?".
+
+**Two translations.**
+
+- **`expand_case(case, labels)`, hand-authored → graph.** It adds the `DDX:E_nn` findings the case
+  implies, plus the question each follow-up belongs to (`E_54`–`E_59` → `E_53`, `E_152` → `E_151`).
+  The original findings stay first, so the red-flag rules see what they saw before. A derived
+  finding has `source = "crosswalk"`, a qualifier `crosswalk_from` naming its concept, and **the
+  label of its question, never of the finding it came from**. "Pressure-type pain" matches every
+  condition linked to `E_54`, "characterize your pain", so a path must not claim GERD presents with
+  pressure-type pain. A question implied both present and denied is left out, and a warning is
+  logged. Pass the graph's own labels: `dict(store.graph.nodes(data="label"))`.
+- **`concepts_from_evidences(tokens)` and `case_from_ddxplus(row, specs, labels)`, DDXPlus →
+  concepts.** They let the red-flag rules run on DDXPlus patients. `case_from_ddxplus` reads the
+  input columns only. A question a row does not list stays UNKNOWN, not ABSENT: whether DDXPlus's
+  silence means "no" is for 2a to decide.
+
+**Judgment calls to review.** Each is in its entry's note, and the French wording is quoted, because
+the English is machine-translated.
+
+- *Chest* is the upper, lower, lateral and posterior chest and the breasts, not the epigastrium.
+- *Pressure-type pain* is `une lourdeur` (heaviness); DDXPlus has no pressure or tightness answer.
+- *Radiation to jaw/arm* includes the chin and the shoulder, not the neck or throat.
+- *Leg* runs from thigh to sole, toes excluded.
+- ***Sudden onset* is `E_59` ≥ 8 (open decision A-5).** DDXPlus draws the onset speed uniformly
+  within a range for each condition, so it is weak evidence.
+- *Exertional* and *relieved by rest* are narrower than `E_218`, which asks both at once. A
+  hand-authored "exertional" therefore does not imply `E_218`, although a DDXPlus `E_218` implies
+  both concepts.
+
+**What the check found (EXP-014, validate split).**
+
+- The mapping behaves as the clinical picture predicts, wherever DDXPlus encodes it: heaviness in the
+  ischaemic conditions, burning in GERD, pleuritic pain in pneumothorax, PE and pericarditis,
+  unilateral leg swelling in PE.
+- **The red-flag rules over-fire on DDXPlus (R-15).** 59% of patients get a flag, and the
+  aortic-dissection rule alone flags 50%, because back radiation by itself fires it.
+- **The golden cases pass on the real graph only because red flags rank first.** By graph score
+  alone, GC-001's MI ranks fifth, behind Boerhaave, pericarditis, pneumothorax and stable angina.
+
+**Two new `Finding.source` values**: `crosswalk` (derived) and `ddxplus` (read from a DDXPlus row).
+The field is a free string, so nothing breaks. Its description in `src/contracts.py` still lists
+only `structured | free_text | synthea`, and updating it is a contracts change that waits for all
+four members (§4).
 
 ---
 
@@ -345,7 +417,7 @@ nightingale/
 │   ├── nlp/ patient_kg/ medical_kg/ ml/ fusion/ reasoning/ rag/ llm/ eval/ api/
 ├── app/                  # Streamlit dashboard
 ├── scripts/              # download_data.py, decode_ddxplus.py, build_ddxplus_chestpain.py,
-│                         # build_cardiac_kg.py
+│                         # build_cardiac_kg.py, check_crosswalk.py, check_gpu.py
 ├── configs/  notebooks/  tests/  data/   # data/ is gitignored
 └── docker-compose.yml    # optional local Neo4j (the team uses AuraDB Free, D-6)
 ```
@@ -363,3 +435,4 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | A-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
 | A-3 | Embedding model for retrieval | Phase 3 | P3 |
 | A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |
+| A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | 2d, with EXP-008 | P3 |

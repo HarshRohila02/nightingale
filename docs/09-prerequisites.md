@@ -122,12 +122,14 @@ before Phase 3:
 | **Text parsing** | Regex/rule parsing of BODHI-S triples into edges | Python `re` |
 | **Neo4j AuraDB** *(added 2026-09-18)*: the team's Neo4j runs in Neo4j's cloud (D-6) | Connect the Python driver to the `neo4j+s://` URI read from `.env`; never hard-code or print the password | Aura docs; Neo4j Python driver docs |
 | **NetworkX** *(added 2026-09-18)*: the KG's working backend until Neo4j runs (D-6) | `MultiDiGraph` with keyed parallel edges, node and edge attributes, `out_edges(data=True)`, `nx.freeze`; `pagerank(personalization=…)` for 2a | NetworkX tutorial |
+| **Vocabulary mapping** *(added 2026-09-19)*: how the crosswalk links hand-authored concepts to DDXPlus answers | The SKOS mapping relations (exact, close, broader, narrower, related) and **which way each lets a finding travel**: a broader answer is implied by the concept, a narrower one implies it, and a denial carries over only to a yes/no question. Why UMLS and OMOP record mappings the same way | W3C SKOS Primer §4.5 (mapping properties); `src/medical_kg/crosswalk.py` and [02-architecture.md](02-architecture.md) §5.2 |
 
-*Where to start (updated 2026-09-18):* the KG loader and the NetworkX store exist. Read
-`src/medical_kg/` and the KG card in [02-architecture.md](02-architecture.md) §5.1, above all its
-**known limitations**. The next P1 tasks are:
-1. **The crosswalk** from `DDX:E_nn` to the `SYM:*` / `RF:*` ids used by the red-flag rules and the
-   golden cases.
+*Where to start (updated 2026-09-19):* the KG loader, the NetworkX store and the crosswalk exist.
+Read `src/medical_kg/`, the KG card and the crosswalk card in [02-architecture.md](02-architecture.md)
+§5.1–§5.2, above all their **known limitations**, and EXP-014 in [08](08-experiment-log.md). The
+next P1 tasks are:
+1. ~~**The crosswalk** from `DDX:E_nn` to the `SYM:*` / `RF:*` ids used by the red-flag rules and the
+   golden cases.~~ Done 2026-09-19 (§5.2).
 2. **BODHI-S enrichment.** BODHI-S stores relations as English sentences with qualifiers
    (`Chest pain <radiate> to jaw (Symptom) is a symptom present in Acute myocardial infarction
    (Condition)`). Design a parser that keeps those qualifiers, and add the edges with

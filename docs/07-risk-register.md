@@ -126,6 +126,29 @@ any change goes through its amendment log.
 
 ---
 
+### 🟠 R-15 — Red-flag rules fire so often that a flag stops meaning anything
+**L 5 · I 3 · Score 15 · Owner P3 · Status: OPEN** · *found by EXP-014, 2026-09-18*
+
+The crosswalk let the red-flag rules run on DDXPlus patients for the first time. **59% of validate
+patients get at least one flag.** The aortic-dissection rule fires on **50% of all patients**,
+although DDXPlus contains no aortic dissection: back radiation alone is enough to fire it, and
+DDXPlus lists back radiation for 99% of PE, pericarditis and Boerhaave patients and 74% of MI
+patients. docs/04 §3 accepts low red-flag precision, but not at this level. A flag on half of all
+patients teaches users to ignore flags (alarm fatigue). The pipeline also ranks flagged candidates
+first, so over-firing reorders the differential, and must-not-miss recall@3 could look better than
+the ranking deserves.
+
+*Mitigation:*
+1. **2d (EXP-008)** tightens the rules and re-measures them on validate with
+   `scripts/check_crosswalk.py`. The aortic-dissection rule should need more than back radiation,
+   for example tearing pain with it; the ADD-RS score weighs pain features the same way.
+2. Report red-flag rates per condition (own patients versus everyone else) next to must-not-miss
+   recall, so a gain that comes from over-flagging is visible.
+3. Treat the DDXPlus rates as an upper bound: DDXPlus records several radiation sites per patient,
+   likely more than real patients report.
+
+---
+
 ### 🟡 R-05 — Local LLM too slow or too large for the available GPU
 **L 3 · I 2 · Score 6 · Owner P3 · Status: OPEN**
 
@@ -254,3 +277,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-18 | **R-13 extended** by EXP-013: the ground-truth differentials are open-world too (Recall@5 ceiling 0.434), which raises decision D-8 | — |
 | 1 | 2026-09-18 | **R-14 re-scoped** (9 → 6) by the owner's compute policy: heavy jobs on the cloud or the university GPU, the laptop GPU for the owner's own tests. **R-06 mitigated** (6 → 2): Neo4j on AuraDB Free, no Docker | — |
 | 1 | 2026-09-18 | R-14: the laptop GPU is set up and verified (`.venv-gpu` with torch 2.11.0+cu128; Ollama runs at 100% GPU). Laptop tests now run only after the owner says yes (D-9). Score unchanged | — |
+| 1 | 2026-09-18 | **R-15 opened** (red flags over-fire, found by EXP-014 when the crosswalk let the rules run on DDXPlus): 59% of validate patients flagged; the aortic-dissection rule flags 50% | — |

@@ -63,6 +63,80 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-014 — Crosswalk check: concepts, red flags and golden cases on real data (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-18 |
+| Author | P1 |
+| Config / ablation | — (a check of the 1b crosswalk, **unplanned**; EXP-003–012 keep their planned numbers) |
+| Split used | **validate** · test **not read** |
+| Git commit | task 1b, "link the hand-authored concepts to DDXPlus evidence (crosswalk)" |
+| Seed | n/a (deterministic) |
+
+**Question:** The crosswalk (`src/medical_kg/crosswalk.py`) maps the 33 hand-authored concepts to
+DDXPlus answers. Does the mapping behave sensibly on real patients? And now that the red-flag rules
+and the golden cases can meet DDXPlus data, how do they behave?
+
+**Setup:** `scripts/check_crosswalk.py` (about 2 s on the laptop CPU). It validates the table
+against `release_evidences.json` and derives each validate patient's concepts with
+`concepts_from_evidences`. It then runs `evaluate_red_flags` on those concepts, and runs the four
+golden cases through the pipeline on the real NetworkX graph, each expanded with `expand_case`
+(`ConstantRanker`, no retrieval, template explainer). It writes `data/interim/crosswalk_check.json`.
+
+**Results:**
+
+| Measure | Value |
+|---|---|
+| Crosswalk entries | 33: 11 exact · 12 close · 3 broader · 3 narrower · 1 related · 3 with no DDXPlus equivalent |
+| Validation against the release | no problems |
+| Chest pain, share of each condition's patients | 100% MI, PE, pneumothorax · ≥ 99% angina, pericarditis, myocarditis, pulmonary edema · 93% Boerhaave · 82% panic · 73% GERD · 0% AF and PSVT (DDXPlus gives them no chest pain) |
+| Tearing pain | Boerhaave 76%, pneumothorax 76%, nobody else |
+| Radiation to the back | PE 99% · pericarditis 99% · Boerhaave 99% · MI 74% · unstable angina 71% · stable angina 70% · pulmonary edema 68% |
+| **Patients given at least one red flag** | **59%** |
+| Aortic-dissection rule | **flags 50% of all patients**, although DDXPlus has no aortic dissection: 99.5% of PE, 98% of pericarditis, 74% of MI patients |
+| MI rule | flags 91% of MI patients, and 24% of everyone else: 97% of unstable angina, 96% of pulmonary edema, 95% of stable angina |
+| PE rule | 79% of PE patients · 0.5% of everyone else |
+| Pneumothorax rule | 32% of pneumothorax patients · 3% of everyone else (mostly PE and pericarditis) |
+| Boerhaave rule | 75% of Boerhaave patients · nobody else |
+| Golden cases on the real graph | **all 4 expectations hold** |
+| GC-001 (classic MI), by graph score alone | MI **5th** (0.348), behind Boerhaave 0.385, pericarditis 0.357, pneumothorax 0.353, stable angina 0.350 |
+| GC-004 (reflux), by graph score alone | pericarditis 0.286, above GERD 0.250 |
+
+**Interpretation:**
+
+1. **The mapping behaves as the clinical picture predicts, wherever DDXPlus encodes it.** Heaviness
+   appears in the ischaemic conditions, burning in GERD, and pleuritic pain in pneumothorax, PE and
+   pericarditis. Unilateral leg swelling appears in PE (44%), bilateral in pulmonary edema (93%).
+2. **The red-flag rules over-fire on DDXPlus, and the aortic-dissection rule most of all.** Back
+   radiation alone is enough to fire it, and DDXPlus lists back radiation for most PE, pericarditis,
+   Boerhaave and ACS patients: it records several radiation sites per patient, likely more than real
+   patients report. docs/04 §3 accepts low red-flag precision. But a flag on half of all patients
+   carries almost no information. The pipeline also ranks red-flagged candidates first
+   (`src/pipeline.py`), so the flags reorder the differential. **Opened R-15.** The MI rule's flags on unstable angina are appropriate,
+   because unstable angina is an ischaemic emergency too.
+3. **Sudden onset is weak evidence in DDXPlus.** The 0–10 onset speed is drawn uniformly within a
+   range for each condition, so the cut-off (≥ 8, open decision A-5 in docs/02 §9) reaches only half
+   of pneumothorax patients. Together with the rule's three-way conjunction, that leaves the
+   pneumothorax rule catching 32% of them.
+4. **The golden cases pass on the real graph only because red flags rank first.** By graph score
+   alone, the classic MI case puts MI fifth. Overlap is divided by the size of each condition's
+   evidence set, which penalises MI's long risk-factor list. The seven pain questions shared by 12
+   conditions then decide the rest. That is limitation 1 of the KG card (questions, not answers) plus
+   this dilution. 2a must fix the scoring before the KG score carries weight in fusion.
+5. **docs/05's "red-flag sensitivity" measures something else.** It counts cases matching a rule's
+   pattern, which is 1.0 by construction for a deterministic rule. The per-condition rates above ask
+   how many of a condition's own patients its rule reaches. That is the question 2d needs, and a
+   point to raise with the team next to D-8.
+
+**Next action:** 2d (EXP-008): tighten the aortic-dissection rule so that back radiation alone cannot
+fire it, re-measure all five rules on validate, add the three missing rules and settle A-5. 2a
+(EXP-005): fix the dilution, and use GC-001 by graph score alone as a regression case. The pipeline
+can now run on the real graph through `expand_case`. CI keeps the stub, because data/ is not
+committed.
+
+---
+
 ### EXP-013 — Label audit of the chest-pain subset (validate split)
 
 | Field | Value |
@@ -278,3 +352,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-011 | Retrieval quality sweep | 3 | Chunking/embedding choice |
 | EXP-012 | **Full ablation A0–A6** `[TEST]` | 4 | H1, H2, H4 |
 | EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |
+| EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |
