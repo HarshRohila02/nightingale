@@ -107,7 +107,10 @@ class Finding(BaseModel):
         default_factory=dict,
         description="e.g. {'radiate': 'to jaw', 'onset': 'sudden', 'character': 'pressure'}",
     )
-    source: str = Field(default="structured", description="structured | free_text | synthea")
+    source: str = Field(
+        default="structured",
+        description="structured | free_text | synthea | ddxplus | crosswalk",
+    )
     evidence_span: str | None = Field(
         default=None, description="Original text span, when extracted from free text"
     )

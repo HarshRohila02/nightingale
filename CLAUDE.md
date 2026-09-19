@@ -95,8 +95,11 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   89.6% of patients; `E_57_@_V_123` means "radiates nowhere". To find what a patient actually has,
   use `positive_codes()` in `src/ddxplus.py`, never "the code appears in EVIDENCES" (EXP-013).
 - **The ground-truth differentials are open-world** (EXP-013): 33% of their probability mass is on
-  conditions we can't output, so `Recall@5` as `docs/05` defines it tops out at 0.434. Decision
-  D-8 is open. Don't report that metric until it is settled.
+  conditions we can't output. **D-8, decided 2026-09-19** (`docs/05` amendment 1): the headline
+  Precision@3 and Recall@5 count only the in-scope part of D (Recall@5 can reach 0.753), and
+  Recall@5 with the full D (ceiling 0.434) is always reported beside it.
+- **Red-flag sensitivity counts a must-not-miss condition's own patients** that its flag reaches
+  (`docs/05` amendment 2). Report the rule's rate on everyone else beside it (R-15).
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still

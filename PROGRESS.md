@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (the owner's answers: AuraDB created and connected, Colab for B0/B1, installs approved) · **Last verified commit:** `e6f6c60`
+**Last updated:** 2026-09-19 · by Claude (the team's decisions: D-8, red-flag sensitivity, `Finding.source`, A-5/A-6, risk colours) · **Last verified commit:** `e6f6c60`
 
 ---
 
@@ -16,22 +16,23 @@
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
 | **Current sub-phase** | **1.0 — Environment bring-up** · 🔄 (Python 3.11 ✅ · torch pin ✅ · compute placement **D-7** + **D-4**/**D-6** set by the user ✅ · laptop-GPU test environment `.venv-gpu` ✅ (torch 2.11.0+cu128) · AuraDB Free instance created by the user and connected ✅ 2026-09-19) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split is built on **Colab**, inside the B0/B1 training job, the user's choice) · **1b — KG** · 🔄 (loader + NetworkX store + crosswalk + aortic dissection + BODHI-S ✅; only the Neo4j store is left, and it is next) |
-| **Next action** | **The user:** send the team the decision list (task 3 of the owner's checklist), then relay their answers; **D-8** must be settled before any model is evaluated. **Then Claude, in order:** (1) the 1b **Neo4j store**; (2) 1c **feature encoding** from evidence codes; (3) the `src/eval/metrics.py` scaffold (1e); (4) the **B0/B1 training job for Colab**; (5) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). The installs for (1) and (4) are approved (§8). **Later, the user:** run the Colab notebook. **The team:** D-8, the red-flag sensitivity definition in `docs/05`, the `Finding.source` description in `src/contracts.py`, EXP-014 / **R-15**, and the risk-register colours |
-| **Blocked on** | Evaluating any model, and any Precision@3 / Recall@5 number ← **D-8** (team) · the B0/B1 results ← the user running the Colab notebook · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7; B0/B1: Colab) |
+| **Next action** | **Claude, in order:** (1) the 1b **Neo4j store**; (2) 1c **feature encoding** from evidence codes; (3) the `src/eval/metrics.py` scaffold (1e), with Precision@3 and Recall@5 as amended by D-8; (4) the **B0/B1 training job for Colab**; (5) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). The installs for (1) and (4) are approved (§8). **Later, the user:** run the Colab notebook, the last task on the owner's checklist. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
+| **Blocked on** | The B0/B1 results ← the user running the Colab notebook · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7; B0/B1: Colab) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
 | **Health** | 167 tests passing locally (156 in CI, where the 11 real-data tests skip, as a data-free copy confirmed) · CI green on GitHub at `cc2a9cd` |
 
 **Handoff note for the next session:** Nothing is in flight. On 2026-09-19 the user created the
 AuraDB instance (connected; see the §7 Neo4j row), chose **Colab** for the B0/B1 training job and
-approved the next installs (§8). The KG now has three sources:
+approved the next installs (§8); the team settled D-8 and four smaller points (§6). The KG now
+has three sources:
 DDXPlus, the hand-authored aortic dissection and BODHI-S. **The graph alone ranks DDXPlus
 patients 88% top-1, and that is circularity (EXP-015, R-12)**, never a result to report on its
 own. BODHI-S lowers it to 86%, and MI to 60%, because the overlap score punishes enriched
 conditions (EXP-016): 2a must replace the score. The chest-pain parquet exists for
 **validate** only (`docs/03` §2.1). EXP-013 found two things everyone must know. First, **a listed
 DDXPlus token can mean "no"** (`E_204_@_V_10` = "did not travel"), so use `positive_codes()`.
-Second, **the ground-truth differentials are open-world**, so `Recall@5` as written tops out at
-0.434 (**D-8**). The KG now loads into a NetworkX store, but read its card (`docs/02` §5.1) before
+Second, **the ground-truth differentials are open-world**, so `Recall@5` as first written tops
+out at 0.434; **D-8** (decided 2026-09-19) makes the headline count only D's in-scope part. The KG now loads into a NetworkX store, but read its card (`docs/02` §5.1) before
 trusting a score. It links conditions to *questions*, not answers, and ranks **stable angina above
 must-not-miss unstable angina** even when rest pain is present; 2a must fix this. **The crosswalk
 (`docs/02` §5.2) now links the `SYM:*`/`RF:*` concepts to DDXPlus.** It showed (EXP-014) that the
@@ -75,7 +76,6 @@ _Nothing in flight._
 | ID | Decision needed | Options | Recommended | Blocks |
 |---|---|---|---|---|
 | **D-5** | Which LLM, and pulling it (`ollama pull llama3.1:8b`, ~4.9 GB) | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Deferred to Phase 3** (Week 6). Under D-7 and D-9, a laptop test runs only after the user's yes (`docs/11` §3, which uses the installed `qwen2.5-coder:7b`, so no download), and batch runs pull the model on the chosen cloud runtime | Phase 3 explainer |
-| **D-8** 🆕 | **What the ground-truth differential D means** in Precision@3 and Recall@5 (`docs/05` §3.1). EXP-013: 91.8% of in-scope patients' D contain conditions we cannot output (33% of the probability mass), so **Recall@5 as written tops out at 0.434 for a perfect system**. `docs/05` is **frozen**, so any change is a dated amendment in its §9, approved by the team **before any model is evaluated** | Keep as written · **restrict D to the 13 in-scope conditions** (ceiling 0.753) · restrict and renormalise the probabilities | **Restrict D to the in-scope conditions** for the headline figure, and report the as-written figure alongside it for comparison with published DDXPlus results. Top-k accuracy, MRR and must-not-miss recall are unaffected | 1e metrics · any Precision@3 / Recall@5 number |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
 
@@ -233,7 +233,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 
 **1e — Platform · ⬜** · P4
 - [ ] FastAPI: `POST /diagnose`, `GET /conditions`, `GET /health`
-- [ ] Evaluation harness scaffold (`src/eval/metrics.py`)
+- [ ] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1)
 - [ ] Re-verify golden cases against real components — **fix the component, not the expectation**
 
 ### Phase 2 — Reasoning, Fusion & Prototype · ⬜
@@ -257,7 +257,8 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   **R-15 (EXP-014):** the aortic-dissection rule flags 50% of validate patients, because back
   radiation alone fires it. The MI rule flags 24% of non-MI patients, mostly unstable angina, which
   is appropriate. The pneumothorax rule reaches 32%, limited by the sudden-onset cut-off (A-5).
-  Re-measure with `scripts/check_crosswalk.py`
+  Re-measure with `scripts/check_crosswalk.py`. Red-flag sensitivity is now each condition's
+  own-patient rate (`docs/05` amendment 2)
 - **2e** · P4 — Streamlit dashboard v1 (must render `degraded_components` and the disclaimer)
 
 ### Phase 3 — Evidence & Explanation · ⬜
@@ -304,6 +305,10 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | 2026-09-18 | **D-4:** packages go onto the laptop **per task, as needed**, not the full ~1 GB stack. Next: scikit-learn + XGBoost (~200 MB) when 1c starts, asked at that time | user · `docs/11` §1 |
 | 2026-09-18 | **D-6:** Neo4j runs on **AuraDB Free** (cloud). The user creates the account and keeps its credentials in `.env`; no Docker on the laptop. NetworkX stays the fallback | user · `docs/11` §5, R-06 |
 | 2026-09-18 | **D-9, laptop-GPU tests:** Claude runs each short laptop-GPU test (a CUDA check, a short model load, any Ollama model) **only after the user says yes in chat**, and a yes covers one test. The user can still run tests by hand. Claude checks the laptop is on the charger, frees the GPU afterwards and reports the result | user · `CLAUDE.md`, `docs/11` §1–§3 |
+| 2026-09-19 | **D-8:** Precision@3 and Recall@5 use `D_in`, the part of the ground-truth differential inside the 13 in-scope conditions (Recall@5 can reach 0.753); Recall@5 with the full D (ceiling 0.434) is reported beside it. `docs/05` amendment 1 | the team, relayed by the owner · `docs/05` §9 |
+| 2026-09-19 | **Red-flag sensitivity** is measured against the true condition: of must-not-miss patients, the share flagged for their own condition, overall and per condition. A condition without a rule counts as missed; the target is unchanged (≥ 0.95). `docs/05` amendment 2 | the team · `docs/05` §9 |
+| 2026-09-19 | **`Finding.source`** also lists `ddxplus` and `crosswalk` (its description only; a contracts change, agreed by the team) | the team · `src/contracts.py`, `docs/02` §4.2 |
+| 2026-09-19 | **A-5** (sudden onset is `E_59` ≥ 8) and **A-6** (the likelihood band weights) accepted as working values; 2d and 2a re-check them | the team · `docs/02` §9 |
 
 ---
 
@@ -331,6 +336,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-19 | the user + Claude | **The team decided** the five points the owner sent them ("go with Claude's suggestion", relayed by the owner): **D-8** restricts D to the in-scope conditions for the headline Precision@3 / Recall@5 (`docs/05` amendment 1); **red-flag sensitivity** is measured against the true condition (amendment 2); `Finding.source` also lists `ddxplus` and `crosswalk` (a contracts change); A-5 and A-6 accepted as working values; R-12, R-13 and R-15 recoloured 🔴 (the key stays). The owner's checklist is done except the Colab run | → pending |
 | 2026-09-19 | the user + Claude | The owner is working through a checklist of their own tasks. **Done:** created the AuraDB Free instance and filled `.env` (Claude verified the login without reading it: Neo4j 5.27, empty; the home database is named after the instance id, not `neo4j`); chose **Colab** for the B0/B1 training job (D-7); approved installing `neo4j` + `python-dotenv` (now installed) and scikit-learn + XGBoost (when the training job is written) (D-4), and loading the KG into Aura. **Next:** the owner sends the team the decision list (D-8 first); then Claude builds the Neo4j store | `e6f6c60` |
 | 2026-09-19 | Claude | **1b BODHI-S enrichment**: 107 facts about MI, pericarditis, PE and GERD; 98 mapped to 56 edges weighted by P(finding \| condition), keyed by BODHI-S id so that no BODHI-S text is committed (CC-BY-NC); 17 crosswalk concepts added (64). 21 facts restate DDXPlus and count once. **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions. 2a must replace it. 1b is done except the Neo4j store, which waits for AuraDB | `cc2a9cd` |
 | 2026-09-19 | Claude | **1b aortic dissection hand-authored**: 20 edges from the ADD-RS markers with IRAD frequencies (Hagan 2000; Evangelista 2016) as likelihood bands, each with its reference; 14 crosswalk concepts added (47 in all); the graph is now merged from sources, and a fact two sources state is counted once. GC-003 ranks dissection first on graph score alone. **EXP-015**: the graph alone ranks DDXPlus validate patients 88% top-1, 99.8% top-3, which is circularity (R-12, now measured); unstable angina is first for only 21%. Open decision A-6 (the band weights) added | `d181586` |

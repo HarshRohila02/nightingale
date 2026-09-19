@@ -31,7 +31,7 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | Document | Status | Must be frozen by |
 |---|---|---|
 | 00–04, 06–11 | Draft, living | — |
-| **05 Evaluation Protocol** | **🔒 Frozen 2026-09-17**, changed only via its amendment log (proposed amendment: D-8 in `PROGRESS.md`) | Before any model is trained ✅ |
+| **05 Evaluation Protocol** | **🔒 Frozen 2026-09-17**, changed only via its amendment log (amendments 1–2 on 2026-09-19: D-8 and red-flag sensitivity) | Before any model is trained ✅ |
 
 > ⚠️ Document 05 is the one that must not change after modelling begins. Changing metrics after
 > seeing results is how a project loses its scientific validity. Amendments must be dated and

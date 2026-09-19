@@ -1,6 +1,6 @@
 # 02 — Architecture & Interface Contracts
 
-**Version:** 1.4 · 2026-09-19 (the §5.1 KG card covers BODHI-S; §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5; the §4 contracts are unchanged)
+**Version:** 1.5 · 2026-09-19 (v1.5: the team approved adding `ddxplus` and `crosswalk` to `Finding.source` in §4.2, and accepted A-5 and A-6 as working values; v1.4: the §5.1 KG card covers BODHI-S and §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5)
 **Owners:** P1 (knowledge graph) + P2 (data/ML)
 
 > **This is the most important Phase 0 document.** The schemas in §4 are what let four people work
@@ -129,7 +129,7 @@ class Finding(BaseModel):
     label: str                       # human-readable, e.g. "Chest pain"
     assertion: Assertion = Assertion.PRESENT
     qualifiers: dict[str, str] = {}  # {"radiate": "to jaw", "onset": "sudden"}
-    source: str = "structured"       # "structured" | "free_text" | "synthea"
+    source: str = "structured"       # "structured" | "free_text" | "synthea" | "ddxplus" | "crosswalk"
     evidence_span: str | None = None # original text, if extracted
 
 class PatientCase(BaseModel):
@@ -431,9 +431,9 @@ the English is machine-translated.
   alone, GC-001's MI ranks fifth, behind Boerhaave, pericarditis, pneumothorax and stable angina.
 
 **Two new `Finding.source` values**: `crosswalk` (derived) and `ddxplus` (read from a DDXPlus row).
-The field is a free string, so nothing breaks. Its description in `src/contracts.py` still lists
-only `structured | free_text | synthea`, and updating it is a contracts change that waits for all
-four members (§4).
+The field is a free string, so nothing breaks. Adding them to its description in
+`src/contracts.py` and §4.2 was a contracts change, which needs all four members. The team
+agreed on 2026-09-19, as relayed by the owner.
 
 ---
 
@@ -502,5 +502,5 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | A-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
 | A-3 | Embedding model for retrieval | Phase 3 | P3 |
 | A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |
-| A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | 2d, with EXP-008 | P3 |
-| A-6 | The weight of each likelihood band (`LIKELIHOOD_WEIGHT` in `src/medical_kg/loader.py`): rare 0.03, low 0.12, medium 0.35, high 0.65, very high 0.9, the middle of the bands under 5%, 5–19%, 20–49%, 50–79% and 80% or more. BODHI-S publishes no numeric bands; DDXPlus edges keep 1.0 (§5.1) | 2a, with EXP-005 | P1 |
+| A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | **Accepted 2026-09-19** by the team as the working value; 2d re-checks it with EXP-008 | P3 |
+| A-6 | The weight of each likelihood band (`LIKELIHOOD_WEIGHT` in `src/medical_kg/loader.py`): rare 0.03, low 0.12, medium 0.35, high 0.65, very high 0.9, the middle of the bands under 5%, 5–19%, 20–49%, 50–79% and 80% or more. BODHI-S publishes no numeric bands; DDXPlus edges keep 1.0 (§5.1) | **Accepted 2026-09-19** by the team as the working weights; 2a re-checks them with EXP-005 | P1 |

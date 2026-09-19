@@ -4,7 +4,8 @@
 **Review cadence:** weekly, at the Monday standup
 
 Scoring: Likelihood (L) and Impact (I) 1–5. **Score = L × I.**
-🔴 ≥15 critical · 🟠 9–14 high · 🟡 4–8 medium · 🟢 ≤3 low
+🔴 ≥15 critical · 🟠 9–14 high · 🟡 4–8 medium · 🟢 ≤3 low · closed, resolved and mitigated
+risks show 🟢 whatever their score
 
 ---
 
@@ -38,7 +39,7 @@ corroborates our must-not-miss set. BODHI-S is retained to enrich the 4 exactly-
 
 ---
 
-### 🟠 R-12 — KG and ML ranker share a data source (circularity)
+### 🔴 R-12 — KG and ML ranker share a data source (circularity)
 **L 5 · I 3 · Score 15 · Owner P4 · Status: OPEN — accepted, must be disclosed**
 
 Consequence of the R-01 fallback: if the cardiac KG is derived from DDXPlus and the ML ranker is
@@ -112,7 +113,7 @@ KG paths**, which cannot hallucinate. Measured as unsupported-claim rate in the 
 
 ---
 
-### 🟠 R-13 — Closed-world assumption: out-of-scope causes are forced into our 13
+### 🔴 R-13 — Closed-world assumption: out-of-scope causes are forced into our 13
 **L 5 · I 3 · Score 15 · Owner P3 · Status: OPEN — accepted, must be disclosed** · *found by EXP-002*
 
 Only 25.6% of DDXPlus cases fall inside the 13 in-scope conditions, and the model is trained only on
@@ -134,9 +135,13 @@ As docs/05 §3.1 defines Recall@5, a perfect 13-condition system could not score
 The definition of D is therefore open as decision **D-8** in `PROGRESS.md`. docs/05 is frozen, so
 any change goes through its amendment log.
 
+*Decided 2026-09-19 (D-8, docs/05 §9 amendment 1):* the headline Precision@3 and Recall@5 count
+only the in-scope part of D, so a perfect system can reach 0.753, and Recall@5 with the full D is
+reported beside it.
+
 ---
 
-### 🟠 R-15 — Red-flag rules fire so often that a flag stops meaning anything
+### 🔴 R-15 — Red-flag rules fire so often that a flag stops meaning anything
 **L 5 · I 3 · Score 15 · Owner P3 · Status: OPEN** · *found by EXP-014, 2026-09-18*
 
 The crosswalk let the red-flag rules run on DDXPlus patients for the first time. **59% of validate
@@ -156,6 +161,9 @@ the ranking deserves.
    recall, so a gain that comes from over-flagging is visible.
 3. Treat the DDXPlus rates as an upper bound: DDXPlus records several radiation sites per patient,
    likely more than real patients report.
+4. *(2026-09-19)* docs/05 now defines red-flag sensitivity as the share of each must-not-miss
+   condition's own patients that its flag reaches (amendment 2). A rule that fires on everyone
+   still scores well on that, so the rate on other patients (item 2) is always reported beside it.
 
 ---
 
@@ -292,3 +300,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-18 | **R-15 opened** (red flags over-fire, found by EXP-014 when the crosswalk let the rules run on DDXPlus): 59% of validate patients flagged; the aortic-dissection rule flags 50% | — |
 | 1 | 2026-09-19 | R-12 measured by EXP-015: the graph alone scores 88% top-1 on DDXPlus patients, which is circularity. The first independent edges exist: 20 hand-authored for aortic dissection. Score unchanged | — |
 | 1 | 2026-09-19 | R-12: 56 BODHI-S edges added (76 of 321 now independent of DDXPlus). EXP-016: they lower the graph-only score on DDXPlus and raise MI on GC-001. R-10: no BODHI-S text committed | — |
+| 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |

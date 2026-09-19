@@ -1,7 +1,8 @@
 # 05 — Evaluation Protocol (Pre-Registered)
 
-**Version:** 1.1 · 2026-09-17 · **Owner:** P4
-**Status:** 🔒 **FROZEN** as of 2026-09-17, end of Phase 0 — before any model was trained
+**Version:** 1.2 · 2026-09-19 (amendments 1–2, §9) · **Owner:** P4
+**Status:** 🔒 **FROZEN** as of 2026-09-17, end of Phase 0 — before any model was trained.
+Amended on 2026-09-19 through §9, still before any model was trained or evaluated
 
 > Frozen means: no metric, baseline, ablation, or success threshold in this document may change
 > without a dated entry in the amendment log (§9) **and** disclosure in the final report. No model
@@ -55,14 +56,18 @@ Report per-split case counts and per-condition class balance before any modellin
 Let the system output ranked candidates `ĉ₁…ĉₙ`; `y` = true pathology; `D` = ground-truth
 differential set.
 
+*Amendment 1 (2026-09-19, §9):* `D_in` is the part of `D` inside the 13 in-scope conditions.
+The headline Precision@3 and Recall@5 use `D_in`. Recall@5 with the full `D`, as first written,
+is reported alongside it, for comparison with published DDXPlus results.
+
 | Metric | Definition | Reported as |
 |---|---|---|
 | **Top-1 accuracy** | fraction where `ĉ₁ = y` | % |
 | **Top-3 accuracy** | fraction where `y ∈ {ĉ₁,ĉ₂,ĉ₃}` | % ← *primary ranking metric* |
 | **Top-5 accuracy** | fraction where `y ∈ top 5` | % |
 | **MRR** | mean of `1 / rank(y)` | 0–1 |
-| **Precision@3** | \|top-3 ∩ D\| / 3 | 0–1 |
-| **Recall@5** | \|top-5 ∩ D\| / \|D\| | 0–1 |
+| **Precision@3** | \|top-3 ∩ D_in\| / 3, identical to \|top-3 ∩ D\| / 3 because the system outputs only in-scope conditions *(amendment 1)* | 0–1 |
+| **Recall@5** | ~~\|top-5 ∩ D\| / \|D\|~~ → \|top-5 ∩ D_in\| / \|D_in\| *(amendment 1)*; the full-`D` figure is reported alongside | 0–1 |
 | **Per-condition F1** | macro and micro across 13 conditions | 0–1 |
 
 ### 3.2 Safety (headline)
@@ -71,7 +76,7 @@ differential set.
 |---|---|---|
 | **Must-not-miss recall@3** | Of cases whose true condition is must-not-miss, fraction where it appears in the top 3 | **≥ 0.95** |
 | **Dangerous false-negative rate** | Fraction of must-not-miss cases ranked **outside** the top 5 | ≤ 0.02 |
-| **Red-flag sensitivity** | Of cases matching a red-flag pattern, fraction where the flag fired | ≥ 0.95 |
+| **Red-flag sensitivity** | ~~Of cases matching a red-flag pattern, fraction where the flag fired~~ → Of cases whose true condition is must-not-miss, the fraction where a flag fired **for that condition**, overall and per condition. A must-not-miss condition without a rule counts as missed *(amendment 2)* | ≥ 0.95 |
 | **Red-flag precision** | Of fired flags, fraction clinically appropriate | reported, not targeted |
 
 > Red-flag precision is deliberately **not** targeted. Over-flagging is an accepted cost
@@ -185,5 +190,7 @@ explains *why*.
 | 2026-09-17 | Initial version | — | — |
 | 2026-09-17 | Added reporting rule §8.7 (circularity caveat) | R-01 spike resolved to a fallback that derives the KG from DDXPlus, the ranker's own training source. Added **before** freezing and before any model was trained. | — |
 | 2026-09-17 | **Document FROZEN** | End of Phase 0. No model trained to date. | — |
+| 2026-09-19 | **Amendment 1 (decision D-8), §3.1.** Precision@3 and Recall@5 use `D_in`, the part of the ground-truth differential inside the 13 in-scope conditions. Recall@5 with the full `D`, as first written, is reported alongside it | EXP-013 audited the validate labels before any model existed. 91.8% of in-scope patients' differentials include conditions the system cannot output, a third of their probability mass. As first written, Recall@5 could not exceed 0.434 even for a perfect system, so it measured the closed-world gap (R-13) more than the ranking. With `D_in` a perfect system reaches 0.753 (`D_in` holds 6.7 conditions on average, often more than 5). Precision@3 does not change (a perfect system reaches 0.929 under either `D`). Decided before any model was trained or evaluated. The full-`D` figure stays in every report, so the change cannot flatter a result | The team, 2026-09-19 (relayed by the owner) |
+| 2026-09-19 | **Amendment 2, §3.2.** Red-flag sensitivity is measured against the true condition: of cases whose true condition is must-not-miss, the fraction where a flag fired for that condition, overall and per condition. A must-not-miss condition without a rule counts as missed. The target is unchanged (≥ 0.95) | As first written (of cases matching a red-flag pattern, the fraction where the flag fired), the metric is 1.0 by construction for fixed rules on structured input, so it could never fail. Counting any flag instead of the condition's own would reward the over-firing EXP-014 found (R-15). Disclosure: EXP-014 had already measured each rule on its own patients on validate (MI 91%, PE 79%, Boerhaave 75%, pneumothorax 32%; unstable angina, myocarditis and acute pulmonary edema have no rule yet). The amended metric is therefore harder to meet than the original, and the target was not changed | The team, 2026-09-19 (relayed by the owner) |
 
 *Amendments after the freeze date require an entry here and must be disclosed in the final report.*

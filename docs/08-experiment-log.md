@@ -241,7 +241,8 @@ golden cases through the pipeline on the real NetworkX graph, each expanded with
 5. **docs/05's "red-flag sensitivity" measures something else.** It counts cases matching a rule's
    pattern, which is 1.0 by construction for a deterministic rule. The per-condition rates above ask
    how many of a condition's own patients its rule reaches. That is the question 2d needs, and a
-   point to raise with the team next to D-8.
+   point to raise with the team next to D-8. *Decided 2026-09-19:* docs/05 now defines red-flag
+   sensitivity this way (§9, amendment 2).
 
 **Next action:** 2d (EXP-008): tighten the aortic-dissection rule so that back radiation alone cannot
 fire it, re-measure all five rules on validate, add the three missing rules and settle A-5. 2a
@@ -307,6 +308,10 @@ definitions. For Recall@5 that is `min(5, |D ∩ in-scope|) / |D|` per patient; 
 
 **Next action:** D-8 goes to the team, and must be decided before any Precision@3 or Recall@5 number
 is produced. 1b builds KG matching on `positive_codes`, and 1c selects features with `INPUT_COLUMNS`.
+
+*Decided 2026-09-19 (the team):* D-8 restricts D to the in-scope conditions for the headline
+Precision@3 and Recall@5, and Recall@5 with the full D is reported alongside (docs/05 §9,
+amendment 1).
 
 ---
 
