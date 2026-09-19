@@ -101,6 +101,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   conditions we can't output. **D-8, decided 2026-09-19** (`docs/05` amendment 1): the headline
   Precision@3 and Recall@5 count only the in-scope part of D (Recall@5 can reach 0.753), and
   Recall@5 with the full D (ceiling 0.434) is always reported beside it.
+- **Score every system with `src/eval/metrics.py`**, which implements `docs/05` §3.1–§3.3 and
+  §6 as amended, with a 95% bootstrap interval for every ratio metric (1,000 resamples,
+  seed 42). Never report a figure without its interval. Red-flag precision counts a flag as
+  appropriate only when it names the true condition, until the team settles A-7.
 - **Red-flag sensitivity counts a must-not-miss condition's own patients** that its flag reaches
   (`docs/05` amendment 2). Report the rule's rate on everyone else beside it (R-15).
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
@@ -142,7 +146,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ## Where things are
 
 `docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
-chest-pain parquet, §2.2 the model features (`src/ml/features.py`) · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
+chest-pain parquet, §2.2 the model features (`src/ml/features.py`) · `src/eval/metrics.py` the
+`docs/05` metrics · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
 decoding · `src/medical_kg/` the KG from its three sources (DDXPlus, `hand_authored.py`,
 `bodhi_s.py`, merged by `cardiac_kg.py`), its NetworkX and Neo4j stores and the crosswalk (cards: `docs/02`

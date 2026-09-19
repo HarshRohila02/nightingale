@@ -1,6 +1,6 @@
 # 02 — Architecture & Interface Contracts
 
-**Version:** 1.6 · 2026-09-19 (v1.6: the Neo4j store and the §7 fallback to NetworkX are built; v1.5: the team approved adding `ddxplus` and `crosswalk` to `Finding.source` in §4.2, and accepted A-5 and A-6 as working values; v1.4: the §5.1 KG card covers BODHI-S and §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5)
+**Version:** 1.7 · 2026-09-19 (v1.7: open decision A-7; v1.6: the Neo4j store and the §7 fallback to NetworkX are built; v1.5: the team approved adding `ddxplus` and `crosswalk` to `Finding.source` in §4.2, and accepted A-5 and A-6 as working values; v1.4: the §5.1 KG card covers BODHI-S and §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5)
 **Owners:** P1 (knowledge graph) + P2 (data/ML)
 
 > **This is the most important Phase 0 document.** The schemas in §4 are what let four people work
@@ -512,3 +512,4 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |
 | A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | **Accepted 2026-09-19** by the team as the working value; 2d re-checks it with EXP-008 | P3 |
 | A-6 | The weight of each likelihood band (`LIKELIHOOD_WEIGHT` in `src/medical_kg/loader.py`): rare 0.03, low 0.12, medium 0.35, high 0.65, very high 0.9, the middle of the bands under 5%, 5–19%, 20–49%, 50–79% and 80% or more. BODHI-S publishes no numeric bands; DDXPlus edges keep 1.0 (§5.1) | **Accepted 2026-09-19** by the team as the working weights; 2a re-checks them with EXP-005 | P1 |
+| A-7 | Which true conditions make each red flag *clinically appropriate*, for red-flag precision (docs/05 §3.2: reported, not targeted). `red_flag_precision()` in `src/eval/metrics.py` counts a flag as appropriate only when it names the true condition, which undercounts: the MI flag on an unstable-angina patient is clinically reasonable (EXP-014). A mapping such as MI → {MI, unstable angina} is a clinical judgment for the team | 2d, with EXP-008 | P3 |

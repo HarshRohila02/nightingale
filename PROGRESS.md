@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (1c feature encoding) · **Last verified commit:** `3e9577a`
+**Last updated:** 2026-09-19 · by Claude (1e evaluation metrics) · **Last verified commit:** `2e7f1bb`
 
 ---
 
@@ -16,10 +16,10 @@
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
 | **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split is built on **Colab**, inside the B0/B1 training job, the user's choice) · **1c — Baseline ML ranker** · 🔄 (feature encoding ✅; B0 and B1 next, trained on Colab) |
-| **Next action** | **Claude, in order:** (1) the `src/eval/metrics.py` scaffold (1e), with Precision@3 and Recall@5 as amended by D-8; (2) the **B0/B1 training job for Colab**, with the features as a sparse matrix (the scikit-learn + XGBoost install is approved for this step, §8); (3) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). **Later, the user:** run the Colab notebook, the last task on the owner's checklist. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
+| **Next action** | **Claude, in order:** (1) the **B0/B1 training job for Colab**, with the features as a sparse matrix (the scikit-learn + XGBoost install is approved for this step, §8), scored with `src/eval/metrics.py`; (2) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). **Later, the user:** run the Colab notebook, the last task on the owner's checklist. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
 | **Blocked on** | The B0/B1 results ← the user running the Colab notebook · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7; B0/B1: Colab) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 229 tests. Locally 220 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 208 passed and 21 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `3e9577a`: 187 passed, 12 skipped, the 8 live Neo4j tests without real data running against CI's container |
+| **Health** | 254 tests. Locally 245 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 233 passed and 21 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `2e7f1bb`: 216 passed, 13 skipped, the 8 live Neo4j tests without real data running against CI's container |
 
 **Handoff note for the next session:** Nothing is in flight. On 2026-09-19 the user created the
 AuraDB instance (connected; see the §7 Neo4j row), chose **Colab** for the B0/B1 training job and
@@ -225,7 +225,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   `src/ml/features.py` (`EvidenceEncoder`): 607 columns fixed by the release files, not by patients
   (fingerprint `3a0d5a5e01d7f427`). A default answer gets no column, so the question columns equal
   `positive_codes` for all 33,963 validate patients; an ordinal is its value plus an "answered"
-  flag. It reads only `age`, `sex` and `evidences`. Feature card in `docs/03` §2.2; 30 tests — → pending
+  flag. It reads only `age`, `sex` and `evidences`. Feature card in `docs/03` §2.2; 30 tests — `2e7f1bb`
 - [ ] EXP-003: B0 prevalence baseline
 - [ ] EXP-004: B1 LogReg → XGBoost; `ConditionRanker` replacing `ConstantRanker`. **Every training or
   tuning run on project data, even a small sample, waits for the user's OK and a choice of where**
@@ -240,7 +240,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 
 **1e — Platform · ⬜** · P4
 - [ ] FastAPI: `POST /diagnose`, `GET /conditions`, `GET /health`
-- [ ] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1)
+- [x] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1). Also top-1/3/5, MRR, per-condition F1, must-not-miss recall@3, the dangerous false-negative rate, red-flag sensitivity against the true condition (amendment 2) and precision, ECE, Brier and the reliability table, a 95% bootstrap interval for every ratio metric (1,000 resamples, seed 42; 3.6 s for 11 metrics on 34k cases), and McNemar's test. 25 tests with hand-computed answers. Open decision **A-7** added (what makes a red flag "appropriate") — → pending
 - [ ] Re-verify golden cases against real components — **fix the component, not the expectation**
 
 ### Phase 2 — Reasoning, Fusion & Prototype · ⬜
@@ -324,7 +324,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Item | State |
 |---|---|
 | Git | clean · the repository is **public** on GitHub, so cloud notebooks clone it without a token |
-| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `3e9577a`) · Python 3.11 · since 2026-09-19 the job also starts a throwaway `neo4j:5-community` container for the live Neo4j tests |
+| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `2e7f1bb`) · Python 3.11 · since 2026-09-19 the job also starts a throwaway `neo4j:5-community` container for the live Neo4j tests |
 | Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub + **`neo4j` 5.28.6, `python-dotenv` 1.2.3** (2026-09-19, for the Neo4j store; now in `requirements-dev.txt`). Installs are per task (D-4) |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
@@ -343,7 +343,8 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-19 | Claude | **1c feature encoding**: `EvidenceEncoder` (`src/ml/features.py`) turns age, sex and the evidence tokens into 607 columns, fixed by the release files: binary evidences 0/1, categorical and multi-choice answers one-hot under their question (the default answer, meaning "no", gets no column), ordinals as a value plus an "answered" flag, and NA explicitly. On validate it encodes 33,963 patients in 1 s, and its question columns equal `positive_codes` for every one. Only 179 columns are ever nonzero, so the training job will use a sparse matrix. Feature card in `docs/03` §2.2 | → pending |
+| 2026-09-19 | Claude | **1e evaluation metrics**: `src/eval/metrics.py` implements `docs/05` §3.1–§3.3 and §6 as amended, with every ratio metric carrying a 95% bootstrap interval. The hand-computed tests caught a bug before commit: must-not-miss recall counted the top-3 hits of cases that were not must-not-miss. Open decision **A-7** (docs/02 §9): red-flag precision needs a definition of "clinically appropriate"; until then the metric is strict. Protocol slip: the write-ahead marker was written just after the first file, not before | → pending |
+| 2026-09-19 | Claude | **1c feature encoding**: `EvidenceEncoder` (`src/ml/features.py`) turns age, sex and the evidence tokens into 607 columns, fixed by the release files: binary evidences 0/1, categorical and multi-choice answers one-hot under their question (the default answer, meaning "no", gets no column), ordinals as a value plus an "answered" flag, and NA explicitly. On validate it encodes 33,963 patients in 1 s, and its question columns equal `positive_codes` for every one. Only 179 columns are ever nonzero, so the training job will use a sparse matrix. Feature card in `docs/03` §2.2 | `2e7f1bb` |
 | 2026-09-19 | Claude | **1b Neo4j store; 1b ✅.** `src/medical_kg/neo4j_store.py` writes the KG to AuraDB (label `CardiacKG`) when its fingerprint differs from the local build, then reads it back at start-up and scores it in memory, identically to NetworkX; an edit made in Neo4j by hand is caught. `open_graph_store()` falls back to NetworkX when Aura is paused, offline or refuses the login, and the pipeline reports `graph_backend` (docs/02 §7). The real graph is loaded (129 nodes, 321 edges). 32 tests, 9 of them live: those passed against Aura, and CI runs them against a throwaway Neo4j container. Found: Aura's home database is named after the instance id, not `neo4j`. **1.0 ✅** too, with the optional pre-commit hooks deferred | `3e9577a` |
 | 2026-09-19 | the user + Claude | **The team decided** the five points the owner sent them ("go with Claude's suggestion", relayed by the owner): **D-8** restricts D to the in-scope conditions for the headline Precision@3 / Recall@5 (`docs/05` amendment 1); **red-flag sensitivity** is measured against the true condition (amendment 2); `Finding.source` also lists `ddxplus` and `crosswalk` (a contracts change); A-5 and A-6 accepted as working values; R-12, R-13 and R-15 recoloured 🔴 (the key stays). The owner's checklist is done except the Colab run | `de357d8` |
 | 2026-09-19 | the user + Claude | The owner is working through a checklist of their own tasks. **Done:** created the AuraDB Free instance and filled `.env` (Claude verified the login without reading it: Neo4j 5.27, empty; the home database is named after the instance id, not `neo4j`); chose **Colab** for the B0/B1 training job (D-7); approved installing `neo4j` + `python-dotenv` (now installed) and scikit-learn + XGBoost (when the training job is written) (D-4), and loading the KG into Aura. **Next:** the owner sends the team the decision list (D-8 first); then Claude builds the Neo4j store | `e6f6c60` |
