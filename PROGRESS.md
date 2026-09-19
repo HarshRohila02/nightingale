@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (the owner's answers: AuraDB created and connected, Colab for B0/B1, installs approved) · **Last verified commit:** `cc2a9cd`
+**Last updated:** 2026-09-19 · by Claude (the owner's answers: AuraDB created and connected, Colab for B0/B1, installs approved) · **Last verified commit:** `e6f6c60`
 
 ---
 
@@ -197,7 +197,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [ ] ~~`ollama pull llama3.1:8b`; smoke test (D-5)~~ → moved to **3b** (D-5 deferred; laptop GPU tests are the user's, `docs/11` §3)
 - [x] ~~Optional, the user, whenever convenient:~~ Laptop-GPU setup and the first checks (`docs/11` §2–§3), **run by Claude at the user's request** on 2026-09-18: `.venv-gpu` with torch 2.11.0+cu128 · `check_gpu.py --device cuda` ✅ (`sm_120`, 6.6 TFLOP/s) · the test suite passes inside it · Ollama smoke test ✅, 100% GPU. Also aligned one line of `check_gpu.py`'s report — `e956594`
 - [x] Record **D-9** (set by the user): Claude runs each laptop-GPU test only after the user's yes in chat. Updated in `CLAUDE.md`, `docs/11`, and every doc that described the old rule (README, CONTRIBUTING, `docs/00`/`06`/`07`/`09`, `configs/`, `check_gpu.py`) — `4007807`
-- [x] The user created the **AuraDB Free** instance and filled `.env` (`docs/11` §5). Claude checked the login without reading `.env`: connected to Neo4j 5.27 (Aura), empty database. **The home database is named after the instance id, not `neo4j`**, so the store must not hard-code a database name — → pending
+- [x] The user created the **AuraDB Free** instance and filled `.env` (`docs/11` §5). Claude checked the login without reading `.env`: connected to Neo4j 5.27 (Aura), empty database. **The home database is named after the instance id, not `neo4j`**, so the store must not hard-code a database name — `e6f6c60`
 - [ ] Optional: pre-commit hooks for black + ruff
 
 **1a — Data & class balance · 🔄** · P2
@@ -331,7 +331,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-19 | the user + Claude | The owner is working through a checklist of their own tasks. **Done:** created the AuraDB Free instance and filled `.env` (Claude verified the login without reading it: Neo4j 5.27, empty; the home database is named after the instance id, not `neo4j`); chose **Colab** for the B0/B1 training job (D-7); approved installing `neo4j` + `python-dotenv` (now installed) and scikit-learn + XGBoost (when the training job is written) (D-4), and loading the KG into Aura. **Next:** the owner sends the team the decision list (D-8 first); then Claude builds the Neo4j store | → pending |
+| 2026-09-19 | the user + Claude | The owner is working through a checklist of their own tasks. **Done:** created the AuraDB Free instance and filled `.env` (Claude verified the login without reading it: Neo4j 5.27, empty; the home database is named after the instance id, not `neo4j`); chose **Colab** for the B0/B1 training job (D-7); approved installing `neo4j` + `python-dotenv` (now installed) and scikit-learn + XGBoost (when the training job is written) (D-4), and loading the KG into Aura. **Next:** the owner sends the team the decision list (D-8 first); then Claude builds the Neo4j store | `e6f6c60` |
 | 2026-09-19 | Claude | **1b BODHI-S enrichment**: 107 facts about MI, pericarditis, PE and GERD; 98 mapped to 56 edges weighted by P(finding \| condition), keyed by BODHI-S id so that no BODHI-S text is committed (CC-BY-NC); 17 crosswalk concepts added (64). 21 facts restate DDXPlus and count once. **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions. 2a must replace it. 1b is done except the Neo4j store, which waits for AuraDB | `cc2a9cd` |
 | 2026-09-19 | Claude | **1b aortic dissection hand-authored**: 20 edges from the ADD-RS markers with IRAD frequencies (Hagan 2000; Evangelista 2016) as likelihood bands, each with its reference; 14 crosswalk concepts added (47 in all); the graph is now merged from sources, and a fact two sources state is counted once. GC-003 ranks dissection first on graph score alone. **EXP-015**: the graph alone ranks DDXPlus validate patients 88% top-1, 99.8% top-3, which is circularity (R-12, now measured); unstable angina is first for only 21%. Open decision A-6 (the band weights) added | `d181586` |
 | 2026-09-19 | Claude | **1b crosswalk**: 33 hand-authored concepts mapped to DDXPlus answers, with SKOS match types that allow only sound inferences. Validated against the release. `expand_case` lets the real graph score hand-authored cases, and `concepts_from_evidences` lets the red-flag rules run on DDXPlus patients. **EXP-014** on validate: the mapping behaves sensibly; the **red flags over-fire** (59% of patients; the aortic-dissection rule flags 50%) → **R-15**; the golden cases pass on the real graph, but only because red flags rank first (by graph score alone, GC-001's MI is fifth). Open decision A-5 (the sudden-onset cut-off) added to `docs/02` §9 | `249b968` |
