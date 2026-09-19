@@ -18,8 +18,7 @@
 -r requirements-dev.txt
 
 # --- Core / contracts ------------------------------------------------------ #
-# pydantic and pyyaml come from requirements-dev.txt above
-python-dotenv~=1.0
+# pydantic, pyyaml and python-dotenv come from requirements-dev.txt above
 
 # --- Data ------------------------------------------------------------------ #
 # pandas, numpy and pyarrow come from requirements-dev.txt above (the tests need them)
@@ -32,8 +31,8 @@ xgboost~=2.1
 shap~=0.46
 
 # --- Knowledge graph ------------------------------------------------------- #
-neo4j~=5.25            # driver; the database itself runs via docker-compose
-# networkx (the in-memory backend, risk R-06) comes from requirements-dev.txt above
+# The neo4j driver and networkx (the in-memory backend, risk R-06) come from
+# requirements-dev.txt above. The database itself runs on AuraDB Free (D-6).
 
 # --- Retrieval / RAG ------------------------------------------------------- #
 # sentence-transformers pulls in torch. Install torch FIRST, then this file.

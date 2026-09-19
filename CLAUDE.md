@@ -115,7 +115,13 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   and needs the owner's yes first (D-9, `docs/11` §3). Forcing the CPU (`num_gpu: 0`) just turns it
   into a heavy CPU job, which also needs asking. `ollama stop <model>` frees the GPU at once.
 - **Neo4j runs on AuraDB Free** (D-6). Its credentials live only in `.env`: never open, print or
-  commit `.env`.
+  commit `.env`. The graph sits under the label `CardiacKG`, and `scripts/load_neo4j.py` writes it
+  when the local build changes. **Aura's home database is named after the instance id, not
+  `neo4j`**: never hard-code a database name. The Neo4j store reads the graph once at start-up
+  and scores it in memory, so it answers exactly as NetworkX does; when Aura is paused or
+  offline, `open_graph_store()` falls back to NetworkX and reports `graph_backend`. The live
+  tests (marker `neo4j`) run in CI against a throwaway container, and locally only with
+  `NEO4J_TEST_DOTENV=1`; they use the `NightingaleTest` namespace and delete it afterwards.
 
 ## Commands (Windows venv)
 
@@ -127,6 +133,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data
+./.venv/Scripts/python.exe scripts/load_neo4j.py                # 1b: write the KG to AuraDB if it changed; check it
 ```
 
 ## Where things are
@@ -135,6 +142,6 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
 decoding · `src/medical_kg/` the KG from its three sources (DDXPlus, `hand_authored.py`,
-`bodhi_s.py`, merged by `cardiac_kg.py`), its NetworkX store and the crosswalk (cards: `docs/02`
+`bodhi_s.py`, merged by `cardiac_kg.py`), its NetworkX and Neo4j stores and the crosswalk (cards: `docs/02`
 §5.1–§5.2) · `docs/11`
 compute runbook: where jobs run, the owner's GPU steps, cloud jobs, AuraDB

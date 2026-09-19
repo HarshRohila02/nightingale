@@ -117,9 +117,15 @@ class DiagnosisPipeline:
 
         ml_scores = self._safe_ml_scores(case, degraded)
         kg_scores = self._safe_kg_scores(case, degraded)
+        graph_ok = kg_scores is not None
+        kg_scores = kg_scores or {}
         fused = fuse_scores(ml_scores, kg_scores, self.ml_weight, self.kg_weight)
 
-        candidates = self._build_candidates(case, ml_scores, kg_scores, fused, degraded)
+        candidates = self._build_candidates(case, ml_scores, kg_scores, fused, graph_ok)
+        if graph_ok and getattr(self.graph, "degraded", False):
+            # A fallback store serves the graph (docs/02-architecture.md §7). The results are
+            # complete, but the configured backend is not the one answering.
+            degraded.append("graph_backend")
 
         red_flags = evaluate_red_flags(case) if self.enable_red_flags else {}
         self._apply_red_flags(candidates, red_flags)
@@ -149,13 +155,14 @@ class DiagnosisPipeline:
             degraded.append("ml")
             return {}
 
-    def _safe_kg_scores(self, case: PatientCase, degraded: list[str]) -> dict[str, float]:
+    def _safe_kg_scores(self, case: PatientCase, degraded: list[str]) -> dict[str, float] | None:
+        """The graph's scores, or None if the graph store failed."""
         try:
             return self.graph.score_by_connectivity(case)
         except Exception:  # noqa: BLE001
             logger.exception("Graph store failed; continuing with ML-only ranking")
             degraded.append("graph_backend")
-            return {}
+            return None
 
     def _build_candidates(
         self,
@@ -163,7 +170,7 @@ class DiagnosisPipeline:
         ml_scores: dict[str, float],
         kg_scores: dict[str, float],
         fused: dict[str, float],
-        degraded: list[str],
+        graph_ok: bool,
     ) -> list[Candidate]:
         candidates: list[Candidate] = []
         for condition in CONDITIONS:
@@ -176,8 +183,8 @@ class DiagnosisPipeline:
                 fused_score=fused.get(cid, 0.0),
                 is_must_not_miss=condition.is_must_not_miss,
             )
-            candidate.assessments = self._assess(case, cid, degraded)
-            if "graph_backend" not in degraded:
+            candidate.assessments = self._assess(case, cid, graph_ok)
+            if graph_ok:
                 try:
                     candidate.paths = self.graph.paths_for(case, cid)
                 except Exception:  # noqa: BLE001
@@ -186,14 +193,14 @@ class DiagnosisPipeline:
         return candidates
 
     def _assess(
-        self, case: PatientCase, condition_id: str, degraded: list[str]
+        self, case: PatientCase, condition_id: str, graph_ok: bool
     ) -> list[FindingAssessment]:
         """Classify each finding as supporting, contradicting, or missing.
 
         This is derived from graph structure, never generated — the LLM only
         phrases what this method produces.
         """
-        if "graph_backend" in degraded:
+        if not graph_ok:
             return []
         try:
             expected = self.graph.expected_findings(condition_id)

@@ -33,14 +33,18 @@ datasets:
     role: cardiac-risk sub-model and real-data sanity check
 
 graph:
-  backend: neo4j # neo4j | networkx (networkx is the fallback, risk R-06)
-  # Status 2026-09-18: networkx is implemented (src/medical_kg/networkx_store.py).
-  # Neo4j will run on AuraDB Free (decision D-6); the Neo4j store waits for the
-  # owner's instance (docs/11 §5). Nothing reads this key yet.
-  # The real URI comes from NEO4J_URI in .env (AuraDB: neo4j+s://<id>.databases.neo4j.io);
-  # this value is only the local-Docker default.
-  uri: bolt://localhost:7687
-  database: neo4j
+  # neo4j | networkx, for open_graph_store() in src/medical_kg/neo4j_store.py. The app
+  # reads these keys when it builds its pipeline (1e); scripts take them as flags.
+  # neo4j reads the shared graph from AuraDB (decision D-6) and falls back to networkx
+  # over the locally built graph when Aura is paused, offline or refuses the login;
+  # results then report degraded_components: ["graph_backend"] (docs/02 §7, R-06).
+  # Load or refresh the graph in Aura with scripts/load_neo4j.py.
+  # Connection settings live in .env, never here: NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+  # and, optionally, NEO4J_DATABASE. Without it the store uses the home database,
+  # which on AuraDB is named after the instance id, not "neo4j".
+  backend: neo4j
+  namespace: CardiacKG # the label on every node of the graph in Neo4j
+  connection_timeout_seconds: 10
 
 ranking:
   # Fusion weights are tuned on VALIDATION ONLY and must be reported in the

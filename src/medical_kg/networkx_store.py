@@ -1,9 +1,10 @@
 """NetworkX-backed ``GraphStore``: the in-memory backend (risk R-06).
 
 Implements the ``GraphStore`` Protocol (src/contracts.py) over a :class:`KnowledgeGraph`
-from :mod:`src.medical_kg.loader`. The architecture names it as the fallback for when
-Neo4j is unavailable (docs/02-architecture.md §7), and it is the working backend until
-Docker is up (decision D-6).
+from :mod:`src.medical_kg.loader`. It is the fallback for when Neo4j is unavailable
+(docs/02-architecture.md §7): :func:`src.medical_kg.neo4j_store.open_graph_store` then
+serves the locally built graph from here and marks the store ``degraded``. The Neo4j store
+itself subclasses this one and scores the graph it reads from Neo4j the same way.
 
 Scoring is the same weighted overlap as the stub ``InMemoryGraphStore``, which makes this
 a drop-in replacement. Personalised PageRank arrives in 2a (EXP-005).
@@ -31,9 +32,18 @@ DENIED_PENALTY = 0.5
 
 
 class NetworkXGraphStore:
-    """The cardiac KG in memory. Implements ``GraphStore``."""
+    """The cardiac KG in memory. Implements ``GraphStore``.
 
-    def __init__(self, kg: KnowledgeGraph) -> None:
+    Args:
+        kg: The graph to serve.
+        degraded_reason: Why this store is standing in for an unreachable Neo4j, if it is.
+    """
+
+    backend = "networkx"
+    """Which backend serves the graph. The Neo4j store overrides it."""
+
+    def __init__(self, kg: KnowledgeGraph, *, degraded_reason: str | None = None) -> None:
+        self.degraded_reason = degraded_reason
         graph = nx.MultiDiGraph()
         for node in kg.nodes.values():
             graph.add_node(node.id, type=node.type.value, label=node.label, **node.properties)
@@ -65,6 +75,16 @@ class NetworkXGraphStore:
         filter it with :func:`src.medical_kg.loader.only_sources`, and pass it to the constructor.
         """
         return cls(build_cardiac_kg(conditions_path, vocabulary_path, bodhi_dir))
+
+    @property
+    def degraded(self) -> bool:
+        """True when this store stands in for an unreachable Neo4j.
+
+        The pipeline then reports ``graph_backend`` in ``degraded_components``
+        (docs/02-architecture.md §7). The results are complete; only the configured
+        backend is missing.
+        """
+        return self.degraded_reason is not None
 
     # -- GraphStore -------------------------------------------------------- #
 

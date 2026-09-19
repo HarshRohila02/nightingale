@@ -60,8 +60,9 @@ terms change.
   candidate substitute).
 - **The enrichment as built (2026-09-19).** `src/medical_kg/bodhi_s.py` keys BODHI-S facts by
   BODHI-S's own ids, and its notes are paraphrases, so the repository holds no BODHI-S text. The
-  built graph exists only in memory, or in a later Neo4j instance that stays private, and
-  `data/` stays gitignored. The KG card reports coverage as counts only.
+  built graph exists in memory and, since 2026-09-19, in the team's private AuraDB instance
+  (label `CardiacKG`, decision D-6), which holds BODHI-S ids and likelihood bands but no
+  BODHI-S text and must stay private. `data/` stays gitignored. The KG card reports coverage as counts only.
 
 ### 1.3 Synthea
 Generator, not a fixed dataset. Generated output is explicitly free of cost, privacy, and security

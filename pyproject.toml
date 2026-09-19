@@ -43,6 +43,7 @@ addopts = "-q --strict-markers"
 markers = [
     "golden: clinical vignettes that encode expected diagnostic behaviour",
     "slow: excluded from the default run",
+    "neo4j: needs a live Neo4j; CI sets NEO4J_TEST_URI, locally NEO4J_TEST_DOTENV=1 uses .env",
 ]
 
 [tool.coverage.run]

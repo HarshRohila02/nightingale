@@ -226,6 +226,10 @@ laptop. Two small dependencies replace it: an internet connection, and a free in
 when unused (resume it from the Aura console). The NetworkX backend covers both (docs/02 §7), and it
 already works.
 
+*Update 2026-09-19:* the Neo4j store is built and the graph is on AuraDB. The store reads it at
+start-up and falls back to NetworkX by itself, reporting `graph_backend`, when Aura is paused,
+offline or refuses the login.
+
 *Mitigation:* the `GraphStore` Protocol means a **NetworkX in-memory backend** is a drop-in
 substitute. If Docker is not working by end of Week 2, switch and move on. Do not lose days to
 infrastructure.
@@ -301,3 +305,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | R-12 measured by EXP-015: the graph alone scores 88% top-1 on DDXPlus patients, which is circularity. The first independent edges exist: 20 hand-authored for aortic dissection. Score unchanged | — |
 | 1 | 2026-09-19 | R-12: 56 BODHI-S edges added (76 of 321 now independent of DDXPlus). EXP-016: they lower the graph-only score on DDXPlus and raise MI on GC-001. R-10: no BODHI-S text committed | — |
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
+| 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |

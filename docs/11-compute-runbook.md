@@ -1,6 +1,6 @@
 # 11 — Compute Runbook: where jobs run, laptop GPU tests, cloud jobs
 
-**Version:** 1.1 · 2026-09-18 · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
+**Version:** 1.2 · 2026-09-19 (§5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
 `PROGRESS.md` §6)
 
 > **The owner's laptop is a development machine, not a compute server.** Heavy work goes to the
@@ -203,9 +203,23 @@ patient data, and ours (~100 nodes) is far below the free tier's limits.
 4. Tell Claude it is done. The Neo4j store task (1b) will connect using `.env`. Claude does not open
    or print `.env`.
 
-A free instance pauses after a while without use; resume it from the console. Once the Neo4j store
-exists, it falls back to the in-memory NetworkX graph whenever Aura cannot be reached
-(`docs/02` §7). `docker-compose.yml` remains for anyone who prefers a local Neo4j.
+A free instance pauses after 72 hours without use; resume it with **Play** on its card in the
+console. After 30 days paused, Aura deletes it: then create a new one, update `.env` and run
+`scripts/load_neo4j.py`. The Neo4j store falls back to the in-memory NetworkX graph whenever Aura
+cannot be reached (`docs/02` §7). `docker-compose.yml` remains for anyone who prefers a local
+Neo4j.
+
+**Done 2026-09-19.** The owner created the instance, and the graph is loaded under the label
+`CardiacKG`: 129 nodes and 321 edges. To refresh it after the graph changes, or to check it:
+
+```bash
+./.venv/Scripts/python.exe scripts/load_neo4j.py          # writes only if Aura's copy differs
+./.venv/Scripts/python.exe scripts/load_neo4j.py --check  # compares, never writes
+```
+
+To look at the graph, open the instance's query tool in the console and run
+`MATCH (c:CardiacKG:Condition)-[r]->(x) RETURN c, r, x LIMIT 100`. On AuraDB the home database
+is named after the instance id, not `neo4j`, so leave `NEO4J_DATABASE` empty in `.env`.
 
 ---
 

@@ -5,7 +5,7 @@ The KG backbone is DDXPlus ``release_conditions.json``, the R-01 fallback
 our 13 conditions (``data/interim/ddxplus_chestpain_conditions.json``) and decoded the
 evidence vocabulary (``data/interim/ddxplus_evidences.json``). This module turns those two
 files into a backend-neutral :class:`KnowledgeGraph` of plain nodes and edges. Any
-``GraphStore`` can be built from it: NetworkX now, Neo4j once Docker is running (D-6).
+``GraphStore`` can be built from it: NetworkX (``networkx_store``) or Neo4j (``neo4j_store``).
 
 Schema (docs/02-architecture.md §5)::
 

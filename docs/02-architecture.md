@@ -1,6 +1,6 @@
 # 02 — Architecture & Interface Contracts
 
-**Version:** 1.5 · 2026-09-19 (v1.5: the team approved adding `ddxplus` and `crosswalk` to `Finding.source` in §4.2, and accepted A-5 and A-6 as working values; v1.4: the §5.1 KG card covers BODHI-S and §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5)
+**Version:** 1.6 · 2026-09-19 (v1.6: the Neo4j store and the §7 fallback to NetworkX are built; v1.5: the team approved adding `ddxplus` and `crosswalk` to `Finding.source` in §4.2, and accepted A-5 and A-6 as working values; v1.4: the §5.1 KG card covers BODHI-S and §5.2 has 64 concepts; v1.3 added the hand-authored aortic dissection, the graph's sources and open decision A-6; v1.2 added the §5.2 crosswalk card and A-5)
 **Owners:** P1 (knowledge graph) + P2 (data/ML)
 
 > **This is the most important Phase 0 document.** The schemas in §4 are what let four people work
@@ -254,7 +254,8 @@ backend-neutral `KnowledgeGraph`: DDXPlus `release_conditions.json`, read from
 (`src/medical_kg/loader.py`), and the hand-authored aortic dissection
 (`src/medical_kg/hand_authored.py`), and BODHI-S for MI, pericarditis, PE and GERD
 (`src/medical_kg/bodhi_s.py`) when `data/raw/bodhi_s` is present. `NetworkXGraphStore`
-(`src/medical_kg/networkx_store.py`) serves it. Print this card with
+(`src/medical_kg/networkx_store.py`) serves it from memory, and `Neo4jGraphStore`
+(`src/medical_kg/neo4j_store.py`) from the team's AuraDB copy. Print this card with
 `python scripts/build_cardiac_kg.py`.
 
 **Ids and provenance.** Conditions keep their registry ids (`COND:*`). DDXPlus evidence questions
@@ -350,9 +351,13 @@ GC-001, BODHI-S lifts MI from fifth to third. **2a must change the score before 
 ranks anything**; until then, `only_sources()` can leave BODHI-S out of scoring and keep it for
 explanations.
 
-**Backend status:** NetworkX ✅, the working backend. Neo4j will run on **AuraDB Free** (decision
-D-6) once the project owner creates the instance ([11](11-compute-runbook.md) §5). Both backends are
-built from the same `KnowledgeGraph`.
+**Backend status (2026-09-19):** both ✅. The graph is on **AuraDB Free** (decision D-6) under
+the label `CardiacKG`, written and checked by `scripts/load_neo4j.py`
+([11](11-compute-runbook.md) §5). `Neo4jGraphStore` reads it once at start-up and scores it in
+memory exactly as `NetworkXGraphStore` does, so a paused instance cannot stall a consultation.
+A fingerprint over every node and edge shows the two copies are the same graph, and it catches
+an edit made in Neo4j by hand. `open_graph_store()` falls back to NetworkX when Aura cannot be
+reached (§7).
 
 ### 5.2 Crosswalk card: hand-authored concepts ↔ DDXPlus evidence · *built 2026-09-18*
 
@@ -465,9 +470,11 @@ regardless of its rank.
 The UI must always render `degraded_components` — a silently degraded medical tool is a safety
 problem.
 
-*Until Neo4j runs (D-6), NetworkX is the configured backend rather than a fallback, so nothing is
-reported as degraded. The automatic Neo4j → NetworkX switch arrives with the Neo4j store. With
-AuraDB, "unavailable" also covers a paused instance or no internet connection.*
+*Built 2026-09-19.* `open_graph_store()` (`src/medical_kg/neo4j_store.py`) reads the graph from
+AuraDB at start-up. When Aura is not configured, is paused, is offline or refuses the login, the
+NetworkX store over the locally built graph stands in. Its results are complete, and
+`graph_backend` in `degraded_components` says the configured backend is missing. If the graph
+store fails outright, the ranking is ML-only, reported the same way.
 
 ---
 
@@ -484,7 +491,8 @@ nightingale/
 │   ├── nlp/ patient_kg/ medical_kg/ ml/ fusion/ reasoning/ rag/ llm/ eval/ api/
 ├── app/                  # Streamlit dashboard
 ├── scripts/              # download_data.py, decode_ddxplus.py, build_ddxplus_chestpain.py,
-│                         # build_cardiac_kg.py, check_crosswalk.py, check_gpu.py
+│                         # build_cardiac_kg.py, check_crosswalk.py, load_neo4j.py,
+│                         # check_gpu.py
 ├── configs/  notebooks/  tests/  data/   # data/ is gitignored
 └── docker-compose.yml    # optional local Neo4j (the team uses AuraDB Free, D-6)
 ```
