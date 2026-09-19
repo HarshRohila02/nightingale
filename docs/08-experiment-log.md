@@ -460,8 +460,8 @@ risk **R-01** and therefore the KG backbone (see
 |---|---|---|---|
 | EXP-001 | Crosswalk coverage spike | 0 | R-01 — KG backbone |
 | EXP-002 | Class balance across 13 conditions | 1 | R-03 — which conditions are learnable |
-| EXP-003 | B0 prevalence baseline | 1 | Metric floor |
-| EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat |
+| EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Job ready 2026-09-19 (docs/11 §4.1), run on Colab by the owner* |
+| EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Same job as EXP-003* |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? |
 | EXP-006 | A0 fusion, weight sweep | 2 | Fusion weights (validation only) |
 | EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |

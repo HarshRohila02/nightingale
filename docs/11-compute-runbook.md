@@ -1,6 +1,6 @@
 # 11 — Compute Runbook: where jobs run, laptop GPU tests, cloud jobs
 
-**Version:** 1.2 · 2026-09-19 (§5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
+**Version:** 1.3 · 2026-09-19 (§4.1: the B0/B1 Colab job; v1.2, §5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
 `PROGRESS.md` §6)
 
 > **The owner's laptop is a development machine, not a compute server.** Heavy work goes to the
@@ -185,6 +185,29 @@ Every heavy job follows the same pattern, whatever the platform.
   platform's secrets store: the key icon in Colab, Add-ons → Secrets in Kaggle.
 - **The test split stays closed until Phase 4.** The scripts refuse it unless `configs/config.yaml`
   allows it, and that file comes with the pinned commit.
+
+### 4.1 The B0/B1 job (EXP-003, EXP-004) · *ready 2026-09-19*
+
+The owner chose Colab for it (D-7). Everything runs from one notebook in the repository, which
+asks for a T4 GPU and falls back to the CPU when none is free:
+
+1. Open <https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b0_b1.ipynb>
+   and sign in with your Google account.
+2. In the first code cell, set `COMMIT` to the commit Claude names ("master" also works: the run
+   records the exact commit).
+3. Choose **Runtime → Run all**. If Colab warns that the notebook is not from Google, choose
+   **Run anyway**: it is this repository's notebook.
+4. Wait about 20–30 minutes. Most of it is downloading and decoding the 670 MB `train.csv`.
+5. Your browser downloads **`nightingale_b0_b1.zip`**. Unzip it into `models/b0_b1/` in the
+   project folder on the laptop; `models/` is gitignored, so it is never committed. Then tell
+   Claude.
+
+The zip holds the three models as JSON (`b0_prevalence.json`, `b1_logreg.json`, and XGBoost's
+`b1_xgboost.ubj` with `b1_xgboost.meta.json`), `metrics.json` (every `docs/05` metric with its
+95% interval), `run.json` (the commit, versions, GPU and timings), `features.json`,
+`pip-freeze.txt` and the two splits' summaries. It holds no patient rows. The job is
+`scripts/train_baselines.py`, and `tests/test_baselines.py` runs it end to end on a synthetic
+mini-release in CI.
 
 ---
 

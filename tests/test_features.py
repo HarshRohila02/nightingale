@@ -228,6 +228,18 @@ def test_an_error_names_the_row(encoder):
     )
     with pytest.raises(ValueError, match="row 2"):
         encoder.transform(frame)
+    with pytest.raises(ValueError, match="row 2"):
+        encoder.transform_sparse(frame, chunk=2)  # the row number counts across chunks
+
+
+def test_the_sparse_matrix_equals_the_dense_one(encoder):
+    frame = pd.DataFrame(
+        {"age": [20, 70, 45, 33, 58], "sex": ["F", "M", "F", "M", "F"], "evidences": PATIENTS}
+    )
+    matrix = encoder.transform_sparse(frame, chunk=2)
+    assert matrix.format == "csr" and matrix.dtype == np.float32
+    assert np.array_equal(matrix.toarray(), encoder.transform(frame))
+    assert encoder.transform_sparse(frame.iloc[:0]).shape == (0, len(encoder.feature_names))
 
 
 def test_codes_in_scope_come_from_the_conditions_file(tmp_path):
@@ -265,3 +277,4 @@ def test_every_validate_patient_encodes_and_matches_their_positive_codes():
     answered = [i for i, name in enumerate(encoder.feature_names) if name.endswith("=answered")]
     assert matrix[:, answered].sum() == 94_062, "every ordinal token (docs/03 §2.1) is encoded"
     assert elapsed < 60, f"encoding took {elapsed:.1f} s"
+    assert np.array_equal(encoder.transform_sparse(frame).toarray(), matrix)

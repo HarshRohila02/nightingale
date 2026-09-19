@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (1e evaluation metrics) · **Last verified commit:** `2e7f1bb`
+**Last updated:** 2026-09-19 · by Claude (1c: the B0/B1 training job, ready for Colab) · **Last verified commit:** `fafabb2`
 
 ---
 
@@ -15,11 +15,11 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split is built on **Colab**, inside the B0/B1 training job, the user's choice) · **1c — Baseline ML ranker** · 🔄 (feature encoding ✅; B0 and B1 next, trained on Colab) |
-| **Next action** | **Claude, in order:** (1) the **B0/B1 training job for Colab**, with the features as a sparse matrix (the scikit-learn + XGBoost install is approved for this step, §8), scored with `src/eval/metrics.py`; (2) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). **Later, the user:** run the Colab notebook, the last task on the owner's checklist. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
+| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split is built on **Colab**, inside the B0/B1 training job, the user's choice) · **1c — Baseline ML ranker** · 🔄 (feature encoding ✅; the B0/B1 job is ready and waits for the owner's Colab run) |
+| **Next action** | **The user (task 5, the last on the owner's checklist):** run `notebooks/colab_b0_b1.ipynb` on Colab (`docs/11` §4.1, about 20–30 min) and unzip `nightingale_b0_b1.zip` into `models/b0_b1/`. **Then Claude:** log EXP-003 and EXP-004 from `metrics.json`, re-confirm EXP-002 on the train counts, then `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). **Claude can start before the run:** the golden cases → DDXPlus tokens translation that `ConditionRanker` needs. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
 | **Blocked on** | The B0/B1 results ← the user running the Colab notebook · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7; B0/B1: Colab) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 254 tests. Locally 245 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 233 passed and 21 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `2e7f1bb`: 216 passed, 13 skipped, the 8 live Neo4j tests without real data running against CI's container |
+| **Health** | 268 tests. Locally 259 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 247 passed and 21 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `fafabb2`: 241 passed, 13 skipped, the 8 live Neo4j tests without real data running against CI's container |
 
 **Handoff note for the next session:** Nothing is in flight. On 2026-09-19 the user created the
 AuraDB instance (connected; see the §7 Neo4j row), chose **Colab** for the B0/B1 training job and
@@ -231,7 +231,12 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   tuning run on project data, even a small sample, waits for the user's OK and a choice of where**
   (D-7). Unit tests that fit a toy model on a few synthetic rows are tests, not training runs.
   **B0 and B1 run on Colab** (the user, 2026-09-19). Installing scikit-learn + XGBoost (~170 MB) into
-  `.venv` and CI is approved for when the training job is written (D-4)
+  `.venv` and CI is approved for when the training job is written (D-4).
+  **The job is ready** (not yet run): `scripts/train_baselines.py` and `notebooks/colab_b0_b1.ipynb`
+  (`docs/11` §4.1). `src/ml/baselines.py` holds B0, logistic regression and XGBoost, saved as JSON
+  with the feature fingerprint; XGBoost always gets sparse input. Validate is used only for the
+  final scores; XGBoost stops early on 10% of train. 14 tests, one running the whole job on a
+  synthetic mini-release. scikit-learn 1.9.1 + XGBoost 2.1.4 installed — → pending
 
 **1d — Patient KG + Synthea · ⬜** · P3
 - [ ] Synthea cardiac-module generation (fixed seed)
@@ -240,7 +245,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 
 **1e — Platform · ⬜** · P4
 - [ ] FastAPI: `POST /diagnose`, `GET /conditions`, `GET /health`
-- [x] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1). Also top-1/3/5, MRR, per-condition F1, must-not-miss recall@3, the dangerous false-negative rate, red-flag sensitivity against the true condition (amendment 2) and precision, ECE, Brier and the reliability table, a 95% bootstrap interval for every ratio metric (1,000 resamples, seed 42; 3.6 s for 11 metrics on 34k cases), and McNemar's test. 25 tests with hand-computed answers. Open decision **A-7** added (what makes a red flag "appropriate") — → pending
+- [x] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1). Also top-1/3/5, MRR, per-condition F1, must-not-miss recall@3, the dangerous false-negative rate, red-flag sensitivity against the true condition (amendment 2) and precision, ECE, Brier and the reliability table, a 95% bootstrap interval for every ratio metric (1,000 resamples, seed 42; 3.6 s for 11 metrics on 34k cases), and McNemar's test. 25 tests with hand-computed answers. Open decision **A-7** added (what makes a red flag "appropriate") — `fafabb2`
 - [ ] Re-verify golden cases against real components — **fix the component, not the expectation**
 
 ### Phase 2 — Reasoning, Fusion & Prototype · ⬜
@@ -324,8 +329,8 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Item | State |
 |---|---|
 | Git | clean · the repository is **public** on GitHub, so cloud notebooks clone it without a token |
-| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `2e7f1bb`) · Python 3.11 · since 2026-09-19 the job also starts a throwaway `neo4j:5-community` container for the live Neo4j tests |
-| Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub + **`neo4j` 5.28.6, `python-dotenv` 1.2.3** (2026-09-19, for the Neo4j store; now in `requirements-dev.txt`). Installs are per task (D-4) |
+| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `fafabb2`) · Python 3.11 · since 2026-09-19 the job also starts a throwaway `neo4j:5-community` container for the live Neo4j tests |
+| Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub + **`neo4j` 5.28.6, `python-dotenv` 1.2.3** (2026-09-19, for the Neo4j store) + **scikit-learn 1.9.1, XGBoost 2.1.4, SciPy 1.17.1** (2026-09-19, for the ML baselines); all now in `requirements-dev.txt`. Installs are per task (D-4) |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
 | Neo4j | **AuraDB Free**: instance created by the user on 2026-09-19; `.env` filled. Login verified from the laptop without reading `.env`: Neo4j 5.27 (Aura). **It holds the KG since 2026-09-19** (`scripts/load_neo4j.py`): label `CardiacKG`, 129 nodes, 321 edges, fingerprint `de349201157a`, and nothing else. **Its home database is named after the instance id, not `neo4j`.** A Free instance pauses after 72 h unused (resume with **Play** in the console) and is deleted after 30 days paused |
@@ -333,7 +338,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | GPU | NVIDIA RTX 5060 Laptop · 8 GB VRAM · Blackwell (`sm_120`; torch ≥ 2.7 / CUDA 12.8) · driver 591.91 (CUDA 13.1) · **`.venv-gpu` set up 2026-09-18** (4.3 GB on D:): torch 2.11.0+cu128, `check_gpu.py --device cuda` ✅ 6.6 TFLOP/s float32 (`docs/11` §2) · **tests only**, each run by Claude only after the user's yes (D-9) · `compute.device: cpu` in `configs/` |
 | Heavy compute | **Google Colab (free), Kaggle Notebooks, Lightning AI / Studio Lab**, chosen per job by the user (`docs/11` §4) · university GPU not yet granted (R-14) |
 | Data on disk (gitignored) | `data/raw/ddxplus/release_*.json` + **`validate.csv`** (87 MB) · `data/raw/bodhi_s/*.jsonl` · `data/interim/ddxplus_*.json`, `exp002_class_balance.json`, **`ddxplus_chestpain_validate.parquet`** (4.6 MB) + `.summary.json` · `cardiac_kg_summary.json`, `crosswalk_check.json` · `train.csv` / `test.csv` **not downloaded** |
-| CI dependency set | `requirements-dev.txt`: the tools plus pydantic, pyyaml, pandas, numpy, pyarrow, networkx, neo4j and python-dotenv. These moved from `requirements.txt` so CI runs the parquet-builder and KG tests (CI went from ~15 s to ~35 s) |
+| CI dependency set | `requirements-dev.txt`: the tools plus pydantic, pyyaml, pandas, numpy, pyarrow, networkx, neo4j, python-dotenv, scikit-learn and xgboost. These moved from `requirements.txt` so CI runs the parquet-builder and KG tests (CI went from ~15 s to ~35 s) |
 
 Re-verify this table whenever the environment changes, and date it.
 
@@ -343,7 +348,8 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-19 | Claude | **1e evaluation metrics**: `src/eval/metrics.py` implements `docs/05` §3.1–§3.3 and §6 as amended, with every ratio metric carrying a 95% bootstrap interval. The hand-computed tests caught a bug before commit: must-not-miss recall counted the top-3 hits of cases that were not must-not-miss. Open decision **A-7** (docs/02 §9): red-flag precision needs a definition of "clinically appropriate"; until then the metric is strict. Protocol slip: the write-ahead marker was written just after the first file, not before | → pending |
+| 2026-09-19 | Claude | **1c: the B0/B1 training job is ready for the owner's Colab run.** `src/ml/baselines.py` (B0 prevalence prior; B1 logistic regression and XGBoost, saved as JSON with the feature fingerprint), `scripts/train_baselines.py` (sparse features, early stopping on 10% of train, scored on validate with every `docs/05` metric and its interval) and `notebooks/colab_b0_b1.ipynb` (`docs/11` §4.1). Found and fixed: XGBoost reads a sparse matrix's absent entries as missing but a dense array's zeros as values, so the wrapper always hands it CSR. The whole job runs end to end in CI on a synthetic mini-release; no training on project data happened here (D-7). scikit-learn 1.9.1 and XGBoost 2.1.4 installed (approved) | → pending |
+| 2026-09-19 | Claude | **1e evaluation metrics**: `src/eval/metrics.py` implements `docs/05` §3.1–§3.3 and §6 as amended, with every ratio metric carrying a 95% bootstrap interval. The hand-computed tests caught a bug before commit: must-not-miss recall counted the top-3 hits of cases that were not must-not-miss. Open decision **A-7** (docs/02 §9): red-flag precision needs a definition of "clinically appropriate"; until then the metric is strict. Protocol slip: the write-ahead marker was written just after the first file, not before | `fafabb2` |
 | 2026-09-19 | Claude | **1c feature encoding**: `EvidenceEncoder` (`src/ml/features.py`) turns age, sex and the evidence tokens into 607 columns, fixed by the release files: binary evidences 0/1, categorical and multi-choice answers one-hot under their question (the default answer, meaning "no", gets no column), ordinals as a value plus an "answered" flag, and NA explicitly. On validate it encodes 33,963 patients in 1 s, and its question columns equal `positive_codes` for every one. Only 179 columns are ever nonzero, so the training job will use a sparse matrix. Feature card in `docs/03` §2.2 | `2e7f1bb` |
 | 2026-09-19 | Claude | **1b Neo4j store; 1b ✅.** `src/medical_kg/neo4j_store.py` writes the KG to AuraDB (label `CardiacKG`) when its fingerprint differs from the local build, then reads it back at start-up and scores it in memory, identically to NetworkX; an edit made in Neo4j by hand is caught. `open_graph_store()` falls back to NetworkX when Aura is paused, offline or refuses the login, and the pipeline reports `graph_backend` (docs/02 §7). The real graph is loaded (129 nodes, 321 edges). 32 tests, 9 of them live: those passed against Aura, and CI runs them against a throwaway Neo4j container. Found: Aura's home database is named after the instance id, not `neo4j`. **1.0 ✅** too, with the optional pre-commit hooks deferred | `3e9577a` |
 | 2026-09-19 | the user + Claude | **The team decided** the five points the owner sent them ("go with Claude's suggestion", relayed by the owner): **D-8** restricts D to the in-scope conditions for the headline Precision@3 / Recall@5 (`docs/05` amendment 1); **red-flag sensitivity** is measured against the true condition (amendment 2); `Finding.source` also lists `ddxplus` and `crosswalk` (a contracts change); A-5 and A-6 accepted as working values; R-12, R-13 and R-15 recoloured 🔴 (the key stays). The owner's checklist is done except the Colab run | `de357d8` |

@@ -26,8 +26,7 @@ datasets~=3.0          # Hugging Face: DDXPlus, BODHI-S, UCI Heart
 requests~=2.32
 
 # --- Machine learning ------------------------------------------------------ #
-scikit-learn~=1.5
-xgboost~=2.1
+# scikit-learn and xgboost come from requirements-dev.txt above (the tests need them)
 shap~=0.46
 
 # --- Knowledge graph ------------------------------------------------------- #

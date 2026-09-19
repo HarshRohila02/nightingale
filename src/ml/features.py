@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +73,17 @@ def evidence_codes_in_scope(conditions_path: Path) -> set[str]:
 def _value_order(value: str) -> int:
     """V_2 < V_10 < V_123."""
     return int(value.split("_", 1)[1])
+
+
+def _inputs(
+    patients: pd.DataFrame | Iterable[Mapping[str, Any]],
+) -> tuple[Iterator[tuple[Any, Any, Any]], int]:
+    """(age, sex, evidences) for each patient, and how many there are. Nothing else is read."""
+    if isinstance(patients, pd.DataFrame):
+        columns = (patients["age"], patients["sex"], patients["evidences"])
+        return zip(*columns, strict=True), len(patients)
+    records = list(patients)
+    return iter([(r["age"], r["sex"], r["evidences"]) for r in records]), len(records)
 
 
 class EvidenceEncoder:
@@ -155,24 +166,41 @@ class EvidenceEncoder:
         Raises:
             ValueError: naming the first row that cannot be encoded, and why.
         """
-        if isinstance(patients, pd.DataFrame):
-            rows: Iterable[tuple[Any, Any, Any]] = zip(
-                patients["age"], patients["sex"], patients["evidences"], strict=True
-            )
-            count = len(patients)
-        else:
-            records = list(patients)
-            rows = ((r["age"], r["sex"], r["evidences"]) for r in records)
-            count = len(records)
+        rows, count = _inputs(patients)
+        return self._dense(rows, count, offset=0)
+
+    def transform_sparse(
+        self, patients: pd.DataFrame | Iterable[Mapping[str, Any]], *, chunk: int = 20_000
+    ) -> Any:
+        """As :meth:`transform`, but a SciPy CSR matrix, built ``chunk`` rows at a time.
+
+        About 28 of the 607 columns are nonzero per patient, so the train split takes about
+        60 MB this way instead of 640 MB dense.
+        """
+        from scipy import sparse  # only the training job needs SciPy
+
+        rows, count = _inputs(patients)
+        blocks = [
+            sparse.csr_matrix(self._dense(rows, min(chunk, count - start), offset=start))
+            for start in range(0, count, chunk)
+        ]
+        if not blocks:
+            return sparse.csr_matrix((0, len(self.feature_names)), dtype=np.float32)
+        return sparse.vstack(blocks, format="csr")
+
+    # -- internals --------------------------------------------------------- #
+
+    def _dense(
+        self, rows: Iterator[tuple[Any, Any, Any]], count: int, *, offset: int
+    ) -> np.ndarray:
+        """The next ``count`` rows as a dense block. Errors name the row across all blocks."""
         matrix = np.zeros((count, len(self.feature_names)), dtype=np.float32)
-        for index, (age, sex, evidences) in enumerate(rows):
+        for index, (age, sex, evidences) in zip(range(count), rows, strict=False):
             try:
                 self._fill(matrix[index], age, sex, evidences)
             except ValueError as exc:
-                raise ValueError(f"row {index}: {exc}") from exc
+                raise ValueError(f"row {offset + index}: {exc}") from exc
         return matrix
-
-    # -- internals --------------------------------------------------------- #
 
     def _fill(self, row: np.ndarray, age: float, sex: str, evidences: Sequence[str]) -> None:
         if sex not in SEXES:

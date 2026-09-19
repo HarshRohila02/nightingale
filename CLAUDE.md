@@ -94,6 +94,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   `EvidenceEncoder` (`src/ml/features.py`, `docs/03` §2.2) encodes all four into 607 columns
   fixed by the release files, not by patients. A trained model must record its `fingerprint`
   and refuse rows encoded with another.
+- **XGBoost reads a sparse matrix's absent entries as missing, but a dense array's zeros as
+  values**, and the same trees then answer differently. `XGBoostBaseline` (`src/ml/baselines.py`)
+  turns every input into CSR; never call its booster directly. Models are saved as JSON (XGBoost:
+  `.ubj`), never pickles, and trained models live in `models/`, which is gitignored.
 - **A listed DDXPlus token can mean "no".** `E_204_@_V_10` means "did not travel" and is listed for
   89.6% of patients; `E_57_@_V_123` means "radiates nowhere". To find what a patient actually has,
   use `positive_codes()` in `src/ddxplus.py`, never "the code appears in EVIDENCES" (EXP-013).
@@ -141,6 +145,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data
 ./.venv/Scripts/python.exe scripts/load_neo4j.py                # 1b: write the KG to AuraDB if it changed; check it
+# scripts/train_baselines.py trains B0/B1: a training run, so only where the owner says (D-7);
+# B0/B1 run on Colab via notebooks/colab_b0_b1.ipynb (docs/11 §4.1)
 ```
 
 ## Where things are

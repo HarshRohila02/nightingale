@@ -21,6 +21,10 @@ networkx~=3.3
 # ...and by the Neo4j store and its tests (task 1b). Moved from requirements.txt (2026-09-19).
 neo4j~=5.25
 python-dotenv~=1.0
+# ...and by the ML baselines and their tests (task 1c), which fit toy models on synthetic
+# rows. Moved from requirements.txt (2026-09-19). scikit-learn brings SciPy with it.
+scikit-learn~=1.5
+xgboost~=2.1
 
 # Test runner
 pytest~=8.3
