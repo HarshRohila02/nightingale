@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-19 · by Claude (1b Neo4j store: the KG is on AuraDB; 1.0 ✅ and 1b ✅) · **Last verified commit:** `de357d8`
+**Last updated:** 2026-09-19 · by Claude (1c feature encoding) · **Last verified commit:** `3e9577a`
 
 ---
 
@@ -15,11 +15,11 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split is built on **Colab**, inside the B0/B1 training job, the user's choice) · **1c — Baseline ML ranker** · next |
-| **Next action** | **Claude, in order:** (1) 1c **feature encoding** from evidence codes: code and tests on synthetic rows, no download; (2) the `src/eval/metrics.py` scaffold (1e), with Precision@3 and Recall@5 as amended by D-8; (3) the **B0/B1 training job for Colab** (the scikit-learn + XGBoost install is approved for this step, §8); (4) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). **Later, the user:** run the Colab notebook, the last task on the owner's checklist. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
+| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1a — Data** · 🔄 (validate parquet ✅ + EXP-013; the train split is built on **Colab**, inside the B0/B1 training job, the user's choice) · **1c — Baseline ML ranker** · 🔄 (feature encoding ✅; B0 and B1 next, trained on Colab) |
+| **Next action** | **Claude, in order:** (1) the `src/eval/metrics.py` scaffold (1e), with Precision@3 and Recall@5 as amended by D-8; (2) the **B0/B1 training job for Colab**, with the features as a sparse matrix (the scikit-learn + XGBoost install is approved for this step, §8); (3) `ConditionRanker` in the pipeline and the golden cases re-checked (the W3 milestone). **Later, the user:** run the Colab notebook, the last task on the owner's checklist. **The team:** nothing pending (the 2026-09-19 decisions are in §6) |
 | **Blocked on** | The B0/B1 results ← the user running the Colab notebook · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7; B0/B1: Colab) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
-| **Health** | 199 tests. Locally 190 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 179 passed and 20 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `de357d8`; this commit's run is recorded next session |
+| **Health** | 229 tests. Locally 220 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 208 passed and 21 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `3e9577a`: 187 passed, 12 skipped, the 8 live Neo4j tests without real data running against CI's container |
 
 **Handoff note for the next session:** Nothing is in flight. On 2026-09-19 the user created the
 AuraDB instance (connected; see the §7 Neo4j row), chose **Colab** for the B0/B1 training job and
@@ -152,7 +152,7 @@ changes — update this table when they do.
 | Phase | Weeks | Target end | Status |
 |---|---|---|---|
 | 0 — Preparation & documentation | 1 | 2026-09-23 | ✅ 2026-09-17 · env items → 1.0 |
-| 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 ✅ · 1b ✅ · 1a in progress · 1c next |
+| 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 ✅ · 1b ✅ · 1a and 1c in progress |
 | 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | ⬜ |
 | 3 — Evidence & explanation | 6–7 | 2026-11-04 | ⬜ |
 | 4 — Evaluation, ablations & write-up | 8–9 | 2026-11-18 | ⬜ |
@@ -216,12 +216,16 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] Crosswalk, `SYM:*`/`RF:*` ↔ DDXPlus evidence (`src/medical_kg/crosswalk.py`): 33 concepts with SKOS match types (11 exact, 12 close, 3 broader, 3 narrower, 1 related, 3 with no DDXPlus equivalent), validated against the release. `expand_case` (concept → graph) and `concepts_from_evidences` / `case_from_ddxplus` (DDXPlus → concept). `scripts/check_crosswalk.py`, 52 tests, card in `docs/02` §5.2. **EXP-014**: the red flags over-fire (**R-15**); the golden cases pass on the real graph only through red flags — `249b968`
 - [x] BODHI-S enrichment for MI, pericarditis, PE, GERD (likelihood edge weights, `source = bodhi_s`): 107 facts, 98 mapped to 56 edges, 7 unmappable with reasons, 2 of zero strength (`src/medical_kg/bodhi_s.py`, keyed by BODHI-S id, no BODHI-S text committed); 17 new crosswalk concepts (64 in all). **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients the graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions (a 2a fix) — `cc2a9cd`
 - [x] Hand-author aortic dissection into the KG (`source = hand_authored`): 20 edges from the ADD-RS markers, weighted by IRAD frequencies (`src/medical_kg/hand_authored.py`), with 14 new crosswalk concepts. `cardiac_kg.build_cardiac_kg` merges the sources, `canonical_concept_id` puts a yes/no-equivalent concept on its DDXPlus node, and `only_sources` filters for ablations. GC-003 now ranks dissection first on graph score alone. **EXP-015**: the graph alone scores 88% top-1 on DDXPlus patients, which is circularity (R-12) — `d181586`
-- [x] Neo4j-backed `GraphStore` from the same `KnowledgeGraph`, with NetworkX as the fallback (**D-6**): `src/medical_kg/neo4j_store.py`. It writes the KG to AuraDB under the label `CardiacKG` whenever the local build's fingerprint differs, then reads it back at start-up and scores it in memory, identically to NetworkX (checked on the golden cases). `open_graph_store()` falls back to NetworkX, and the pipeline reports `graph_backend` (docs/02 §7). `scripts/load_neo4j.py` loaded the real graph (129 nodes, 321 edges, fingerprint `de349201157a`). 32 new tests: 23 offline and 9 live (all 9 passed against Aura; CI runs them against a throwaway Neo4j). `neo4j` + `python-dotenv` moved into `requirements-dev.txt` — → pending
+- [x] Neo4j-backed `GraphStore` from the same `KnowledgeGraph`, with NetworkX as the fallback (**D-6**): `src/medical_kg/neo4j_store.py`. It writes the KG to AuraDB under the label `CardiacKG` whenever the local build's fingerprint differs, then reads it back at start-up and scores it in memory, identically to NetworkX (checked on the golden cases). `open_graph_store()` falls back to NetworkX, and the pipeline reports `graph_backend` (docs/02 §7). `scripts/load_neo4j.py` loaded the real graph (129 nodes, 321 edges, fingerprint `de349201157a`). 32 new tests: 23 offline and 9 live (all 9 passed against Aura; CI runs them against a throwaway Neo4j). `neo4j` + `python-dotenv` moved into `requirements-dev.txt` — `3e9577a`
 
-**1c — Baseline ML ranker · ⬜** · P2
-- [ ] Feature encoding from decoded evidence **codes** (not English labels), handling the three token
+**1c — Baseline ML ranker · 🔄** · P2
+- [x] Feature encoding from decoded evidence **codes** (not English labels), handling the three token
   kinds EXP-002 found: categorical codes · **numeric ordinal scales** (12.6% of tokens, e.g. pain
-  intensity `E_56_@_4`) as ordered features, not one-hot · the `V_11` "NA" sentinel, explicitly
+  intensity `E_56_@_4`) as ordered features, not one-hot · the `V_11` "NA" sentinel, explicitly.
+  `src/ml/features.py` (`EvidenceEncoder`): 607 columns fixed by the release files, not by patients
+  (fingerprint `3a0d5a5e01d7f427`). A default answer gets no column, so the question columns equal
+  `positive_codes` for all 33,963 validate patients; an ordinal is its value plus an "answered"
+  flag. It reads only `age`, `sex` and `evidences`. Feature card in `docs/03` §2.2; 30 tests — → pending
 - [ ] EXP-003: B0 prevalence baseline
 - [ ] EXP-004: B1 LogReg → XGBoost; `ConditionRanker` replacing `ConstantRanker`. **Every training or
   tuning run on project data, even a small sample, waits for the user's OK and a choice of where**
@@ -320,7 +324,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | Item | State |
 |---|---|
 | Git | clean · the repository is **public** on GitHub, so cloud notebooks clone it without a token |
-| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `de357d8`) · Python 3.11 · since 2026-09-19 the job also starts a throwaway `neo4j:5-community` container for the live Neo4j tests |
+| CI (GitHub Actions) | ✅ green on every push so far (latest verified: `3e9577a`) · Python 3.11 · since 2026-09-19 the job also starts a throwaway `neo4j:5-community` container for the live Neo4j tests |
 | Local Python | **3.11.9** in `.venv` (D-2) — light deps only: `requirements-dev.txt` (now incl. pandas, numpy, pyarrow, **networkx 3.6.1**) + huggingface_hub + **`neo4j` 5.28.6, `python-dotenv` 1.2.3** (2026-09-19, for the Neo4j store; now in `requirements-dev.txt`). Installs are per task (D-4) |
 | Machine Pythons | 3.14 (**still the default** — plain `python` bypasses the venv), 3.12, 3.11 · always use `./.venv/Scripts/python.exe` |
 | Docker | 29.7.2 installed, **not needed**: Neo4j runs on AuraDB Free (D-6). `docker-compose.yml` stays as the optional local route |
@@ -339,7 +343,8 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-19 | Claude | **1b Neo4j store; 1b ✅.** `src/medical_kg/neo4j_store.py` writes the KG to AuraDB (label `CardiacKG`) when its fingerprint differs from the local build, then reads it back at start-up and scores it in memory, identically to NetworkX; an edit made in Neo4j by hand is caught. `open_graph_store()` falls back to NetworkX when Aura is paused, offline or refuses the login, and the pipeline reports `graph_backend` (docs/02 §7). The real graph is loaded (129 nodes, 321 edges). 32 tests, 9 of them live: those passed against Aura, and CI runs them against a throwaway Neo4j container. Found: Aura's home database is named after the instance id, not `neo4j`. **1.0 ✅** too, with the optional pre-commit hooks deferred | → pending |
+| 2026-09-19 | Claude | **1c feature encoding**: `EvidenceEncoder` (`src/ml/features.py`) turns age, sex and the evidence tokens into 607 columns, fixed by the release files: binary evidences 0/1, categorical and multi-choice answers one-hot under their question (the default answer, meaning "no", gets no column), ordinals as a value plus an "answered" flag, and NA explicitly. On validate it encodes 33,963 patients in 1 s, and its question columns equal `positive_codes` for every one. Only 179 columns are ever nonzero, so the training job will use a sparse matrix. Feature card in `docs/03` §2.2 | → pending |
+| 2026-09-19 | Claude | **1b Neo4j store; 1b ✅.** `src/medical_kg/neo4j_store.py` writes the KG to AuraDB (label `CardiacKG`) when its fingerprint differs from the local build, then reads it back at start-up and scores it in memory, identically to NetworkX; an edit made in Neo4j by hand is caught. `open_graph_store()` falls back to NetworkX when Aura is paused, offline or refuses the login, and the pipeline reports `graph_backend` (docs/02 §7). The real graph is loaded (129 nodes, 321 edges). 32 tests, 9 of them live: those passed against Aura, and CI runs them against a throwaway Neo4j container. Found: Aura's home database is named after the instance id, not `neo4j`. **1.0 ✅** too, with the optional pre-commit hooks deferred | `3e9577a` |
 | 2026-09-19 | the user + Claude | **The team decided** the five points the owner sent them ("go with Claude's suggestion", relayed by the owner): **D-8** restricts D to the in-scope conditions for the headline Precision@3 / Recall@5 (`docs/05` amendment 1); **red-flag sensitivity** is measured against the true condition (amendment 2); `Finding.source` also lists `ddxplus` and `crosswalk` (a contracts change); A-5 and A-6 accepted as working values; R-12, R-13 and R-15 recoloured 🔴 (the key stays). The owner's checklist is done except the Colab run | `de357d8` |
 | 2026-09-19 | the user + Claude | The owner is working through a checklist of their own tasks. **Done:** created the AuraDB Free instance and filled `.env` (Claude verified the login without reading it: Neo4j 5.27, empty; the home database is named after the instance id, not `neo4j`); chose **Colab** for the B0/B1 training job (D-7); approved installing `neo4j` + `python-dotenv` (now installed) and scikit-learn + XGBoost (when the training job is written) (D-4), and loading the KG into Aura. **Next:** the owner sends the team the decision list (D-8 first); then Claude builds the Neo4j store | `e6f6c60` |
 | 2026-09-19 | Claude | **1b BODHI-S enrichment**: 107 facts about MI, pericarditis, PE and GERD; 98 mapped to 56 edges weighted by P(finding \| condition), keyed by BODHI-S id so that no BODHI-S text is committed (CC-BY-NC); 17 crosswalk concepts added (64). 21 facts restate DDXPlus and count once. **EXP-016**: GC-001's MI climbs from 5th to 3rd on graph score alone, but on DDXPlus patients graph-only top-1 falls to 0.856 and MI's to 0.60, because the overlap score punishes enriched conditions. 2a must replace it. 1b is done except the Neo4j store, which waits for AuraDB | `cc2a9cd` |

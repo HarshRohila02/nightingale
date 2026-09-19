@@ -297,6 +297,36 @@ class TestBuilderScript:
         assert not (tmp_path / "out").exists(), "nothing may be written from the test split"
 
 
+def test_specs_carry_the_possible_answers_and_spot_ordinal_scales(tmp_path):
+    spec_json = {
+        "E_91": {
+            "data_type": "B",
+            "default_value": 0,
+            "is_antecedent": False,
+            "possible-values": [],
+        },
+        "E_56": {
+            "data_type": "C",
+            "default_value": 0,
+            "is_antecedent": False,
+            "possible-values": list(range(11)),
+        },
+        "E_204": {
+            "data_type": "C",
+            "default_value": "V_10",
+            "is_antecedent": True,
+            "possible-values": ["V_10", "V_0"],
+        },
+    }
+    path = tmp_path / "release_evidences.json"
+    path.write_text(json.dumps(spec_json), encoding="utf-8")
+    specs = load_evidence_specs(path)
+    assert specs["E_56"].possible_values == tuple(str(i) for i in range(11))
+    assert specs["E_56"].is_ordinal
+    assert specs["E_204"].possible_values == ("V_10", "V_0") and not specs["E_204"].is_ordinal
+    assert specs["E_91"].possible_values == () and not specs["E_91"].is_ordinal
+
+
 @pytest.mark.skipif(not REAL_EVIDENCES.exists(), reason="data/ is not committed (CI)")
 def test_real_evidence_spec_matches_the_documented_defaults():
     specs = load_evidence_specs(REAL_EVIDENCES)
@@ -304,3 +334,9 @@ def test_real_evidence_spec_matches_the_documented_defaults():
     assert specs["E_57"].default_value == "V_123"  # radiates: nowhere
     assert specs["E_54"].default_value == "V_11"  # pain character: NA
     assert specs["E_56"].default_value == "0"  # pain intensity 0-10
+    assert [c for c in ("E_56", "E_58", "E_59", "E_204") if specs[c].is_ordinal] == [
+        "E_56",
+        "E_58",
+        "E_59",
+    ]
+    assert len(specs["E_55"].possible_values) == 165  # pain location

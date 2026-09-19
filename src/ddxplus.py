@@ -113,12 +113,24 @@ class EvidenceSpec:
         is_antecedent: DDXPlus's own risk-factor flag. Not always consistent with how
             ``release_conditions.json`` uses the code (E_16, "anxious", is flagged an
             antecedent but listed as a symptom).
+        possible_values: Every answer the question allows, as strings (``"V_16"``, ``"4"``),
+            default included. Empty for binary evidences.
     """
 
     code: str
     data_type: str
     default_value: str | None
     is_antecedent: bool
+    possible_values: tuple[str, ...] = ()
+
+    @property
+    def is_ordinal(self) -> bool:
+        """A 0-10 scale (``E_56_@_4``): categorical, with numbers for answers."""
+        return (
+            self.data_type == "C"
+            and bool(self.possible_values)
+            and all(v.isdigit() for v in self.possible_values)
+        )
 
 
 def code_sort_key(code: str) -> int:
@@ -189,6 +201,9 @@ def load_evidence_specs(path: Path) -> dict[str, EvidenceSpec]:
             data_type=data_type,
             default_value=None if data_type == "B" or default is None else str(default),
             is_antecedent=bool(spec.get("is_antecedent", False)),
+            possible_values=(
+                () if data_type == "B" else tuple(str(v) for v in spec.get("possible-values", []))
+            ),
         )
     return specs
 

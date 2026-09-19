@@ -153,6 +153,46 @@ all**. None of them lists `E_53` ("pain related to the consultation"), and 771 a
 questions are simply filled with defaults. The label audit is **EXP-013** in
 [08-experiment-log.md](08-experiment-log.md).
 
+### 2.2 Feature card — `src/ml/features.py` · *added 2026-09-19*
+
+`EvidenceEncoder` turns a patient's inputs (`age`, `sex`, `evidences`) into one row of numbers
+for the ML ranker. It reads nothing else, so no label can leak in: a test shuffles the label
+columns and gets the same matrix. Build it with
+`EvidenceEncoder.from_release(release_evidences.json, ddxplus_chestpain_conditions.json)`.
+
+**The columns come from the release files, never from patients.** They cover every evidence the
+13 conditions use (84), each expanded by its type. They are the same on every machine, and a
+hand-written case can use an answer no training patient gave. `fingerprint` names the column set
+(`3a0d5a5e01d7f427` on 2026-09-19). A trained model must record it and refuse rows encoded with
+another.
+
+| Evidence | Columns | Value |
+|---|---|---|
+| Binary, e.g. `E_91` (fever) | `E_91` | 1 if listed |
+| Categorical or multi-choice, e.g. `E_55_@_V_16` | `E_55`, the question | 1 if any listed answer is not the default |
+| | `E_55=V_16`, one per non-default answer | 1 if that answer is listed |
+| Ordinal 0–10, e.g. `E_56_@_4` | `E_56=value` | The number itself, kept ordered; 0 when not listed |
+| | `E_56=answered` | 1 if listed, because 0 can be a real answer (`E_59`) |
+| NA, `E_54_@_V_11` | None: NA is `E_54`'s default | — |
+| | `E_nn=NA`, only where NA is allowed but is not the default (no such evidence in scope) | 1 if listed |
+| Age and sex | `age`, `sex=F` | Years; 1 for female, 0 for male |
+
+A default answer ("N", "nowhere", 0) gets no column, so it reads exactly like an unlisted
+question. The question and binary columns therefore equal `positive_codes`, the level the
+knowledge graph works at. A test checks this for every validate patient. A token the encoder
+does not know, or an answer its evidence does not allow, is an error that names the row, never a
+silently dropped finding.
+
+**On the validate split (2026-09-19):**
+
+| Measure | Value |
+|---|---|
+| Columns | **607**: age and sex, 81 question or binary columns, 6 for the 3 ordinals and 518 answers. Pain location, pain radiation and leg-swelling location allow 164 answers each |
+| Columns ever nonzero | 179 of 607. The rest are answers no in-scope patient gave |
+| Nonzero columns per patient | 27.6 on average |
+| Time and size | 1.0 s for 33,963 patients; 82.5 MB as float32 |
+| Train split, projected (about 263,000 patients) | About 640 MB dense and 7 s, so the training job stores it as a sparse matrix |
+
 ---
 
 ## 3. Reproducibility

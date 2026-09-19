@@ -91,6 +91,9 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   **Near-equal by-sex results are an artifact, not evidence of fairness** (EXP-002).
 - Patient evidence tokens come in four forms: binary, categorical value, **numeric ordinal**
   (`E_56_@_4`, 12.6% of tokens; encode as ordered, not one-hot) and the `V_11` "NA" sentinel.
+  `EvidenceEncoder` (`src/ml/features.py`, `docs/03` §2.2) encodes all four into 607 columns
+  fixed by the release files, not by patients. A trained model must record its `fingerprint`
+  and refuse rows encoded with another.
 - **A listed DDXPlus token can mean "no".** `E_204_@_V_10` means "did not travel" and is listed for
   89.6% of patients; `E_57_@_V_123` means "radiates nowhere". To find what a patient actually has,
   use `positive_codes()` in `src/ddxplus.py`, never "the code appears in EVIDENCES" (EXP-013).
@@ -139,7 +142,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ## Where things are
 
 `docs/README.md` document index · `docs/02` architecture and contracts · `docs/03` §2.1 the
-chest-pain parquet · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
+chest-pain parquet, §2.2 the model features (`src/ml/features.py`) · `docs/05` evaluation protocol (frozen) · `docs/07` risk register · `docs/08`
 experiment log · `docs/09` learning guide · `docs/10` R-01 spike report · `src/ddxplus.py` DDXPlus
 decoding · `src/medical_kg/` the KG from its three sources (DDXPlus, `hand_authored.py`,
 `bodhi_s.py`, merged by `cardiac_kg.py`), its NetworkX and Neo4j stores and the crosswalk (cards: `docs/02`
