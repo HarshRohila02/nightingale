@@ -153,6 +153,17 @@ all**. None of them lists `E_53` ("pain related to the consultation"), and 771 a
 questions are simply filled with defaults. The label audit is **EXP-013** in
 [08-experiment-log.md](08-experiment-log.md).
 
+**Train split, built 2026-09-19 on Colab** by the owner's B0/B1 run (`docs/11` §4.1). The parquet
+stays on Colab; these figures come from the summary it sent back:
+
+| Measure | Value |
+|---|---|
+| Rows | **255,900** of 1,025,602 (25.0%). Per-condition counts: EXP-003 |
+| Tokens | 5,583,310: 2,237,663 binary · 2,634,321 categorical value · 704,592 numeric ordinal (12.6%) · 6,734 NA |
+| Tokens that mean "no" | 343,980, in 235,628 patients |
+| Positive codes per patient | 14.1 on average |
+| Differential | out-of-scope mass 33.3% on average; Recall@5 ceilings 0.432 (full D) and 0.751 (`D_in`); Precision@3 ceiling 0.931, all within 0.003 of validate's |
+
 ### 2.2 Feature card — `src/ml/features.py` · *added 2026-09-19*
 
 `EvidenceEncoder` turns a patient's inputs (`age`, `sex`, `evidences`) into one row of numbers

@@ -1,6 +1,6 @@
 # 11 — Compute Runbook: where jobs run, laptop GPU tests, cloud jobs
 
-**Version:** 1.3 · 2026-09-19 (§4.1: the B0/B1 Colab job; v1.2, §5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
+**Version:** 1.4 · 2026-09-20 (§4.1: the B0/B1 job has run; v1.3, §4.1: the B0/B1 Colab job; v1.2, §5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
 `PROGRESS.md` §6)
 
 > **The owner's laptop is a development machine, not a compute server.** Heavy work goes to the
@@ -186,7 +186,7 @@ Every heavy job follows the same pattern, whatever the platform.
 - **The test split stays closed until Phase 4.** The scripts refuse it unless `configs/config.yaml`
   allows it, and that file comes with the pinned commit.
 
-### 4.1 The B0/B1 job (EXP-003, EXP-004) · *ready 2026-09-19*
+### 4.1 The B0/B1 job (EXP-003, EXP-004) · *ready 2026-09-19 · run 2026-09-19*
 
 The owner chose Colab for it (D-7). Everything runs from one notebook in the repository, which
 asks for a T4 GPU and falls back to the CPU when none is free:
@@ -208,6 +208,12 @@ The zip holds the three models as JSON (`b0_prevalence.json`, `b1_logreg.json`, 
 `pip-freeze.txt` and the two splits' summaries. It holds no patient rows. The job is
 `scripts/train_baselines.py`, and `tests/test_baselines.py` runs it end to end on a synthetic
 mini-release in CI.
+
+**Done 2026-09-19.** The owner ran the notebook at commit `68c14bd` on a Colab T4. The job itself
+took about a minute: encoding 24 s, logistic regression 4 s, XGBoost 8 s on the GPU, scoring 20 s.
+Colab ran Python 3.13, NumPy 2.1 and scikit-learn 1.6; the laptop has Python 3.11, NumPy 1.26 and
+scikit-learn 1.9. The models are plain JSON, and the laptop reloads them and reproduces every
+validate score to within 3 × 10⁻¹². Results: EXP-003 and EXP-004 in `docs/08`.
 
 ---
 

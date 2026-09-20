@@ -371,9 +371,10 @@ result.
 ## Roadmap: phased build
 
 **Phase 1 — Core (MVP, must ship)**
-- [ ] Decode DDXPlus evidences; filter to the ~13 chest-pain conditions; train a ranker
+- [x] Decode DDXPlus evidences; filter to the ~13 chest-pain conditions; train a ranker: B0 and B1
+  trained ✅ 2026-09-19 (EXP-003/004); wiring the ranker into the pipeline is next
 - [x] Build the Cardiac KG from DDXPlus's condition KB, enriched from BODHI-S, with aortic
-  dissection hand-authored: NetworkX ✅ 2026-09-19; the Neo4j store waits for the AuraDB instance
+  dissection hand-authored: NetworkX and Neo4j (AuraDB) stores ✅ 2026-09-19
 - [ ] Build the Patient KG (from Synthea + entered cases)
 - [ ] Fusion + reasoning: ranked differential with supporting ✓ / missing ? symptoms
 - [ ] Red-flag rules (ACS / PE / pneumothorax / dissection)

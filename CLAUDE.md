@@ -111,6 +111,13 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   appropriate only when it names the true condition, until the team settles A-7.
 - **Red-flag sensitivity counts a must-not-miss condition's own patients** that its flag reaches
   (`docs/05` amendment 2). Report the rule's rate on everyone else beside it (R-15).
+- **B1 is near-perfect on DDXPlus, and that is the data, not skill or leakage** (EXP-004). XGBoost
+  ranks 99.85% of validate patients' true condition first and all of them in the top 3, with
+  must-not-miss recall@3 1.000, because DDXPlus draws each patient's evidence only from their
+  condition's list (for 91.7% of patients no other condition fits). So on full-evidence DDXPlus the
+  fusion cannot beat B1 on top-3 or must-not-miss recall (H1, H2): **R-16, open decision D-10.**
+  Precision@3 and Recall@5 still separate systems. B1's only errors put unstable angina (or MI)
+  below stable angina, the graph's blind spot too.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still

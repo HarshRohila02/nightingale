@@ -74,6 +74,44 @@ a limitation in [05-evaluation-protocol.md](05-evaluation-protocol.md) §8.
 
 ---
 
+### 🔴 R-16 — B1 reaches the ceiling on DDXPlus, so the headline comparisons cannot separate the systems
+**L 5 · I 4 · Score 20 · Owner P4 · Status: OPEN — opened 2026-09-20 from EXP-004; decision D-10 pending**
+
+On validate, ML-only B1 (XGBoost) ranks the true condition first for **99.85%** of patients and in
+the top 3 for **all** of them. Its must-not-miss recall@3 is **1.000** and its MRR 0.9992. The cause
+is DDXPlus's generator: each patient's evidence is drawn only from their own condition's list, so
+every validate patient's positive answers fit inside their condition's evidence set, and for 91.7%
+inside no other condition's (EXP-004). On full-evidence DDXPlus, therefore:
+
+- **H1** (fusion > ML-only on top-3 and MRR) and **H2** (fusion + red flags > ML-only on
+  must-not-miss recall@3) cannot be supported: top-3 and must-not-miss recall have no room left,
+  and MRR has 0.0008.
+- `docs/05` §7's *Target* (A0 > B1 on top-3 and must-not-miss recall) is out of reach, and the §6
+  McNemar test on top-3 between A0 and B1 can show only a tie or a loss.
+- **H4** (removing the KG hurts must-not-miss recall more than top-1) will likely fail for the same
+  reason: B1 alone already has the recall.
+
+This differs from R-09, where the hypothesis may be false: here the test cannot tell whether it is.
+
+*What still separates systems on DDXPlus:* agreement with its differential (B1: Precision@3 0.764
+of a possible 0.929, Recall@5 0.569 of 0.753), though a KG gain there needs the R-12 caveat, since
+D and the graph both come from DDXPlus. Beyond DDXPlus: aortic dissection, which no DDXPlus patient
+has; the golden cases; and the explanations.
+
+*Mitigation: decision D-10 for the team (`PROGRESS.md` §3), to settle before the fusion work (2c),
+so that any protocol amendment is made before a fusion result exists:*
+1. Keep the protocol and explain the ceiling in the report.
+2. **Add a reduced-evidence condition** (a `docs/05` amendment): every system is also scored on
+   patients who keep their initial evidence plus a fixed random share of the rest, with the masks
+   drawn once (seed 42). It mirrors a consultation in progress and gives the metrics room again.
+   *Recommended.*
+3. Add an independent test set: clinical vignettes the team writes from textbooks and case reports,
+   like the golden cases. It escapes R-12 too, but it is small, so its intervals are wide.
+
+*Trigger for review:* D-10 decided.
+
+---
+
 ### 🟠 R-02 — Ten-week timeline is too short for the full pipeline
 **L 4 · I 3 · Score 12 · Owner P4 · Status: OPEN — mitigated by design**
 
@@ -85,12 +123,17 @@ LLM explainer). The prototype, red-flag layer, and ablation study are never cut.
 ---
 
 ### 🟢 R-03 — Severe class imbalance across the 13 conditions
-**L 1 · I 3 · Score 3 · Owner P2 · Status: ✅ RESOLVED 2026-09-18 on projection — re-confirm on train.csv**
+**L 1 · I 3 · Score 3 · Owner P2 · Status: ✅ RESOLVED 2026-09-18 on projection · confirmed on the train counts 2026-09-20**
 
 *Measured* (EXP-002, validate split): the rarest condition (spontaneous pneumothorax) projects to
 **≈10,880 training cases** — about 22× the trigger — and the imbalance across all 13 is only
 **2.7×**. Projection uses the exact train/validate ratio 7.743; re-confirm with real counts when
 `train.csv` is downloaded. Original assessment kept below for the record.
+
+*Confirmed 2026-09-20* (EXP-003, the real train split): the rarest condition has **10,162**
+training cases, 20× the trigger; the imbalance is **2.70×**; every condition is within 8% of its
+projection. B1 learns even the two rarest perfectly (F1 1.000 for myocarditis and pneumothorax,
+EXP-004).
 
 ~~**L 4 · I 3 · Score 12 · Owner P2 · Status: OPEN**~~
 
@@ -262,6 +305,9 @@ rigorous and the analysis explains why. The safety metric may still favour the h
 accuracy does not — which is itself the interesting finding. Report honestly; do not tune until the
 desired answer appears.
 
+*Update 2026-09-20:* on full-evidence DDXPlus this cannot even be tested: B1 already scores 1.000
+on top-3 and on must-not-miss recall@3 (EXP-004). See **R-16** and decision D-10.
+
 ---
 
 ### 🟢 R-10 — BODHI-S non-commercial licence misunderstood
@@ -306,3 +352,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | R-12: 56 BODHI-S edges added (76 of 321 now independent of DDXPlus). EXP-016: they lower the graph-only score on DDXPlus and raise MI on GC-001. R-10: no BODHI-S text committed | — |
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
+| 1 | 2026-09-20 | **R-16 opened** (found by EXP-004): B1 reaches the ceiling of DDXPlus's top-3 and must-not-miss recall@3 (both 1.000), which raises decision D-10. **R-03 confirmed** on the real train counts (rarest 10,162, 2.70×; EXP-003). R-09 cannot be tested on full-evidence DDXPlus (see R-16). R-14: the first cloud job, B0/B1, ran on a Colab T4 in about a minute. Other scores unchanged | — |

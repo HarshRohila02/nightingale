@@ -63,6 +63,175 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-004 — B1, ML-only: logistic regression and XGBoost (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 (run) · logged 2026-09-20 |
+| Author | P2 (run by the owner on Colab, logged by Claude) |
+| Config / ablation | **B1** (docs/05 §4): XGBoost, with multinomial logistic regression as a linear reference |
+| Split used | train to fit (XGBoost on 90%, stopped early on the other 10%) · **validate** to score · test **not read** |
+| Git commit | `68c14bd` |
+| MLflow run | none: `run.json` in the run's bundle records the commit, versions, device and timings |
+| Seed | 42 |
+
+**Question:** How good is ML-only, the baseline the full system has to beat? (docs/05 §4: "B1 is
+the baseline that matters.")
+
+**Setup:** `scripts/train_baselines.py`, run by the owner through `notebooks/colab_b0_b1.ipynb` on a
+Colab T4 (docs/11 §4.1), with Python 3.13, NumPy 2.1.3, scikit-learn 1.6.1 and XGBoost 2.1.4. The
+inputs are age, sex and the evidence tokens only, as 607 features (`EvidenceEncoder`, fingerprint
+`3a0d5a5e01d7f427`, docs/03 §2.2); no label column is read. Logistic regression: C = 1, max-abs
+scaling, converged in 17 iterations. XGBoost: the fixed defaults in `src/ml/baselines.py` (η 0.1,
+depth 6, row and column subsampling 0.8), best at round 117 of at most 1,000, with 50 rounds of
+patience. No tuning. The job took about a minute: encoding 24 s, logistic regression 4 s, XGBoost
+8 s, scoring 20 s. **Checked on the laptop:** the downloaded models re-score validate on the CPU
+and reproduce every metric and interval to within 3 × 10⁻¹².
+
+**Results** (validate: 33,963 patients, 16,943 of them with a must-not-miss condition; 95% bootstrap
+intervals; "best possible" is the ceiling the labels allow):
+
+| Metric | B0 (EXP-003) | B1 logistic regression | **B1 XGBoost** | Best possible |
+|---|---|---|---|---|
+| Top-1 accuracy | 0.1097 [0.1065, 0.1132] | 0.9983 [0.9978, 0.9987] | **0.9985 [0.9980, 0.9989]** | 1 |
+| Top-3 accuracy | 0.3059 [0.3013, 0.3108] | 1.0000 [1.0000, 1.0000] | **1.0000 [1.0000, 1.0000]** | 1 |
+| Top-5 accuracy | 0.4818 [0.4765, 0.4869] | 1.0000 [1.0000, 1.0000] | **1.0000 [1.0000, 1.0000]** | 1 |
+| MRR | 0.2924 [0.2895, 0.2954] | 0.9991 [0.9989, 0.9994] | **0.9992 [0.9990, 0.9994]** | 1 |
+| Precision@3 | 0.5638 [0.5604, 0.5674] | 0.7291 [0.7265, 0.7317] | **0.7639 [0.7613, 0.7667]** | 0.929 |
+| Recall@5 (`D_in`) | 0.4602 [0.4580, 0.4623] | 0.5533 [0.5508, 0.5556] | **0.5694 [0.5668, 0.5718]** | 0.753 |
+| Recall@5, full D | 0.2679 [0.2663, 0.2696] | 0.3195 [0.3176, 0.3213] | **0.3338 [0.3318, 0.3360]** | 0.434 |
+| Must-not-miss recall@3 | 0.2199 [0.2137, 0.2264] | 1.0000 [1.0000, 1.0000] | **1.0000 [1.0000, 1.0000]** | 1 |
+| Dangerous false-negative rate | 0.6064 [0.5989, 0.6136] | 0.0000 [0.0000, 0.0000] | **0.0000 [0.0000, 0.0000]** | 0 |
+| Brier score | 0.9183 [0.9179, 0.9187] | 0.0034 [0.0026, 0.0043] | **0.0030 [0.0022, 0.0039]** | 0 |
+| ECE, raw scores | 0.0023 | 0.0007 | **0.0001** | 0 |
+| Macro F1 | 0.0152 | 0.9982 | **0.9985** | 1 |
+
+Per-condition F1 for XGBoost is 1.000 for 10 of the 13 conditions; the exceptions are stable angina
+(0.989), unstable angina (0.991) and MI (0.9998). Logistic regression: stable angina 0.988, unstable
+angina 0.990.
+
+**Errors.** XGBoost ranks the wrong condition first for 51 patients: 50 with unstable angina and 1
+with MI, each ranked below **stable angina**. Logistic regression's 59: 56 unstable angina and 2 MI
+below stable angina, and 1 stable angina below pericarditis. Every one still has its true condition
+in the top 3.
+
+**McNemar** (docs/05 §6, on top-3): XGBoost against B0, 23,575 patients only XGBoost gets right and
+none the other way (p < 10⁻³⁰⁰). XGBoost against logistic regression: no discordant patients, since
+both reach 100%. On top-1, added here: 8 against 0 for XGBoost, exact p = 0.008.
+
+**Interpretation:**
+
+1. **DDXPlus is saturated, and the cause is the data, not skill or leakage.** The inputs exclude
+   every label column, the test split was never read, and the laptop reproduces the numbers. The
+   data explain them: every validate patient's positive answers lie inside their own condition's
+   DDXPlus evidence set, and for **91.7%** inside no other condition's. DDXPlus draws each patient's
+   evidence from their own condition's list only, so which questions are answered "yes" nearly
+   names the condition. The graph alone reaches 88% through the same structure (EXP-015).
+2. **On full-evidence DDXPlus, the full system cannot beat B1 on the headline metrics.** Top-3
+   accuracy and must-not-miss recall@3 are already 1.000, and MRR leaves 0.0008. So H1 (fusion >
+   ML-only on top-3 and MRR) and H2 (fusion + red flags > ML-only on must-not-miss recall@3) cannot
+   be supported there, docs/05 §7's *Target* (A0 > B1 on top-3 and must-not-miss recall) is out of
+   reach, and the §6 McNemar test between A0 and B1 on top-3 can show only a tie or a loss. The
+   protocol accepts a missed *Target* when the analysis explains why, but a saturated test says
+   nothing about fusion either way. → **R-16**, decision **D-10** (PROGRESS §3).
+3. **What still separates systems here is agreement with DDXPlus's differential.** XGBoost reaches
+   Precision@3 0.764 of a possible 0.929 and Recall@5 0.569 of 0.753, ahead of logistic regression
+   (0.729 and 0.553) with intervals that do not overlap. A KG gain on these needs the R-12 caveat
+   too: D comes from DDXPlus's own differential generator (EXP-013), and the graph from its
+   knowledge base.
+4. **The only errors are the angina overlap**, which is the graph's blind spot too (`docs/02` §5.1):
+   1.8% of unstable-angina patients get stable angina first. That is the dangerous direction,
+   though the true condition stays in the top 3.
+5. **XGBoost is B1, as planned.** It beats logistic regression on top-1 (8 to 0, p = 0.008) and on
+   the differential metrics. That a linear model comes this close says again how easy the data are.
+6. **The raw scores are already calibrated on validate** (ECE 0.0001), so B1 meets H5 (ECE < 0.10
+   after calibration) without any. Calibration (2b) matters for fused and reduced-evidence scores.
+7. **A percentile bootstrap cannot show uncertainty around a perfect score**, hence [1.0000,
+   1.0000]. The exact (Clopper–Pearson) 95% lower bounds are 0.99989 for top-3 and 0.99978 for
+   must-not-miss recall@3.
+8. The usual caveats: closed-world (R-13), synthetic patients, and aortic dissection absent from
+   DDXPlus, so B1 can never rank it; only the KG and its red flag can.
+
+**Next action:** The team decides D-10 before the fusion work (2c). `ConditionRanker` then puts
+XGBoost behind the pipeline's ranker interface (on hold until the owner says go). 2a's angina fix
+should also be judged against these 50 unstable-angina errors.
+
+---
+
+### EXP-003 — B0 prevalence baseline, and the train split's class balance (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-19 (run) · logged 2026-09-20 |
+| Author | P2 (run by the owner on Colab, logged by Claude) |
+| Config / ablation | **B0** (docs/05 §4): every patient gets the same ranking, the train split's class frequencies |
+| Split used | train to count · **validate** to score · test **not read** |
+| Git commit | `68c14bd` |
+| MLflow run | none: `run.json` in the run's bundle |
+| Seed | 42 (B0 itself is deterministic) |
+
+**Question:** Where is the floor? And does EXP-002's projection of the class balance hold on the
+real train split?
+
+**Setup:** The same run as EXP-004. On Colab, `build_ddxplus_chestpain.py --split train` decoded
+DDXPlus `train.csv` (Hugging Face revision `2ad986a`) and kept the 13 conditions, and B0 counts
+them. Its ranking, the same for every patient: pulmonary embolism, GERD, panic attack, pericarditis,
+MI, unstable angina, atrial fibrillation, acute pulmonary edema, PSVT, stable angina, Boerhaave,
+myocarditis, pneumothorax.
+
+**Results, B0 on validate** (33,963 patients; 95% bootstrap intervals):
+
+| Metric | Value | 95% CI |
+|---|---|---|
+| Top-1 accuracy | 0.110 | [0.106, 0.113] |
+| Top-3 accuracy | 0.306 | [0.301, 0.311] |
+| Top-5 accuracy | 0.482 | [0.476, 0.487] |
+| MRR | 0.292 | [0.289, 0.295] |
+| Precision@3 | 0.564 | [0.560, 0.567] |
+| Recall@5 (`D_in`) | 0.460 | [0.458, 0.462] |
+| Recall@5, full D | 0.268 | [0.266, 0.270] |
+| Must-not-miss recall@3 (16,943 patients) | 0.220 | [0.214, 0.226] |
+| Dangerous false-negative rate (16,943 patients) | 0.606 | [0.599, 0.614] |
+| Brier score | 0.918 | [0.918, 0.919] |
+| ECE, raw scores | 0.002 | — |
+| Macro F1 | 0.015 | — |
+
+**Results, the train split against EXP-002's projection** (validate × 7.743):
+
+| Condition | Train | EXP-002 projected | Difference |
+|---|---:|---:|---:|
+| Pulmonary embolism | 27,468 | ≈28,844 | −4.8% |
+| GERD | 25,979 | ≈26,529 | −2.1% |
+| Panic attack | 25,019 | ≈25,065 | −0.2% |
+| Pericarditis | 22,785 | ≈23,478 | −3.0% |
+| Possible NSTEMI / STEMI | 21,260 | ≈22,789 | −6.7% |
+| Unstable angina | 21,244 | ≈21,279 | −0.2% |
+| Atrial fibrillation | 21,036 | ≈20,203 | +4.1% |
+| Acute pulmonary edema | 19,018 | ≈19,359 | −1.8% |
+| PSVT | 18,781 | ≈18,398 | +2.1% |
+| Stable angina | 16,995 | ≈18,120 | −6.2% |
+| Boerhaave syndrome | 15,080 | ≈16,068 | −6.1% |
+| Myocarditis | 11,073 | ≈11,979 | −7.6% |
+| Spontaneous pneumothorax | 10,162 | ≈10,880 | −6.6% |
+| **Total in scope** | **255,900** (25.0% of 1,025,602) | ≈262,990 | −2.7% |
+
+**Interpretation:**
+
+1. **The floor.** B0 puts pulmonary embolism, GERD and panic attack in everyone's top 3, so its
+   must-not-miss recall@3 (0.220) is simply pulmonary embolism's share of the must-not-miss
+   patients. Anything scoring near B0 is broken.
+2. **EXP-002 holds on the real counts.** The rarest condition is still spontaneous pneumothorax,
+   with 10,162 training cases against a projected ≈10,880 (R-03's trigger is 500). The imbalance is
+   2.70×, and every condition is within 8% of its projection, so R-03 stays resolved. The label
+   audit holds too: the differential's out-of-scope mass (33.3%) and the Recall@5 ceilings (0.432
+   for the full D, 0.751 for `D_in`) match validate's (docs/03 §2.1).
+3. Sex and age were not re-measured: the train parquet stays on Colab, and the summary it sent back
+   holds counts only.
+
+**Next action:** B0 is the floor for every later entry. EXP-002's re-check is done.
+
+---
+
 ### EXP-016 — BODHI-S enrichment: coverage, and what it does to the graph (validate split)
 
 | Field | Value |
@@ -378,6 +547,11 @@ of them `E_54_@_V_11`, the "NA" sentinel that `decode_ddxplus.py` deliberately s
 **Next action:** R-03 resolved on projection — re-confirm when `train.csv` is downloaded. Open R-13.
 Carry the three token kinds into 1c.
 
+*Re-checked 2026-09-20 on the real train split (EXP-003): **confirmed.** The rarest condition has
+10,162 training cases, the imbalance is 2.70×, and every condition is within 8% of its projection.
+Sex and age were not re-measured: the train parquet stays on Colab, and its summary holds counts
+only.*
+
 ---
 
 ### EXP-001 — R-01 crosswalk spike: DDXPlus ↔ BODHI-S
@@ -460,8 +634,8 @@ risk **R-01** and therefore the KG backbone (see
 |---|---|---|---|
 | EXP-001 | Crosswalk coverage spike | 0 | R-01 — KG backbone |
 | EXP-002 | Class balance across 13 conditions | 1 | R-03 — which conditions are learnable |
-| EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Job ready 2026-09-19 (docs/11 §4.1), run on Colab by the owner* |
-| EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Same job as EXP-003* |
+| EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Run 2026-09-19 on Colab by the owner; logged* |
+| EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? |
 | EXP-006 | A0 fusion, weight sweep | 2 | Fusion weights (validation only) |
 | EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |
