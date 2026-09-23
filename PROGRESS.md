@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-20 · by Claude (1a ✅; 1c: the B0/B1 results recorded, EXP-003 and EXP-004) · **Last verified commit:** `68c14bd`
+**Last updated:** 2026-09-20 · by Claude (1a ✅; 1c: the B0/B1 results recorded, EXP-003 and EXP-004) · **Last verified commit:** `98c746b`
 
 ---
 
@@ -214,8 +214,8 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] DDXPlus `validate.csv` downloaded (D-1, 87 MB); `train.csv` / `test.csv` deferred until training — `843c5fb`
 - [x] EXP-002 on validate: R-03 not triggered (rarest ≈10,880 projected training cases; 2.7× imbalance); **R-13 opened** (closed-world) — `843c5fb`
 - [x] Decode patient rows; filter to the 13 conditions → `data/interim/ddxplus_chestpain_validate.parquet` (33,963 rows; one file per split, and the builder refuses the test split). `src/ddxplus.py` + `scripts/build_ddxplus_chestpain.py` + 35 tests. Label audit **EXP-013** → R-13 extended, **D-8** opened — `4d640a8`
-- [x] Build the train parquet when `train.csv` is downloaded: `scripts/build_ddxplus_chestpain.py --split train`. **Ask where first** (D-7). The download is 670.6 MB, and the parquet is needed wherever training runs. **Where: Colab** (the user, 2026-09-19), inside the B0/B1 training job. **Built on Colab 2026-09-19** by the owner's run: 255,900 of 1,025,602 rows (25.0%). The parquet stays on Colab; its summary came back in the bundle (`docs/03` §2.1) — → pending
-- [x] Re-confirm EXP-002 counts on `train.csv` once it is downloaded: **confirmed** (EXP-003). The rarest condition, spontaneous pneumothorax, has 10,162 training cases (projected ≈10,880), the imbalance is 2.70×, and every condition is within 8% of its projection; R-03 stays resolved — → pending
+- [x] Build the train parquet when `train.csv` is downloaded: `scripts/build_ddxplus_chestpain.py --split train`. **Ask where first** (D-7). The download is 670.6 MB, and the parquet is needed wherever training runs. **Where: Colab** (the user, 2026-09-19), inside the B0/B1 training job. **Built on Colab 2026-09-19** by the owner's run: 255,900 of 1,025,602 rows (25.0%). The parquet stays on Colab; its summary came back in the bundle (`docs/03` §2.1) — `98c746b`
+- [x] Re-confirm EXP-002 counts on `train.csv` once it is downloaded: **confirmed** (EXP-003). The rarest condition, spontaneous pneumothorax, has 10,162 training cases (projected ≈10,880), the imbalance is 2.70×, and every condition is within 8% of its projection; R-03 stays resolved — `98c746b`
 
 **1b — Cardiac medical KG · ✅ 2026-09-19** · P1
 - [x] KG loader from `data/interim/ddxplus_chestpain_conditions.json` → a backend-neutral `KnowledgeGraph` (`src/medical_kg/loader.py`): 14 conditions, 84 `DDX:E_nn` evidence nodes, 245 edges, **each with a `source`** (R-12). KG card in `docs/02` §5.1 — `6709697`
@@ -233,7 +233,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   (fingerprint `3a0d5a5e01d7f427`). A default answer gets no column, so the question columns equal
   `positive_codes` for all 33,963 validate patients; an ordinal is its value plus an "answered"
   flag. It reads only `age`, `sex` and `evidences`. Feature card in `docs/03` §2.2; 30 tests — `2e7f1bb`
-- [x] EXP-003: B0 prevalence baseline, the floor: top-1 0.110, top-3 0.306 and must-not-miss recall@3 0.220 on validate (the owner's Colab run, 2026-09-19) — → pending
+- [x] EXP-003: B0 prevalence baseline, the floor: top-1 0.110, top-3 0.306 and must-not-miss recall@3 0.220 on validate (the owner's Colab run, 2026-09-19) — `98c746b`
 - [x] EXP-004: B1 LogReg → XGBoost~~; `ConditionRanker` replacing `ConstantRanker`~~ *(now its own item, below)*. **Every training or
   tuning run on project data, even a small sample, waits for the user's OK and a choice of where**
   (D-7). Unit tests that fit a toy model on a few synthetic rows are tests, not training runs.
@@ -247,7 +247,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   **Run 2026-09-19** by the owner on a Colab T4 (commit `68c14bd`; the job took about a minute):
   XGBoost top-1 0.9985, top-3 1.000, must-not-miss recall@3 1.000, with logistic regression almost
   as good. That is how DDXPlus was generated, not skill (**R-16**, decision **D-10**). The laptop
-  reloads the models and reproduces every metric — → pending
+  reloads the models and reproduces every metric — `98c746b`
 - [ ] `ConditionRanker` replacing `ConstantRanker`: XGBoost from the Colab bundle behind the
   pipeline's ranker interface, after the golden cases are translated into DDXPlus tokens; then
   re-check the golden cases. **On hold until the user says go** (their request, 2026-09-19)
@@ -362,7 +362,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
-| 2026-09-20 | the user + Claude | **B0 and B1 trained (EXP-003, EXP-004); 1a ✅.** The owner ran the Colab notebook at `68c14bd` on a T4 on 2026-09-19; the job itself took about a minute. Claude checked the bundle on the laptop: the models load (the feature fingerprint matches), and re-scoring validate on the CPU reproduces every metric to within 3 × 10⁻¹². **B1 is near-perfect** (XGBoost top-1 0.9985; top-3 and must-not-miss recall@3 1.000), because DDXPlus draws each patient's evidence only from their condition's list: for 91.7% of patients, no other condition's evidence set holds their positive answers. So on full-evidence DDXPlus the fusion cannot beat B1 on the headline metrics: **R-16 opened, decision D-10 raised for the team.** Every B1 error puts unstable angina (or MI) below stable angina. EXP-002 confirmed on the real train counts (rarest 10,162, 2.70×). The user asked for the next task (`ConditionRanker`) to wait until they say go | → pending |
+| 2026-09-20 | the user + Claude | **B0 and B1 trained (EXP-003, EXP-004); 1a ✅.** The owner ran the Colab notebook at `68c14bd` on a T4 on 2026-09-19; the job itself took about a minute. Claude checked the bundle on the laptop: the models load (the feature fingerprint matches), and re-scoring validate on the CPU reproduces every metric to within 3 × 10⁻¹². **B1 is near-perfect** (XGBoost top-1 0.9985; top-3 and must-not-miss recall@3 1.000), because DDXPlus draws each patient's evidence only from their condition's list: for 91.7% of patients, no other condition's evidence set holds their positive answers. So on full-evidence DDXPlus the fusion cannot beat B1 on the headline metrics: **R-16 opened, decision D-10 raised for the team.** Every B1 error puts unstable angina (or MI) below stable angina. EXP-002 confirmed on the real train counts (rarest 10,162, 2.70×). The user asked for the next task (`ConditionRanker`) to wait until they say go | `98c746b` |
 | 2026-09-19 | Claude | **1c: the B0/B1 training job is ready for the owner's Colab run.** `src/ml/baselines.py` (B0 prevalence prior; B1 logistic regression and XGBoost, saved as JSON with the feature fingerprint), `scripts/train_baselines.py` (sparse features, early stopping on 10% of train, scored on validate with every `docs/05` metric and its interval) and `notebooks/colab_b0_b1.ipynb` (`docs/11` §4.1). Found and fixed: XGBoost reads a sparse matrix's absent entries as missing but a dense array's zeros as values, so the wrapper always hands it CSR. The whole job runs end to end in CI on a synthetic mini-release; no training on project data happened here (D-7). scikit-learn 1.9.1 and XGBoost 2.1.4 installed (approved) | `68c14bd` |
 | 2026-09-19 | Claude | **1e evaluation metrics**: `src/eval/metrics.py` implements `docs/05` §3.1–§3.3 and §6 as amended, with every ratio metric carrying a 95% bootstrap interval. The hand-computed tests caught a bug before commit: must-not-miss recall counted the top-3 hits of cases that were not must-not-miss. Open decision **A-7** (docs/02 §9): red-flag precision needs a definition of "clinically appropriate"; until then the metric is strict. Protocol slip: the write-ahead marker was written just after the first file, not before | `fafabb2` |
 | 2026-09-19 | Claude | **1c feature encoding**: `EvidenceEncoder` (`src/ml/features.py`) turns age, sex and the evidence tokens into 607 columns, fixed by the release files: binary evidences 0/1, categorical and multi-choice answers one-hot under their question (the default answer, meaning "no", gets no column), ordinals as a value plus an "answered" flag, and NA explicitly. On validate it encodes 33,963 patients in 1 s, and its question columns equal `positive_codes` for every one. Only 179 columns are ever nonzero, so the training job will use a sparse matrix. Feature card in `docs/03` §2.2 | `2e7f1bb` |
