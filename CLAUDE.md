@@ -118,6 +118,20 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   fusion cannot beat B1 on top-3 or must-not-miss recall (H1, H2): **R-16, open decision D-10.**
   Precision@3 and Recall@5 still separate systems. B1's only errors put unstable angina (or MI)
   below stable angina, the graph's blind spot too.
+- **B1's two models agree on full evidence and disagree completely without it** (EXP-017,
+  R-18). Top-1 at 100% / 50% / 25% of the history: XGBoost 0.9985 / 0.597 / 0.267, logistic
+  regression 0.9983 / 0.976 / 0.856. Given no evidence at all, XGBoost answers **atrial fibrillation
+  with probability 1.000**: the encoder gives a default "no" answer no column, so a short row and an
+  unfinished interview are the same thing, and AF is the condition whose DDXPlus patients answer
+  fewest questions. At 25% evidence XGBoost's must-not-miss recall@3 is 0.935, below the 0.95
+  target. **So the pipeline's real ranker is logistic regression, and every hand-authored case is
+  short.** Never quote an XGBoost number on partial or hand-written input.
+- **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
+  `expand_case` (which stops at the question and never gives an answer). It chooses a
+  representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by
+  default (open decision **A-8**, without which sudden onset and exertional pain vanish), records
+  denials without encoding them, and keeps every dropped finding with a reason. It has **no ground
+  truth** (R-17): the tests round-trip each concept back through `concepts_from_evidences`.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still

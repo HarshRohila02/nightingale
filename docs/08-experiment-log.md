@@ -63,6 +63,87 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-017 — B1 under a partial history: where the two baselines stop agreeing (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-23 |
+| Author | P2 |
+| Config / ablation | B1 (both models), scored at three evidence levels |
+| Split used | validation |
+| Git commit | `98c746b` (the models are the owner's Colab bundle, trained at `68c14bd`) |
+| MLflow run | — (scoring only; no training) |
+| Seed | 42 |
+
+**Question:** EXP-004 found B1 near-perfect on full-evidence DDXPlus (R-16). Does that survive an
+incomplete history — the ordinary case in a consultation — and do the two B1 models behave the same
+way when it does not?
+
+**Setup:** No training, no new model. The two B1 models from the Colab bundle score the same 33,963
+validate patients three times. A patient keeps their `initial_evidence` plus a share of the rest;
+the mask is drawn from a SHA-256 of `seed:case_id`, so it depends on the patient, never on row
+order, and reproduces on any machine. Scoring is `src/eval/metrics.py` throughout, so every figure
+carries its 95% bootstrap interval (1,000 resamples, seed 42). The whole run takes 27 s on the
+laptop CPU.
+
+**This is a diagnostic, not the reduced-evidence condition of decision D-10.** D-10 is undecided and
+`docs/05` is frozen; nothing here amends it. The levels and the masking rule are written down now so
+that, if the team adopts option (b), they can be adopted as-is and pre-registered.
+
+**Results:**
+
+| Evidence kept | Mean tokens | Model | Top-1 | Top-3 | Must-not-miss recall@3 | Most-predicted condition |
+|---|---|---|---|---|---|---|
+| 100% | 21.9 | XGBoost | **0.9985** [0.9980, 0.9989] | 1.0000 [1.0000, 1.0000] | 1.0000 [1.0000, 1.0000] | pulmonary embolism, 11% |
+| 100% | 21.9 | LogReg | **0.9983** [0.9978, 0.9987] | 1.0000 [1.0000, 1.0000] | 1.0000 [1.0000, 1.0000] | pulmonary embolism, 11% |
+| 50% | 11.5 | XGBoost | **0.5972** [0.5916, 0.6022] | 0.9972 [0.9967, 0.9978] | 0.9969 [0.9960, 0.9977] | **atrial fibrillation, 46%** |
+| 50% | 11.5 | LogReg | **0.9755** [0.9740, 0.9772] | 0.9995 [0.9992, 0.9997] | 0.9990 [0.9985, 0.9995] | pulmonary embolism, 11% |
+| 25% | 6.2 | XGBoost | **0.2671** [0.2625, 0.2718] | 0.9463 [0.9438, 0.9488] | **0.9346** [0.9305, 0.9383] | **atrial fibrillation, 76%** |
+| 25% | 6.2 | LogReg | **0.8558** [0.8522, 0.8597] | 0.9818 [0.9804, 0.9832] | 0.9736 [0.9712, 0.9760] | pulmonary embolism, 10% |
+
+McNemar on top-1, XGBoost vs logistic regression: at 100% the two differ on 8 cases of 33,963
+(p = 0.008, exact); at 50% they differ on 13,279, of which logistic regression is right on **13,064**
+(p < 10⁻¹⁵); at 25% on 21,124, of which logistic regression is right on **20,560**.
+
+**A second, sharper form of the same effect.** Scored on nothing at all — age and sex, with no
+evidence — XGBoost answers *atrial fibrillation with probability 1.000*. Logistic regression answers
+atrial fibrillation at 0.43, which is at least a prior rather than a certainty.
+
+**Interpretation:**
+
+1. **The two models are indistinguishable where the protocol looks, and 0.73 top-1 apart where it
+   does not.** A single headline number chose between them on 8 cases out of 33,963. At half a
+   history it would have been the wrong choice on 13,064.
+2. **XGBoost has learned how much was asked, not only what was answered.** The encoder gives a
+   default ("no") answer no column, so a short row and an unfinished interview are the same object
+   (`docs/03` §2.2). Atrial fibrillation is the condition whose DDXPlus patients answer the fewest
+   questions — a median of 9 positive codes, against 17–19 for infarction and unstable angina — so
+   "few answers" is a near-perfect predictor of it *within DDXPlus*. XGBoost reads a sparse matrix's
+   absent entries as **missing** and sends them down each split's default branch, which compounds
+   it; logistic regression, being linear in the present features, simply weakens its evidence. This
+   is risk **R-18**.
+3. **It is a safety finding, not only an accuracy one.** At 25% evidence XGBoost's must-not-miss
+   recall@3 is 0.9346 [0.9305, 0.9383] — below the 0.95 target in `docs/05` §3.2, with the interval
+   entirely below it. Logistic regression stays above it at 0.9736.
+4. **It is the concrete answer to the supervisor's question** (2026-09-20, "the selected basic ML
+   models may not be helpful in designing a robust model"). He is right that the full-evidence
+   figure means little — but the gap it hides is between two *classical* models, and it is visible
+   with no deep learning and no GPU. Any deep model must be measured here, not only at 100%.
+5. **It does not contradict EXP-004 or R-16.** At 100% evidence every figure reproduces exactly.
+   The ceiling is real; it is simply not where the interesting differences live.
+
+**Consequences:** the pipeline's real ranker will be wired to **logistic regression**, not
+XGBoost, because a hand-authored case carries 5–13 tokens — exactly the regime where XGBoost
+answers "atrial fibrillation" to everything. The approved plan said to wire XGBoost first; this
+result overrides that. R-18 opened. It is also the strongest available argument for decision
+**D-10** option (b).
+
+**Next action:** settle D-10. Fix the encoding defect behind R-18 by giving the encoder an "asked"
+channel (experiment R2 of the deep-ranker plan) and retraining both models on the same rows, which
+is the fair comparison. Any deep ranker is scored at all three levels from the start.
+
+---
+
 ### EXP-004 — B1, ML-only: logistic regression and XGBoost (validate split)
 
 | Field | Value |
@@ -648,3 +729,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
 | EXP-016 | BODHI-S enrichment: coverage and effect *(unplanned, run 2026-09-19)* | 1 | 2a: a score that does not punish enriched conditions |
+| EXP-017 | B1 under a partial history *(unplanned, run 2026-09-23)* | 1 | R-18: the models separate once the history is incomplete; evidence for D-10 (b) |

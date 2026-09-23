@@ -74,6 +74,77 @@ a limitation in [05-evaluation-protocol.md](05-evaluation-protocol.md) §8.
 
 ---
 
+### 🔴 R-18 — B1's answer depends on how much was asked, not only on what was answered
+**L 5 · I 4 · Score 20 · Owner P2 · Status: OPEN — opened 2026-09-23 from EXP-017**
+
+Measured on validate, with the models unchanged from EXP-004. Keeping each patient's initial
+evidence plus a share of the rest:
+
+| Evidence kept | XGBoost top-1 | LogReg top-1 | XGBoost must-not-miss recall@3 |
+|---|---|---|---|
+| 100% | 0.9985 | 0.9983 | 1.0000 |
+| 50% | **0.5972** | 0.9755 | 0.9969 |
+| 25% | **0.2671** | 0.8558 | **0.9346** — below the 0.95 target |
+
+At 25% evidence XGBoost answers **atrial fibrillation for 76%** of patients; given no evidence at
+all it answers atrial fibrillation with probability **1.000**.
+
+*Cause.* `EvidenceEncoder` gives a default ("no") answer no column (`docs/03` §2.2), so a question
+answered "no" and a question never asked are the same row. Atrial fibrillation is the condition
+whose DDXPlus patients answer fewest questions (median 9 positive codes, against 17–19 for
+infarction and unstable angina), so *within DDXPlus* "few answers" predicts it almost perfectly.
+XGBoost compounds this by reading a sparse matrix's absent entries as **missing** and taking each
+split's default branch. It is the defect `docs/04` §3 item 4 names explicitly: absent must not be
+read as denied.
+
+*Why it matters beyond the dataset.* Every hand-authored case is short — the golden cases carry 5 to
+13 tokens after the concept → token inversion — so this is not a hypothetical regime, it is the
+deployed one. A clinician using the prototype has a partial history by definition.
+
+*Mitigations:*
+1. **Decided 2026-09-23:** the pipeline's real ranker will be logistic regression, not
+   XGBoost (`src/ml/ranker.py`, landing with the ranker wrapper), and the choice is recorded here
+   rather than left as a preference.
+2. **Next:** give the encoder an explicit "asked" channel (one column per question), which changes
+   the feature fingerprint and needs both models retrained on identical rows — a training run, so
+   the owner chooses where (D-7). Until then no XGBoost figure on short input means anything.
+3. Score every future model — the deep ranker included — at all three evidence levels from the
+   start, never at 100% alone.
+4. It is the strongest argument for **D-10** option (b): the headline protocol cannot see this.
+
+*Trigger for review:* the "asked" channel lands, or D-10 is decided.
+
+---
+
+### 🟠 R-17 — The concept → DDXPlus-token inversion has no ground truth
+**L 4 · I 3 · Score 12 · Owner P2 · Status: OPEN — opened 2026-09-23 with `src/ml/case_tokens.py`**
+
+The ranker seam has to choose *which answer* a hand-authored concept stands for: a patient whose
+pain "radiates to the jaw or arm" answered `E_57` with one specific location, and the model has a
+column per location. No dataset of (hand-authored case → tokens) pairs exists, so these choices
+cannot be validated against anything. A wrong one — *forearm* where the discriminating answer is
+*jaw* — is silent, and downstream it looks exactly like a model error.
+
+*Mitigations in place:*
+- Every token records the concept that produced it (`CaseTokens.by_concept`), and every finding that
+  produces nothing is kept with a reason (`CaseTokens.dropped`), so a ranking can always be traced
+  back to what the model was actually shown.
+- The tests round-trip every concept through `concepts_from_evidences`, the crosswalk's
+  independently written forward direction, and fail if a chosen answer does not imply its own
+  concept back. They also fail if a new crosswalk entry has no chosen answer, or if a chosen answer
+  is one the release file does not allow.
+- The two tables (`REPRESENTATIVE`, `ORDINAL_REPRESENTATIVE`) are 17 entries, each with the French
+  meaning in a comment, and are small enough for a clinical review — which is open, for the team.
+- **Open decision A-8:** the inversion admits `Match.NARROWER` entries, which `expand_case` excludes.
+  Without them `SYM:sudden_onset`, `SYM:exertional` and `SYM:relieved_by_rest` produce nothing, and
+  those are the discriminators for embolism, pneumothorax, dissection and the anginas. Every token
+  derived that way is listed in `CaseTokens.narrower`.
+
+*Trigger for review:* the team's clinical review of the two tables, or the first time a golden case
+ranks wrongly for a reason traced to a chosen answer.
+
+---
+
 ### 🔴 R-16 — B1 reaches the ceiling on DDXPlus, so the headline comparisons cannot separate the systems
 **L 5 · I 4 · Score 20 · Owner P4 · Status: OPEN — opened 2026-09-20 from EXP-004; decision D-10 pending**
 
@@ -352,4 +423,5 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | R-12: 56 BODHI-S edges added (76 of 321 now independent of DDXPlus). EXP-016: they lower the graph-only score on DDXPlus and raise MI on GC-001. R-10: no BODHI-S text committed | — |
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
+| 1 | 2026-09-23 | **R-18 opened** (found by EXP-017, while smoke-testing the new ranker seam): B1's two models are 0.001 apart on full evidence and 0.38-0.59 top-1 apart once half the history is missing, because the encoder cannot tell a denied question from an unasked one. XGBoost falls below the 0.95 must-not-miss target at 25% evidence. **R-17 opened** with `src/ml/case_tokens.py`: the concept -> token inversion has no ground truth. R-16 unchanged: at 100% evidence every EXP-004 figure reproduces exactly | — |
 | 1 | 2026-09-20 | **R-16 opened** (found by EXP-004): B1 reaches the ceiling of DDXPlus's top-3 and must-not-miss recall@3 (both 1.000), which raises decision D-10. **R-03 confirmed** on the real train counts (rarest 10,162, 2.70×; EXP-003). R-09 cannot be tested on full-evidence DDXPlus (see R-16). R-14: the first cloud job, B0/B1, ran on a Colab T4 in about a minute. Other scores unchanged | — |

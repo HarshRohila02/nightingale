@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-20 · by Claude (1a ✅; 1c: the B0/B1 results recorded, EXP-003 and EXP-004) · **Last verified commit:** `98c746b`
+**Last updated:** 2026-09-23 · by Claude (1c: the concept → DDXPlus-token inversion, the first step of the deep-ranker plan) · **Last verified commit:** `98c746b`
 
 ---
 
@@ -15,9 +15,9 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1a — Data** ✅ 2026-09-20 (validate parquet + EXP-013 on the laptop; the train split built on Colab inside the B0/B1 job; EXP-002 confirmed on the train counts) · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1c — Baseline ML ranker** · 🔄 (feature encoding ✅; B0 and B1 trained and scored ✅, EXP-003/004; `ConditionRanker` next, on hold until the user says go) |
-| **Next action** | **On hold at the user's request (2026-09-19): they are working on other things, and the next task waits until they say go.** Then **Claude:** translate the golden cases into DDXPlus tokens, then `ConditionRanker` (XGBoost from the Colab bundle, §7) in the pipeline, with the golden cases re-checked (the W3 milestone). **The team:** decide **D-10** (§3) before the fusion work (2c): B1 already reaches the ceiling of DDXPlus's headline metrics (R-16, EXP-004). **The user, when convenient:** may the bundle move from `models/nightingale_b0_b1/` to `models/b0_b1/`, where the docs expect it? |
-| **Blocked on** | The next task ← the user's go-ahead (their request, 2026-09-19) · how the fusion is evaluated (2c) ← **D-10**, the team · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
+| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1a — Data** ✅ 2026-09-20 (validate parquet + EXP-013 on the laptop; the train split built on Colab inside the B0/B1 job; EXP-002 confirmed on the train counts) · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1c — Baseline ML ranker** · 🔄 (feature encoding ✅; B0 and B1 trained and scored ✅, EXP-003/004; `ConditionRanker` in progress: the case → token inversion ✅ 2026-09-23) |
+| **Next action** | **Claude:** phase A of the deep-ranker plan, continued — `src/ml/ranker.py` (the `ConditionRanker` wrapper and an `open_ranker()` factory that degrades like `open_graph_store()`), the three-line pipeline hook and an `ml:` config block; then the golden cases with red flags off, and the shared report helpers. **Which model it wires is now decided by evidence, not by the plan: logistic regression, not XGBoost** (R-18 below). **The team:** decide **D-10** (§3) before the fusion work (2c): B1 already reaches the ceiling of DDXPlus's headline metrics (R-16, EXP-004). **The user, when convenient:** may the bundle move from `models/nightingale_b0_b1/` to `models/b0_b1/`, where the docs expect it? |
+| **Blocked on** | The "asked" channel that R-18 needs ← a retraining run, so the user's choice of where (D-7) · how the fusion is evaluated (2c) ← **D-10**, the team · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · next milestone 🎯 W3 walking skeleton, target 2026-10-07 |
 | **Health** | 268 tests. Locally 259 pass, and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1`; with it, all 9 passed against Aura on 2026-09-19. A data-free copy gives 247 passed and 21 skipped; CI adds a throwaway Neo4j, so 8 of the live tests run there · CI green on GitHub at `68c14bd`: 255 passed, 13 skipped, the 8 live Neo4j tests without real data running against CI's container · the Colab-trained B0/B1 models load on the laptop and reproduce their validate metrics to within 3 × 10⁻¹² |
 
@@ -66,16 +66,6 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > when a session begins, the previous session was interrupted — go to §4.4.
 
 _Nothing in flight._
-
-<!-- Template — copy above the line when a task starts:
-- **Task:** <one line>
-- **Sub-phase:** <e.g. 1b>
-- **Started:** <YYYY-MM-DD HH:MM> by <Claude | P1–P4>
-- **Files expected to change:** <paths>
-- **Done so far:** <bullets — keep current as you work>
-- **Remaining:** <bullets>
-- **Safe to resume blindly?** <yes | no — verify first, because …>
--->
 
 ---
 
@@ -248,9 +238,17 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   XGBoost top-1 0.9985, top-3 1.000, must-not-miss recall@3 1.000, with logistic regression almost
   as good. That is how DDXPlus was generated, not skill (**R-16**, decision **D-10**). The laptop
   reloads the models and reproduces every metric — `98c746b`
-- [ ] `ConditionRanker` replacing `ConstantRanker`: XGBoost from the Colab bundle behind the
-  pipeline's ranker interface, after the golden cases are translated into DDXPlus tokens; then
-  re-check the golden cases. **On hold until the user says go** (their request, 2026-09-19)
+- [x] Translate hand-authored cases into DDXPlus tokens, the seam the ranker needs
+  (`src/ml/case_tokens.py`): `ConditionRanker.score` is given `SYM:*` concepts, `EvidenceEncoder`
+  needs `E_55_@_V_101`, and nothing inverted that. Two hand-curated tables choose a
+  representative answer per concept (17 entries, each with the French); `Match.NARROWER` is
+  admitted by default (**A-8**, for the team); denials are recorded but not encoded (the R-18
+  defect); every dropped finding keeps its reason. 79 tests, round-tripping every concept back
+  through `concepts_from_evidences`. **R-17 opened**: the inversion has no ground truth.
+  Smoke-testing it produced **EXP-017** and **R-18** — → pending
+- [ ] `ConditionRanker` replacing `ConstantRanker`: **logistic regression**, not XGBoost
+  (EXP-017, R-18), from the Colab bundle behind the pipeline's ranker interface; then re-check
+  the golden cases, with red flags off as well as on (the W3 milestone)
 
 **1d — Patient KG + Synthea · ⬜** · P3
 - [ ] Synthea cardiac-module generation (fixed seed)
@@ -362,6 +360,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-23 | Claude | **The ranker seam, and what it uncovered (1c).** `src/ml/case_tokens.py` turns a hand-authored case into the DDXPlus tokens a patient would have given — the inversion the crosswalk never had, and the piece every ranker needs. Smoke-testing it against the Colab bundle found something bigger: **B1's two models are indistinguishable on full evidence and far apart without it** (**EXP-017**). Keeping each patient's initial evidence plus half the rest, XGBoost's top-1 falls 0.9985 → 0.597 while logistic regression holds 0.976; at a quarter it is 0.267 against 0.856, and XGBoost answers atrial fibrillation for 76% of patients — with probability 1.000 when given no evidence at all. The encoder gives a default "no" answer no column, so it cannot tell a denied question from an unasked one, and AF is the condition whose DDXPlus patients answer fewest questions. At 25% evidence XGBoost's must-not-miss recall@3 is 0.935, **below the 0.95 target**. **R-18 opened**; the real ranker will be logistic regression, overriding the plan's "wire XGBoost first". **R-17 opened** (the inversion has no ground truth). This is also the measured answer to the supervisor's robustness point, and the strongest argument yet for **D-10** option (b) | → pending |
 | 2026-09-20 | the user + Claude | **B0 and B1 trained (EXP-003, EXP-004); 1a ✅.** The owner ran the Colab notebook at `68c14bd` on a T4 on 2026-09-19; the job itself took about a minute. Claude checked the bundle on the laptop: the models load (the feature fingerprint matches), and re-scoring validate on the CPU reproduces every metric to within 3 × 10⁻¹². **B1 is near-perfect** (XGBoost top-1 0.9985; top-3 and must-not-miss recall@3 1.000), because DDXPlus draws each patient's evidence only from their condition's list: for 91.7% of patients, no other condition's evidence set holds their positive answers. So on full-evidence DDXPlus the fusion cannot beat B1 on the headline metrics: **R-16 opened, decision D-10 raised for the team.** Every B1 error puts unstable angina (or MI) below stable angina. EXP-002 confirmed on the real train counts (rarest 10,162, 2.70×). The user asked for the next task (`ConditionRanker`) to wait until they say go | `98c746b` |
 | 2026-09-19 | Claude | **1c: the B0/B1 training job is ready for the owner's Colab run.** `src/ml/baselines.py` (B0 prevalence prior; B1 logistic regression and XGBoost, saved as JSON with the feature fingerprint), `scripts/train_baselines.py` (sparse features, early stopping on 10% of train, scored on validate with every `docs/05` metric and its interval) and `notebooks/colab_b0_b1.ipynb` (`docs/11` §4.1). Found and fixed: XGBoost reads a sparse matrix's absent entries as missing but a dense array's zeros as values, so the wrapper always hands it CSR. The whole job runs end to end in CI on a synthetic mini-release; no training on project data happened here (D-7). scikit-learn 1.9.1 and XGBoost 2.1.4 installed (approved) | `68c14bd` |
 | 2026-09-19 | Claude | **1e evaluation metrics**: `src/eval/metrics.py` implements `docs/05` §3.1–§3.3 and §6 as amended, with every ratio metric carrying a 95% bootstrap interval. The hand-computed tests caught a bug before commit: must-not-miss recall counted the top-3 hits of cases that were not must-not-miss. Open decision **A-7** (docs/02 §9): red-flag precision needs a definition of "clinically appropriate"; until then the metric is strict. Protocol slip: the write-ahead marker was written just after the first file, not before | `fafabb2` |
