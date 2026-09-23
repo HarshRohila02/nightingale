@@ -122,6 +122,10 @@ class DiagnosisPipeline:
         fused = fuse_scores(ml_scores, kg_scores, self.ml_weight, self.kg_weight)
 
         candidates = self._build_candidates(case, ml_scores, kg_scores, fused, graph_ok)
+        if "ml" not in degraded and getattr(self.ranker, "degraded", False):
+            # No usable model, so the ranker's flat scores normalise to zeros and the ranking is
+            # the graph's alone (src/ml/ranker.py). Same duck-typed check as the graph below.
+            degraded.append("ml")
         if graph_ok and getattr(self.graph, "degraded", False):
             # A fallback store serves the graph (docs/02-architecture.md §7). The results are
             # complete, but the configured backend is not the one answering.

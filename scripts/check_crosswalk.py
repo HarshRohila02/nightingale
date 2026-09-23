@@ -28,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import yaml  # noqa: E402
+from _config import load_config, open_ranker_from_config  # noqa: E402
 
 from src.conditions import BY_ID, CONDITIONS  # noqa: E402
 from src.contracts import Finding, PatientCase  # noqa: E402
@@ -41,7 +42,7 @@ from src.medical_kg.crosswalk import (  # noqa: E402
 from src.medical_kg.networkx_store import NetworkXGraphStore  # noqa: E402
 from src.pipeline import DiagnosisPipeline  # noqa: E402
 from src.reasoning.red_flags import RULES, evaluate_red_flags  # noqa: E402
-from src.stubs import ConstantRanker, EmptyRetriever, TemplateExplainer  # noqa: E402
+from src.stubs import EmptyRetriever, TemplateExplainer  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RAW = REPO_ROOT / "data" / "raw" / "ddxplus"
@@ -103,11 +104,16 @@ def red_flag_rates(records: list[tuple[str, list[str]]]) -> dict:
     return {"patients": total, "any_flag_rate": round(any_flag / total, 3), "rules": rules}
 
 
-def golden_on_real_graph(store: NetworkXGraphStore) -> list[dict]:
-    """Run each golden case, expanded through the crosswalk, on the real graph."""
+def golden_on_real_graph(store: NetworkXGraphStore, ranker: object | None = None) -> list[dict]:
+    """Run each golden case, expanded through the crosswalk, on the real graph.
+
+    ``ranker`` is the configured model (src/ml/ranker.py), or a degraded one when there is none
+    on this machine. The row records which, because a golden case passing with a degraded ranker
+    says nothing about the model.
+    """
     labels = dict(store.graph.nodes(data="label"))
     pipeline = DiagnosisPipeline(
-        ranker=ConstantRanker(),
+        ranker=ranker if ranker is not None else open_ranker_from_config(load_config()),
         graph=store,
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),

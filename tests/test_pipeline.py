@@ -195,3 +195,31 @@ def test_every_golden_case_produces_an_explanation(pipeline: DiagnosisPipeline):
         assert result.explanation is not None
         assert result.explanation.grounded, "template explanations are grounded by construction"
         assert result.explanation.text
+
+
+@pytest.mark.golden
+@pytest.mark.parametrize("golden", GOLDEN_CASES, ids=[c["id"] for c in GOLDEN_CASES])
+def test_golden_case_ranks_without_its_red_flag(golden: dict):
+    """`run` sorts by (red_flag, fused_score), so a flagged candidate wins whatever it scores.
+
+    Three of the four golden cases raise a flag, so with the flags on they cannot detect a
+    ranking regression: a ranker returning noise would still pass them. Turning the flags off
+    puts the fused ranking itself under test. This runs on the stubs, like the rest of this file;
+    tests/test_ranker.py does the same against the real graph and the real model.
+    """
+    pipeline = DiagnosisPipeline(
+        ranker=ConstantRanker(),
+        graph=InMemoryGraphStore(),
+        retriever=EmptyRetriever(),
+        explainer=TemplateExplainer(),
+        enable_red_flags=False,
+    )
+    result = pipeline.run(PatientCase(**golden["case"]))
+    assert not any(c.red_flag for c in result.candidates), "red flags are off"
+    top_k = golden["expect"].get("top_k", 3)
+    top_ids = [c.condition_id for c in result.candidates[:top_k]]
+    for required in golden["expect"].get("must_include", []):
+        assert required in top_ids, (
+            f"{golden['id']}: {required} is not in the top {top_k} on score alone, only through "
+            f"its red flag. Got {top_ids}. Fix the component, not this expectation."
+        )

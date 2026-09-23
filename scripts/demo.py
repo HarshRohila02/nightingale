@@ -1,11 +1,14 @@
 """Run a case through the pipeline and print the result.
 
 This is the walking skeleton: it exercises the full path from a patient case to a
-ranked, explained, red-flagged differential using the stub components. Replace
-stubs one at a time; this script keeps working.
+ranked, explained, red-flagged differential. The ranker is the trained model when
+configs/config.yaml's ml: block points at one that is on this machine, and degrades
+to knowledge-graph-only ranking when it does not (src/ml/ranker.py). The graph is
+still the stub; --graph is 2a's to add.
 
     python scripts/demo.py                # the anchor ACS case
     python scripts/demo.py --case GC-003  # aortic dissection (KG-only red flag)
+    python scripts/demo.py --ranker none  # force graph-only ranking
     python scripts/demo.py --list
 """
 
@@ -20,10 +23,12 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from _config import load_config, open_ranker_from_config  # noqa: E402
+
 from src.contracts import DiagnosisResult, PatientCase  # noqa: E402
+from src.ml.ranker import describe  # noqa: E402
 from src.pipeline import DiagnosisPipeline  # noqa: E402
 from src.stubs import (  # noqa: E402
-    ConstantRanker,
     EmptyRetriever,
     InMemoryGraphStore,
     TemplateExplainer,
@@ -135,6 +140,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case", default="GC-001", help="Golden case id (default: GC-001)")
     parser.add_argument("--list", action="store_true", help="List available cases")
+    parser.add_argument("--config", type=Path, default=None, help="configs/config.yaml")
+    parser.add_argument(
+        "--ranker", default=None, help="Override ml.backend: logreg | xgboost | none"
+    )
     args = parser.parse_args()
 
     cases = load_cases()
@@ -148,13 +157,19 @@ def main() -> int:
         print(f"Unknown case {args.case!r}. Available: {', '.join(cases)}", file=sys.stderr)
         return 1
 
+    config = load_config(args.config)
+    if args.ranker:
+        config.setdefault("ml", {})["backend"] = args.ranker
+    ranker = open_ranker_from_config(config)
+
     pipeline = DiagnosisPipeline(
-        ranker=ConstantRanker(),
+        ranker=ranker,
         graph=InMemoryGraphStore(),
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),
     )
     result = pipeline.run(PatientCase(**cases[args.case]["case"]))
+    print(describe(ranker))
     print(render(result))
     return 0
 

@@ -56,7 +56,7 @@ flowchart TD
 | `src/nlp` | P3 | Text → `Finding[]` with assertion status | Rank or score conditions |
 | `src/patient_kg` | P3 | `Finding[]` → patient graph | Contain medical knowledge |
 | `src/medical_kg` | P1 | Cardiac KG; scoring; reasoning paths | Know about a specific patient's ML score |
-| `src/ml` | P2 | `PatientCase` → per-condition scores | Produce explanations |
+| `src/ml` | P2 | `PatientCase` → per-condition scores; owns the concept → token inversion and the feature encoding | Produce explanations; read YAML |
 | `src/fusion` | P4 | Combine ML + KG → ranked `Candidate[]` | Re-query the graph |
 | `src/reasoning` | P1/P3 | ✓/?/✗ analysis; red-flag rules; safety checks | Call the LLM |
 | `src/rag` | P3 | Query → `Evidence[]` | Generate prose |
@@ -464,11 +464,25 @@ regardless of its rank.
 | Neo4j unavailable | Fall back to NetworkX in-memory graph | `degraded_components: ["graph_backend"]` |
 | Retrieval fails | Skip evidence; KG-only explanation | `["rag"]` |
 | LLM unavailable | Templated explanation from KG paths | `["llm"]` |
-| Model not loaded | KG-only ranking | `["ml"]` |
+| Model not loaded, or trained on other features | KG-only ranking, flat ML scores | `["ml"]` |
+| Case the feature space cannot hold (`Sex.OTHER`) | KG-only ranking | `["ml"]` |
 | Empty/invalid case | HTTP 422 with field errors | — |
 
 The UI must always render `degraded_components` — a silently degraded medical tool is a safety
 problem.
+
+*Built 2026-09-23.* `open_ranker()` (`src/ml/ranker.py`) is the same pattern for the model.
+Without the release files, without a trained model, or with a model whose feature fingerprint
+differs from the encoder's, it returns a `DegradedRanker` whose flat scores `fuse_scores`
+normalises to zeros — so the ranking is the graph's alone, and `degraded_components` says `ml`.
+`models/` and `data/` are gitignored, so a fresh clone and CI are degraded by default, which is
+correct. An unknown backend name raises instead, because that is a configuration typo rather than
+a fact about the machine.
+
+A hand-authored case reaches the model through `src/ml/case_tokens.py`, which chooses the DDXPlus
+*answer* each concept stands for; `expand_case` stops at the question, deliberately, because that
+is the level the graph works at (§5.2). The configured backend is **logistic regression, not
+XGBoost**: see EXP-017 and R-18, and `ml:` in `configs/config.yaml`.
 
 *Built 2026-09-19.* `open_graph_store()` (`src/medical_kg/neo4j_store.py`) reads the graph from
 AuraDB at start-up. When Aura is not configured, is paused, is offline or refuses the login, the
@@ -512,4 +526,5 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |
 | A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | **Accepted 2026-09-19** by the team as the working value; 2d re-checks it with EXP-008 | P3 |
 | A-6 | The weight of each likelihood band (`LIKELIHOOD_WEIGHT` in `src/medical_kg/loader.py`): rare 0.03, low 0.12, medium 0.35, high 0.65, very high 0.9, the middle of the bands under 5%, 5–19%, 20–49%, 50–79% and 80% or more. BODHI-S publishes no numeric bands; DDXPlus edges keep 1.0 (§5.1) | **Accepted 2026-09-19** by the team as the working weights; 2a re-checks them with EXP-005 | P1 |
+| A-8 | Whether the concept → DDXPlus-token inversion (`src/ml/case_tokens.py`) may use `Match.NARROWER` entries. `expand_case` excludes them soundly: a patient with the concept need not give that answer. But a strict inversion drops `SYM:sudden_onset`, `SYM:exertional` and `SYM:relieved_by_rest` entirely, and those are the discriminators for embolism, pneumothorax, dissection and the anginas — a golden case then reaches the model with nothing to separate them. Set to admit them (`include_narrower: true`), with every token so derived recorded in `CaseTokens.narrower`. The same class of judgment as A-5. **Also for the team: a clinical review of the 17 entries in `REPRESENTATIVE` / `ORDINAL_REPRESENTATIVE`** — which single DDXPlus answer stands for each concept (R-17) | 1c, now | P2 |
 | A-7 | Which true conditions make each red flag *clinically appropriate*, for red-flag precision (docs/05 §3.2: reported, not targeted). `red_flag_precision()` in `src/eval/metrics.py` counts a flag as appropriate only when it names the true condition, which undercounts: the MI flag on an unstable-angina patient is clinically reasonable (EXP-014). A mapping such as MI → {MI, unstable angina} is a clinical judgment for the team | 2d, with EXP-008 | P3 |

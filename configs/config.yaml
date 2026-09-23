@@ -46,6 +46,30 @@ graph:
   namespace: CardiacKG # the label on every node of the graph in Neo4j
   connection_timeout_seconds: 10
 
+ml:
+  # logreg | xgboost | none, for open_ranker() in src/ml/ranker.py. The app reads these
+  # keys when it builds its pipeline (1e); scripts take them as flags.
+  #
+  # logreg, NOT xgboost (EXP-017, R-18). The two are 0.0002 apart on full-evidence
+  # validate and 0.7 top-1 apart at a quarter of the history, where XGBoost answers
+  # atrial fibrillation for 76% of patients — and with probability 1.000 when given no
+  # evidence at all. The encoder gives a default "no" answer no column, so it cannot tell
+  # a denied question from an unasked one, and AF is the condition whose DDXPlus patients
+  # answer fewest questions. Every hand-authored case is short, so that is the regime the
+  # pipeline runs in. Switch to xgboost only for an experiment, and never quote its number
+  # on partial input until the encoder has an "asked" channel.
+  #
+  # none forces the degraded ranker: flat scores, which normalise to zeros. That is how a
+  # knowledge-graph-only ablation is configured, and what CI and a fresh clone get anyway,
+  # since models/ and data/ are gitignored. Results then report degraded_components: ["ml"].
+  backend: logreg
+  model_dir: models/nightingale_b0_b1
+  stem: null # a non-default file name inside model_dir
+  # Admit crosswalk entries whose DDXPlus answer is narrower than the concept (open
+  # decision A-8). Without them sudden onset, exertional pain and relief by rest reach
+  # the model as nothing at all. Every token so derived is recorded for the audit trail.
+  include_narrower: true
+
 ranking:
   # Fusion weights are tuned on VALIDATION ONLY and must be reported in the
   # write-up — they are a result, not a hidden hyperparameter.
