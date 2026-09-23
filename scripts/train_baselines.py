@@ -38,23 +38,13 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.ddxplus import INPUT_COLUMNS  # noqa: E402
-from src.eval.metrics import (  # noqa: E402
-    CaseOutcome,
-    bootstrap_ratio,
-    evaluate,
-    expected_calibration_error,
-    f1_by_condition,
-    mcnemar,
-    reliability_table,
-    top_k,
-)
+from src.eval.metrics import mcnemar  # noqa: E402
+from src.eval.reports import score, top3_hits  # noqa: E402
 from src.ml.baselines import (  # noqa: E402
-    LABELS,
     LogisticBaseline,
     PrevalencePrior,
     XGBoostBaseline,
     label_index,
-    outcomes,
 )
 from src.ml.features import EvidenceEncoder  # noqa: E402
 
@@ -69,38 +59,6 @@ def load_split(interim: Path, split: str) -> pd.DataFrame:
             f"Missing {path}. Build it first: python scripts/build_ddxplus_chestpain.py --split {split}"
         )
     return pd.read_parquet(path, columns=COLUMNS)
-
-
-def score(
-    name: str, frame: pd.DataFrame, probabilities: np.ndarray, *, resamples: int, seed: int
-) -> tuple[dict[str, Any], list[CaseOutcome]]:
-    """Every metric for one model on validate, ready for metrics.json."""
-    cases = outcomes(frame, probabilities)
-    per_condition = {}
-    for label in LABELS:
-        subset = [o for o in cases if o.true_condition == label]
-        ratio = top_k(subset, 3)
-        low, high = bootstrap_ratio(ratio, resamples=resamples, seed=seed)
-        per_condition[label] = {"cases": len(subset), "top3": ratio.value, "ci": [low, high]}
-    report = {
-        "model": name,
-        "metrics": [
-            {"name": r.name, "value": r.value, "ci": [r.ci_low, r.ci_high], "cases": r.cases}
-            for r in evaluate(cases, resamples=resamples, seed=seed)
-        ],
-        "f1": f1_by_condition(cases),
-        "top3_by_condition": per_condition,
-        "calibration_of_raw_scores": {
-            "note": "uncalibrated model outputs; calibration is 2b (docs/05 §3.3)",
-            "ece": expected_calibration_error(cases),
-            "reliability": reliability_table(cases),
-        },
-    }
-    return report, cases
-
-
-def top3_hits(cases: list[CaseOutcome]) -> list[bool]:
-    return [o.true_condition in o.ranking[:3] for o in cases]
 
 
 def _run(command: list[str]) -> str | None:

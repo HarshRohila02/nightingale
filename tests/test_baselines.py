@@ -305,3 +305,61 @@ def test_the_training_job_explains_a_missing_parquet(tmp_path):
     result = _run(str(TRAINER), "--interim", str(tmp_path), "--raw-dir", str(tmp_path))
     assert result.returncode != 0
     assert "build_ddxplus_chestpain.py --split train" in result.stdout + result.stderr
+
+
+# --------------------------------------------------------------------------- #
+# The shared report helpers (src/eval/reports.py)
+# --------------------------------------------------------------------------- #
+
+
+def _two_case_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "case_id": ["c1", "c2"],
+            "label_condition_id": [LABELS[0], LABELS[1]],
+            "label_differential": [
+                [{"pathology": "x", "condition_id": LABELS[0], "probability": 0.8}],
+                [{"pathology": "y", "condition_id": LABELS[1], "probability": 0.9}],
+            ],
+        }
+    )
+
+
+def test_the_report_carries_an_interval_for_every_ratio_metric():
+    """docs/05 §8: no figure without its interval, whichever job produced it."""
+    from src.eval.reports import score
+
+    frame = _two_case_frame()
+    probabilities = np.full((2, len(LABELS)), 1 / len(LABELS))
+    report, cases = score("test model", frame, probabilities, resamples=20)
+    assert report["model"] == "test model"
+    assert report["metrics"] and all(len(m["ci"]) == 2 for m in report["metrics"])
+    assert set(report["top3_by_condition"]) == set(LABELS)
+    assert len(cases) == 2
+
+
+def test_the_report_records_what_the_job_asks_it_to():
+    """An evidence level or a training seed has to travel with the numbers it describes."""
+    from src.eval.reports import score
+
+    report, _ = score(
+        "d1",
+        _two_case_frame(),
+        np.full((2, len(LABELS)), 1 / len(LABELS)),
+        resamples=20,
+        extra={"evidence_level": 0.25, "train_seed": 43},
+    )
+    assert report["evidence_level"] == 0.25 and report["train_seed"] == 43
+
+
+def test_comparing_two_systems_scored_on_different_cases_is_refused():
+    """McNemar is paired: comparing different patient sets is the quiet mistake to prevent."""
+    from src.eval.reports import compare, score
+
+    frame = _two_case_frame()
+    flat = np.full((2, len(LABELS)), 1 / len(LABELS))
+    _, both = score("a", frame, flat, resamples=20)
+    _, one = score("b", frame.head(1), flat[:1], resamples=20)
+    assert compare("a", both, "b", both)["metric"] == "top-3"
+    with pytest.raises(ValueError, match="paired test"):
+        compare("a", both, "b", one)
