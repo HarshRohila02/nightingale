@@ -63,6 +63,164 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-005 — B2, the graph alone: replacing the overlap score (2a) (validate split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-23 to 2026-09-24 |
+| Author | P1 (run by Claude) |
+| Config / ablation | B2, knowledge graph only: the full graph (DDXPlus + hand-authored + BODHI-S), no ML ranker, no red flags |
+| Split used | validation |
+| Git commit | `57275cf` plus the 2a change, committed with this entry |
+| MLflow run | — (scoring only; nothing is trained) |
+| Seed | 42 (bootstrap) |
+
+**Question:** Which scoring rule should replace the weighted overlap `(matched − 0.5 × denied) /
+total`, whose three defects were already measured? (1) It ranks stable angina above must-not-miss
+unstable angina even with rest pain present — stable 1.00, unstable 0.875 (`docs/02` §5.1,
+limitation 2). (2) By graph score alone GC-001's infarction ranked fifth (EXP-014), and in the
+fused pipeline with red flags off it ranked fourth: a strict xfail in `tests/test_ranker.py`. (3)
+It divides by everything a condition might show, so BODHI-S's enrichment *lowered* MI's
+graph-only top-1 from 0.856 to 0.602 (EXP-016).
+
+**Setup.** One fixed measurement harness judged every candidate. Before any candidate was built it
+was run on the overlap score and reproduced every published figure exactly (EXP-015's top-1 0.880
+and unstable angina 0.213, EXP-016's 0.856 and MI 0.602, the 1.00 vs 0.875 inversion, GC-001's
+infarction fourth with red flags off). It measures, in order of weight: the four golden cases on
+graph score alone; the angina case (stable angina's full evidence set plus rest pain, `DDX:E_14`);
+GC-004 with and without its three denials; the golden cases through the real pipeline (real graph,
+the configured logistic-regression ranker) with red flags off and on; self-retrieval; and, last,
+graph-only ranking of the 33,963 validate patients on three graphs (DDXPlus only, + hand-authored,
++ BODHI-S), which is circular (R-12). **Rule: no parameter may be chosen by its validate
+performance.** Constants are fixed a priori, candidates are developed against the hand-written
+checks only, and each is run on validate once.
+
+*What actually ran.* The plan was five independent designs (naive-Bayes, likelihood ratio,
+Personalised PageRank, an IDF-weighted linear score, a free design) judged through clinical,
+methodological and engineering lenses. That run was cut off by a usage limit after one design,
+PageRank, was complete; its designer's own development runs are not recorded. The comparison was
+then finished directly, on the same harness, by crossing two families (PageRank, naive-Bayes) with
+two versions of the crosswalk closure described below. An independent review of the chosen
+design was cut off by the end of the session, but its probe scripts had already found one real
+defect, which is fixed in the shipped score (point 4 below).
+
+**What every design has to solve: the graph speaks two vocabularies.** DDXPlus links its
+conditions to *questions* (`DDX:E_55`, "where is your pain?"); the hand-authored dissection and
+the BODHI-S facts link to *answers* (`SYM:chest_pain`). Any likelihood-type score reads a missing
+edge as "this condition never shows this finding", so every chest-pain patient's `SYM:chest_pain`
+would count against the nine un-enriched conditions and hand the case to aortic dissection, the one
+condition that names it. The overlap score never had this problem only because it never counted
+anything against a condition. The PageRank designer found this and closed the graph under the
+crosswalk: answers imply their question (sound, as `expand_case` infers for a case), and a
+condition that asks a question but whose answer the graph does not state gets that answer at the
+mean of the conditions that do state it. The closure, not the scoring family, turned out to do most
+of the work: all four candidates score identically on validate.
+
+**Results — the hand-written checks and the diagnostic validate figures.** Validate columns are
+expected top-1 with ties broken at random, the harness's measure (* circular, R-12):
+
+| Score | Graph alone: GC-001 MI / 002 PE / 003 AD / 004 GERD | Unstable vs stable angina + rest pain | Denial lowers MI (GC-004) | Fused, flags off: GC-001 / 003 | Fused, flags on | Validate top-1: ddxplus / +hand / all* | MI top-1 +hand → all* | UA top-1* |
+|---|---|---|---|---|---|---|---|---|
+| Overlap (before 2a) | 3 / 1 / 1 / 2 | 0.875 vs 1.000 **wrong** | yes | 4 / 3 **fail** | all ok | 0.8796 / 0.8795 / 0.8559 | 0.856 → 0.602 | 0.213 |
+| PageRank, max closure | 1 / 1 / 1 / 1 | 0.070 vs 0.065 | yes | 2 / 3 | all ok | 0.9575 / 0.9575 / 0.9559 | 0.992 → 1.000 | 0.987 |
+| Naive-Bayes, max closure | 1 / 1 / 2 / 1 | −2.21 vs −6.71 | yes | 2 / 5 | all ok | 0.9575 / 0.9575 / 0.9558 | 0.992 → 1.000 | 0.987 |
+| PageRank, noisy-OR closure | 1 / 1 / 1 / 1 | 0.070 vs 0.065 | yes | 2 / 3 | all ok | 0.9575 / 0.9575 / 0.9559 | 0.992 → 1.000 | 0.987 |
+| Naive-Bayes, noisy-OR closure | 1 / 1 / 1 / 1 | −2.21 vs −6.71 | yes | 2 / 4 | all ok | 0.9575 / 0.9575 / 0.9558 | 0.992 → 1.000 | 0.987 |
+| **The same, each fact counted once (shipped)** | **1 / 1 / 1 / 1** | **−2.21 vs −6.71** | yes | **2 / 3** | all ok | 0.9575 / 0.9575 / 0.9558 | 0.992 → 1.000 | 0.987 |
+
+**B2, the shipped score, through `src/eval/metrics.py`** (the protocol's deterministic tie rule,
+registry order; 95% bootstrap intervals, 1,000 resamples; full graph; * circular, R-12):
+
+| Metric | Overlap (before 2a) | Naive-Bayes (2a) |
+|---|---|---|
+| Top-1 | 0.8583 [0.8549, 0.8620] | **0.9234** [0.9206, 0.9259] |
+| Top-3 | 0.9957 [0.9950, 0.9964] | **0.9996** [0.9994, 0.9998] |
+| MRR | 0.9246 [0.9227, 0.9266] | **0.9613** [0.9598, 0.9625] |
+| Precision@3 (`D_in`) | 0.6224 [0.6199, 0.6253] | **0.7559** [0.7532, 0.7588] |
+| Recall@5 (`D_in`) | 0.4959 [0.4933, 0.4983] | **0.5698** [0.5675, 0.5719] |
+| Recall@5, full D | 0.2853 [0.2835, 0.2872] | 0.3333 [0.3315, 0.3353] |
+| Must-not-miss recall@3 | 0.9926 [0.9914, 0.9940] | **0.9998** [0.9995, 1.0000] |
+| Dangerous false-negative rate | 0.0006 [0.0002, 0.0010] | 0.0000 [0.0000, 0.0000] |
+
+McNemar, overlap against naive-Bayes: top-1 2,468 vs 4,678 discordant (p ≈ 10⁻¹⁵⁰); top-3 12 vs
+145 (p ≈ 10⁻²⁶). Per condition, the new top-1 is 1.000 for seven conditions, 0.997 unstable angina,
+0.997 pneumothorax, 0.979 myocarditis, 0.972 Boerhaave, 0.949 pericarditis — and **0.000 for
+stable angina** (below).
+
+*Sensitivity of the two constants, on the hand-written checks only* (never on validate), for the
+shipped score: every verdict in the table holds at all twelve settings of LEAK 0.001, 0.003, 0.01,
+0.03 and CAP 0.8, 0.9, 0.95. The one movement anywhere is GC-003's dissection going from 3rd to
+4th in the fused ranking with flags off at LEAK 0.03 and CAP 0.95, still inside its top 5. (Before
+each fact was counted once, LEAK 0.03 had moved GC-003 to 2nd by graph alone and 7th fused: some
+of that fragility was the double counting.)
+
+**Interpretation:**
+
+1. **All three defects are fixed.** Unstable angina outranks stable angina when rest pain is
+   present, by a likelihood ratio of about 90 (a margin of 4.5 nats, the cost of one unexplained
+   finding); and when rest pain is *denied*, stable angina outranks unstable. GC-001's infarction
+   is first by graph score alone and second in the fused ranking with red flags off, so the strict
+   xfail is now a plain assertion. BODHI-S no longer lowers MI (0.992 → 1.000).
+2. **Naive-Bayes over PageRank, although the plan named PageRank.** With the same closure the two
+   rank validate identically, and once each fact is counted once they agree on every hand-written
+   ranking too. Naive-Bayes holds the angina decision by a factor of about 90 where PageRank holds
+   it by 8%, and each finding's contribution is exactly its log-probability, where PageRank's
+   includes mass diffused through findings the condition has no edge to. An explanation that
+   credits a condition with a finding it cannot explain would be wrong. It is also twice as fast.
+3. **The noisy-OR correction was found on a golden case, and is disclosed as such.** With the
+   closure's first version, an implied question took the weight of the strongest answer implying
+   it: a lower bound, used as an estimate. That under-credited aortic dissection on the generic
+   questions every chest-pain patient answers ("pain anywhere?", "where?"), and on GC-003 the
+   infarction edged past it by graph score. The standard estimate of giving *some* answer is
+   `1 − Π(1 − p)`. It is a structural correction of an identified bias, not a constant tuned on
+   validate — it changes no validate figure beyond the fourth decimal — but it was found by
+   inspecting GC-003, so GC-003 is not independent evidence for it.
+4. **Each fact is counted once — a defect found in review.** A case expanded through the
+   crosswalk holds an answer together with the questions it implies: *chest pain* arrives with
+   "where is your pain?" and "pain anywhere?". Naive-Bayes counted all three, so chest pain alone
+   cost a condition unable to explain it `3 × log(LEAK)`. The answer entails its questions, so
+   the likelihood of all three is the answer's alone; the shipped score drops a question whenever
+   an answer entailing it is a usable concept, and does the same for a denial that entails a
+   narrower yes/no denial (GC-004 denies both exertional pain and `DDX:E_218`). The question is
+   kept when the answer is not a graph node: `SYM:diaphoresis` lives on `DDX:E_50`. The review
+   agent found it on GC-003, where atrial fibrillation's inflated penalty, as the floor of the
+   pipeline's min-max rescaling, compressed every other graph score. It changes no validate top-1
+   or top-3 figure; Precision@3 rises from 0.749 to 0.756 and Recall@5 from 0.565 to 0.570, and
+   GC-003's dissection moves from 4th to 3rd in the fused ranking with flags off.
+5. **The graph alone cannot recognise stable angina, and says so.** Stable angina's evidence set
+   sits inside unstable angina's, and DDXPlus records no negatives, so nothing in a stable-angina
+   patient's record denies rest pain. The two tie; the protocol's tie rule then puts unstable
+   angina first, every time: 0.000 top-1 for stable angina, 0.997 for unstable. That is the safe
+   direction, and it is the honest answer — "not mentioned" is not "denied", the rule EXP-017
+   forced on the ML model too — but it means that telling the two apart is the ML ranker's job in
+   the fusion, never the graph's.
+6. **Limitation 1 of the KG card is now explicit rather than hidden.** An answer that only one
+   condition states — tearing pain, for dissection — is imputed at that condition's own value for
+   every other condition that asks about pain character, so it cannot separate them. The graph
+   does not know how rarely pericarditis tears, and the score must not invent it; the red-flag rule
+   and answer-level enrichment are where that knowledge belongs. The same mechanism costs
+   pericarditis 0.024 of top-1 when BODHI-S is added: where BODHI-S gives it a *below-average*
+   likelihood for an answer, that is correctly read as mild evidence against it.
+7. **For 2c: with red flags off, a condition the ML ranker cannot score can never rank above a
+   condition it can.** DDXPlus has no aortic dissection, so its ML score is 0, and after min-max
+   normalisation its fused score is at most the graph weight, 0.5, however strongly the graph
+   supports it; conditions with ML support can reach 1.0. On GC-003 the graph ranks dissection
+   first by a wide margin, and the fused ranking puts it 3rd. Red flags rank it first today. Min-max
+   also lets one extreme score set the floor for everyone (point 4). The fusion design (2c) must
+   decide how a knowledge-graph-only condition is fused, and whether log-likelihoods are rescaled
+   by min-max at all.
+8. **Everything on validate is circular** (R-12), more visibly than before: the graph alone now
+   reaches top-1 0.92, must-not-miss recall@3 1.000, and Precision@3 0.756 against B1 XGBoost's
+   0.764. That is DDXPlus recognising its own definitions, not skill. The hand-written golden cases
+   are the evidence that counts, and on them every expectation now holds by graph score alone.
+
+**Next action:** 2c must settle how a knowledge-graph-only condition is fused (point 7). Answer-level
+knowledge for the conditions DDXPlus describes only by questions — starting with the pain
+characters — would remove limitation 1 where it matters most. When `docs/05` gains a
+reduced-evidence condition (D-10), B2 is scored at every level with the same code.
+
+---
+
 ### EXP-017 — B1 under a partial history: where the two baselines stop agreeing (validate split)
 
 | Field | Value |
@@ -111,8 +269,10 @@ atrial fibrillation at 0.43, which is at least a prior rather than a certainty.
 
 **Interpretation:**
 
-1. **The two models are indistinguishable where the protocol looks, and 0.73 top-1 apart where it
-   does not.** A single headline number chose between them on 8 cases out of 33,963. At half a
+1. **The two models are indistinguishable where the protocol looks, and ~~0.73~~ 0.59 top-1 apart
+   where it does not** (at 25% evidence; 0.38 at 50%. *Corrected 2026-09-24: 0.8558 − 0.2671 =
+   0.589, from this entry's own table; 0.73 was an arithmetic slip, found by the amendment-3
+   drafter.*) A single headline number chose between them on 8 cases out of 33,963. At half a
    history it would have been the wrong choice on 13,064.
 2. **XGBoost has learned how much was asked, not only what was answered.** The encoder gives a
    default ("no") answer no column, so a short row and an unfinished interview are the same object
@@ -717,7 +877,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-002 | Class balance across 13 conditions | 1 | R-03 — which conditions are learnable |
 | EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Run 2026-09-19 on Colab by the owner; logged* |
 | EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
-| EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? |
+| EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
 | EXP-006 | A0 fusion, weight sweep | 2 | Fusion weights (validation only) |
 | EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning |

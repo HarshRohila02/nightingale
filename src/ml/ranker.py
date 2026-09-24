@@ -15,7 +15,7 @@ collapses to zeros — so the ranking is then provably the knowledge graph's alo
 are always degraded**, which is the correct default and is exactly what the tests assert.
 
 **The backend is logistic regression, not XGBoost** (EXP-017, R-18). The two are 0.0002 apart on
-full-evidence validate, and 0.7 top-1 apart at a quarter of the history: XGBoost answers atrial
+full-evidence validate, and 0.59 top-1 apart at a quarter of the history: XGBoost answers atrial
 fibrillation for 76% of patients there, and with probability 1.000 when given no evidence at all,
 because the encoder gives a default "no" answer no column and AF is the condition whose DDXPlus
 patients answer fewest questions. Every hand-authored case is short — the golden cases carry 5 to 13

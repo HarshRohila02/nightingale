@@ -325,10 +325,12 @@ def test_the_pipeline_reports_a_fallback_but_still_uses_it():
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),
     )
-    result = pipeline.run(_case(present=["DDX:E_66", "SYM:calf_pain"]))  # PE's findings only
+    case = _case(present=["DDX:E_66", "SYM:calf_pain"])  # PE's findings only
+    result = pipeline.run(case)
     assert "graph_backend" in result.degraded_components
     top = result.candidates[0]
-    assert top.condition_id == PE and top.kg_score > 0
+    graph_scores = store.score_by_connectivity(case)
+    assert top.condition_id == PE == max(graph_scores, key=graph_scores.get), "the graph ranked it"
     assert top.paths and top.assessments
 
 

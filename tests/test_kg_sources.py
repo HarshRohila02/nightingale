@@ -109,7 +109,8 @@ class TestMergeGraphs:
         case = PatientCase(
             case_id="T", age=50, sex="M", findings=[{"concept_id": "DDX:E_50", "label": "x"}]
         )
-        assert store.score_by_connectivity(case)[PE] == pytest.approx(1.0), "counted once"
+        single = NetworkXGraphStore(ddx).score_by_connectivity(case)
+        assert store.score_by_connectivity(case) == single, "counted once, at the strongest"
 
     def test_an_edge_takes_the_relation_of_its_target_node(self):
         """DDXPlus calls E_110 (immobilisation) a risk factor; a source that lists it as a
@@ -194,8 +195,8 @@ class TestHandAuthored:
     def test_gc003_ranks_aortic_dissection_on_the_graph_alone(self):
         """Before these edges, aortic dissection scored 0 and only its red flag surfaced it."""
         store = NetworkXGraphStore(merge_graphs(load_hand_authored_kg()))
-        case = expand_case(PatientCase(**GOLDEN["GC-003"]["case"]))
-        assert store.score_by_connectivity(case)[AORTIC_DISSECTION] > 0.4
+        scores = store.score_by_connectivity(expand_case(PatientCase(**GOLDEN["GC-003"]["case"])))
+        assert max(scores, key=scores.get) == AORTIC_DISSECTION
 
 
 @needs_kg

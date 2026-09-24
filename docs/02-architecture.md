@@ -284,23 +284,39 @@ shared-source contribution from its independent ones (R-12, docs/05 §8.7), and
    pain from burning pain, or pleuritic from pressure-like. That has to come from BODHI-S
    enrichment, the crosswalk and red-flag rules, or the ML ranker. The hand-authored edges, and
    BODHI-S's, are answer-level: they point at concepts such as `SYM:pain_character_tearing`.
+   *Updated 2026-09-24 (2a, EXP-005):* the score closes the graph under the crosswalk, so the two
+   levels meet. A condition that asks a question but whose answer the graph does not state gets
+   that answer at the mean of the conditions that do. So an answer only one condition states —
+   tearing pain, for dissection — cannot separate it from the others that ask about pain
+   character. The limitation is now explicit, and tested, rather than hidden.
 2. **Stable angina's evidence set sits inside unstable angina's.** All 20 of stable angina's
    questions are among unstable angina's 24. Only `E_13` (worsening with less effort), `E_14` (pain
    at rest), `E_50` (sweating) and `E_148` (nausea) separate them. Overlap is normalised by set
    size, so a patient with stable angina's full picture **plus rest pain** scores **stable 1.00,
    unstable 0.875**. The benign condition ranks above the must-not-miss one, although rest pain is
-   the defining sign of unstable angina. On validate patients, the graph alone ranks unstable
-   angina first for only **21%** of those who have it (EXP-015). **2a must fix this**, for
-   example by weighting
-   discriminating questions or by PPR. **2d must add a red-flag rule for unstable angina**, which is
-   one of three must-not-miss conditions still without one (with myocarditis and acute pulmonary
-   edema).
+   the defining sign of unstable angina. On validate patients, the graph alone ranked unstable
+   angina first for only **21%** of those who have it (EXP-015). ~~**2a must fix this**~~
+   **Fixed 2026-09-24 (2a, EXP-005):** rest pain is unexplained by stable angina and now counts
+   against it, so unstable angina leads by a likelihood ratio of about 90; denied rest pain puts
+   stable angina first. Without either — rest pain simply not mentioned — the two **tie**, and
+   the tie rule puts unstable angina first: on validate, stable angina is first for 0.000 of its
+   patients by graph score alone, unstable for 0.997. Telling a stable picture from an unstable
+   one when nothing is denied is the ML ranker's job. **2d must add a red-flag rule for unstable
+   angina**, which is one of three must-not-miss conditions still without one (with myocarditis
+   and acute pulmonary edema).
 3. **Node labels are DDXPlus's machine-translated questions**, such as "Have you had significantly
    increased sweating?". There is no `body_system` yet. The crosswalk does not relabel nodes: a
    finding it derives carries its question's label, so a reasoning path names the question that
    matched (§5.2). Clinical labels for the 84 questions are still to do.
-4. **Scoring is the stub's weighted overlap**, kept so that the store is a drop-in replacement. The
-   real scoring is 2a (EXP-005).
+4. ~~**Scoring is the stub's weighted overlap**~~ *Replaced 2026-09-24 (2a, EXP-005):* scoring is a
+   **naive-Bayes log-likelihood** (`src/medical_kg/scoring.py`). A present finding counts for the
+   conditions that explain it and against those that cannot (LEAK 0.01); a denied finding counts
+   against the conditions expecting it; a finding the case does not mention counts for nothing.
+   DDXPlus's weight 1.0 ("listed, frequency unknown") is capped at 0.9. The scores are
+   log-likelihoods (at most 0, comparable only within a case), which the pipeline rescales before
+   fusion. `NetworkXGraphStore.contributions()` gives each finding's exact part in a score, and
+   reasoning paths cite only edges the graph holds, never implied or imputed ones. Personalised
+   PageRank, which this card first named, was measured against it and not chosen.
 5. ~~**The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
    crosswalk first.~~ *Updated 2026-09-18:* a hand-authored case now runs on this graph after
    `expand_case` (§5.2). The golden cases pass on it, but **only because red flags rank first**: by
@@ -340,16 +356,20 @@ tuberculosis, and a vague "myocardial problem". Two have zero strength. The modu
 BODHI-S text: facts are keyed by BODHI-S's ids (licence: docs/03 §1.2).
 
 **The graph alone on DDXPlus patients** (EXP-015, validate, ties broken at random): **top-1
-0.880, top-3 0.998.** That is circularity, not skill (R-12). DDXPlus generated these patients
+0.880, top-3 0.998** under the overlap score; **0.956 and 0.999** under 2a's naive-Bayes score
+(EXP-005; top-1 0.923 [0.921, 0.926] under the protocol's tie rule). That is circularity, not
+skill (R-12). DDXPlus generated these patients
 from the same condition definitions the graph is built from, so the graph recognises them almost
 perfectly. On the hand-written golden cases, the same graph puts GC-001's MI fifth. Adding aortic
 dissection moved top-1 by 0.001. It takes a top-3 place for 3.1% of patients and first place for
 none; no validate patient has it. **BODHI-S lowers top-1 to 0.856, and MI's to 0.60** (EXP-016).
 The overlap score divides by all of a condition's evidence, so the four enriched conditions are
 penalised for knowing more, including findings DDXPlus never records, such as hypotension. On
-GC-001, BODHI-S lifts MI from fifth to third. **2a must change the score before the enriched graph
-ranks anything**; until then, `only_sources()` can leave BODHI-S out of scoring and keep it for
-explanations.
+GC-001, BODHI-S lifts MI from fifth to third. ~~**2a must change the score before the enriched graph
+ranks anything**~~ *Done 2026-09-24 (EXP-005):* under the naive-Bayes score, BODHI-S no longer
+lowers MI (0.992 → 1.000) and the golden cases all rank first by graph score alone. It still costs
+pericarditis 0.024 of top-1, correctly: where BODHI-S gives it a below-average likelihood for an
+answer, that is mild evidence against it.
 
 **Backend status (2026-09-19):** both ✅. The graph is on **AuraDB Free** (decision D-6) under
 the label `CardiacKG`, written and checked by `scripts/load_neo4j.py`

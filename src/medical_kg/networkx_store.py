@@ -6,8 +6,11 @@ from :mod:`src.medical_kg.loader`. It is the fallback for when Neo4j is unavaila
 serves the locally built graph from here and marks the store ``degraded``. The Neo4j store
 itself subclasses this one and scores the graph it reads from Neo4j the same way.
 
-Scoring is the same weighted overlap as the stub ``InMemoryGraphStore``, which makes this
-a drop-in replacement. Personalised PageRank arrives in 2a (EXP-005).
+Scoring is a naive-Bayes log-likelihood over the graph closed under the crosswalk
+(:mod:`src.medical_kg.scoring`, task 2a, EXP-005). It replaced the stub's weighted overlap,
+which ranked stable angina above unstable angina with rest pain present and punished enriched
+conditions for knowing more. Personalised PageRank, which the plan first named, was measured
+against it and not chosen (EXP-005).
 
 The graph is a ``MultiDiGraph`` keyed by edge source, so the same fact from DDXPlus and
 from BODHI-S can sit side by side without one overwriting the other (R-12). The store is
@@ -24,11 +27,9 @@ from src.contracts import Assertion, Finding, PatientCase, ReasoningPath
 from src.ddxplus import CONCEPT_PREFIX, code_sort_key
 from src.medical_kg.cardiac_kg import build_cardiac_kg
 from src.medical_kg.loader import KnowledgeGraph, NodeType, Relation
+from src.medical_kg.scoring import Contribution, LikelihoodScorer
 
 __all__ = ["NetworkXGraphStore"]
-
-DENIED_PENALTY = 0.5
-"""Same as InMemoryGraphStore: an explicitly denied expected finding costs half a match."""
 
 
 class NetworkXGraphStore:
@@ -63,6 +64,10 @@ class NetworkXGraphStore:
             n for n, data in graph.nodes(data=True) if data["type"] == NodeType.CONDITION.value
         ]
         self._expected = {cid: self._collect_expected(cid) for cid in self._conditions}
+        self._scorer = LikelihoodScorer(
+            {c: {k: w for k, (_, w) in self._expected[c].items()} for c in self._conditions},
+            (n for n, data in graph.nodes(data=True) if data["type"] != NodeType.CONDITION.value),
+        )
 
     @classmethod
     def from_files(
@@ -89,28 +94,31 @@ class NetworkXGraphStore:
     # -- GraphStore -------------------------------------------------------- #
 
     def score_by_connectivity(self, case: PatientCase) -> dict[str, float]:
-        """Weighted overlap between the case and each condition's expected findings.
+        """{condition id: naive-Bayes log-likelihood of the case}. Higher = more likely.
 
-        ``(matched - 0.5 * denied) / total``, clamped at 0, where each term is a sum of
-        edge weights. A condition with no edges scores 0; that is aortic dissection until
-        its edges are hand-authored.
+        Present findings count for the conditions that explain them and against those that
+        cannot; denied findings count against the conditions that expect them; findings the case
+        does not mention count for nothing. See :mod:`src.medical_kg.scoring`, which also says
+        how the graph is closed under the crosswalk first. The values are log-likelihoods, so they
+        are at most 0 and compare only within one case; the pipeline rescales them before fusion.
         """
-        present = case.present_concept_ids()
-        absent = case.absent_concept_ids()
-        scores: dict[str, float] = {}
-        for condition_id in self._conditions:
-            expected = self._expected[condition_id]
-            total = sum(weight for _, weight in expected.values())
-            if total <= 0:
-                scores[condition_id] = 0.0
-                continue
-            matched = sum(w for cid, (_, w) in expected.items() if cid in present)
-            denied = sum(w for cid, (_, w) in expected.items() if cid in absent)
-            scores[condition_id] = max(0.0, (matched - DENIED_PENALTY * denied) / total)
-        return scores
+        return self._scorer.score(case)
+
+    def contributions(self, case: PatientCase, condition_id: str) -> list[Contribution]:
+        """Each asserted finding's part in one condition's score, largest first.
+
+        Not part of the ``GraphStore`` Protocol: an explainer that wants the arithmetic behind a
+        ranking asks for it here. The parts sum to the condition's score exactly.
+        """
+        return self._scorer.contributions(case, condition_id)
 
     def paths_for(self, case: PatientCase, condition_id: str) -> list[ReasoningPath]:
-        """One path per present finding or risk factor that the condition expects."""
+        """One path per present finding or risk factor that the condition expects.
+
+        Only edges the graph holds make a path, never the ones the scorer implies or imputes
+        (:class:`~src.medical_kg.scoring.EdgeKind`): an explanation must not present an inference
+        as a fact the graph states.
+        """
         expected = self._expected.get(condition_id, {})
         if not expected:
             return []

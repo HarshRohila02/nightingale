@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-23 · by Claude (1c ✅ — the ranker seam, and the shared report helpers; phase A of the deep-ranker plan is done) · **Last verified commit:** `a75b270`
+**Last updated:** 2026-09-24 · by Claude (2a ✅ — the graph's overlap score replaced by naive-Bayes over the crosswalk-closed graph, EXP-005) · **Last verified commit:** `a75b270`
 
 ---
 
@@ -15,19 +15,26 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1a — Data** ✅ 2026-09-20 (validate parquet + EXP-013 on the laptop; the train split built on Colab inside the B0/B1 job; EXP-002 confirmed on the train counts) · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1c — Baseline ML ranker** ✅ 2026-09-23 (feature encoding ✅; B0 and B1 trained and scored ✅, EXP-003/004; `ConditionRanker` ✅ — the case → token inversion, then the model behind the pipeline, with the golden cases re-checked without their red flags) |
-| **Next action** | **Phase A of the deep-ranker plan is complete, and the deep work now waits on people, not code.** **The team (gate 1, before anything deep is trained):** **D-10** · **D-11** · **A-8** and the clinical review of the 17 representative answers · `docs/05` amendment 3. **The user:** GC-005, a proposed fifth golden case (a benign-looking ischaemic presentation raising no red flag, since only GC-004 currently depends on the ranker); whether the bundle moves from `models/nightingale_b0_b1/` to `models/b0_b1/`; and where the "asked"-channel retrain runs when R-18 is fixed (D-7). **Claude, once the gate opens:** phase B — `src/ml/evidence_masks.py`, `src/ml/deep.py`, `scripts/train_deep.py` and the Colab notebook. |
+| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1a — Data** ✅ 2026-09-20 (validate parquet + EXP-013 on the laptop; the train split built on Colab inside the B0/B1 job; EXP-002 confirmed on the train counts) · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1c — Baseline ML ranker** ✅ 2026-09-23 (feature encoding ✅; B0 and B1 trained and scored ✅, EXP-003/004; `ConditionRanker` ✅ — the case → token inversion, then the model behind the pipeline, with the golden cases re-checked without their red flags) · **2a — KG scoring** *(Phase 2, pulled forward)* ✅ 2026-09-24 (naive-Bayes over the crosswalk-closed graph; every golden case first by graph score alone, EXP-005) |
+| **Next action** | **Claude, now:** put the `docs/05` amendment 3 proposal in the repo for the team (`docs/proposals/`), with `scripts/check_mask_rules.py` reproducing its mask figures. **Then, unblocked:** the real graph behind `scripts/demo.py` (the last piece of the W3 milestone); the encoder's "asked" channel for R-18 (code and tests; the retrain needs the user's choice of where, D-7); 2d, the red-flag rules (R-15); 1e, the FastAPI endpoints. **The team (gate 1, before anything deep is trained):** approve amendment 3 (settles D-10) · **D-11** · **A-8** and the clinical review of the 17 representative answers. **The user:** GC-005; whether the bundle moves to `models/b0_b1/`; where the R-18 retrain runs (D-7). |
 | **Blocked on** | The "asked" channel that R-18 needs ← a retraining run, so the user's choice of where (D-7) · how the fusion is evaluated (2c) ← **D-10**, the team · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
-| **Schedule** | Week 1 of 8–10 · ahead of plan · 🎯 **W3 walking skeleton substantially reached 2026-09-23** (target 2026-10-07): a case is ranked by the real model and the real graph end to end, `scripts/demo.py` prints it, and `scripts/check_crosswalk.py` runs all four golden cases on the real graph. What is left of it is the real graph behind the demo itself, which is 2a's |
-| **Health** | 373 tests (268 + 79 for the inversion + 19 for the ranker + 4 golden cases re-run with red flags off + 3 for the shared report helpers), one strict xfail (GC-001 without its red flag, below). Locally 363 pass, 9 skip (the live Neo4j tests, unless `NEO4J_TEST_DOTENV=1`; with it all 9 passed against Aura on 2026-09-19) and 1 xfails · **CI green on GitHub at `4698759`**: 346 passed, 27 skipped — CI has neither `data/` nor `models/`, so the ranker is degraded there and every data-gated test skips, which is the behaviour those tests assert · the Colab-trained B0/B1 models load on the laptop and reproduce their validate metrics to within 3 × 10⁻¹² |
+| **Schedule** | Week 1 of 8–10 · ahead of plan · 🎯 **W3 walking skeleton substantially reached 2026-09-23** (target 2026-10-07): a case is ranked by the real model and the real graph end to end, `scripts/demo.py` prints it, and `scripts/check_crosswalk.py` runs all four golden cases on the real graph. What is left of it is the real graph behind `scripts/demo.py`, which still builds the stub graph: a small task now that 2a has replaced the graph score |
+| **Health** | 401 tests (373 + 27 for the graph score + 1 property test; GC-001's strict xfail is now a plain assertion). Locally 392 pass and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1` (with it all 9 passed against Aura on 2026-09-19) · **CI green on GitHub at `a75b270`**: 346 passed, 27 skipped (CI has no `data/` or `models/`) · the Colab-trained B0/B1 models reproduce their validate metrics to within 3 × 10⁻¹² |
 
-**Handoff note for the next session:** Nothing is in flight. **Sub-phase 1c is complete and phase A
+**Handoff note for the next session:** **2a is done (EXP-005):** the graph score is a naive-Bayes
+log-likelihood over the graph closed under the crosswalk (`src/medical_kg/scoring.py`). Every
+golden case ranks first by graph score alone, unstable angina beats stable when rest pain is
+present, and BODHI-S no longer punishes MI. Two things it cannot do, by design: tell stable
+from unstable angina when nothing is denied (they tie, and unstable wins the tie), and use an
+answer only one condition states (tearing pain) to separate conditions. With red flags off a
+knowledge-graph-only condition (dissection) can never outrank one the ML ranker scores: 2c's
+decision. **Sub-phase 1c is complete and phase A
 of the deep-ranker plan is done** (`cb8ddc6`, `3436d0b`, `4698759`): a hand-authored case now
 reaches a real model through `src/ml/case_tokens.py` and `src/ml/ranker.py`, and the pipeline
 degrades to graph-only ranking, reporting `ml`, whenever the release files or the model are
 absent — which is CI's ordinary state. **Nothing deep may be trained until the team settles D-10,
 D-11, A-8 and `docs/05` amendment 3** (§3). **The single most important new fact is EXP-017 /
-R-18:** B1's two models are 0.0002 apart on full evidence and 0.7 top-1 apart at a quarter of the
+R-18:** B1's two models are 0.0002 apart on full evidence and ~~0.7~~ 0.59 top-1 apart at a quarter of the
 history, because the encoder cannot tell a denied question from an unasked one. XGBoost answers
 atrial fibrillation for 76% of patients there, and falls below the 0.95 must-not-miss target, so
 **the configured ranker is logistic regression** and no XGBoost figure on short input means
@@ -43,19 +50,19 @@ is on AuraDB (label `CardiacKG`); `scripts/load_neo4j.py` refreshes it, and `ope
 falls back to NetworkX, reporting `graph_backend`, when Aura is paused. The KG now has three
 sources:
 DDXPlus, the hand-authored aortic dissection and BODHI-S. **The graph alone ranks DDXPlus
-patients 88% top-1, and that is circularity (EXP-015, R-12)**, never a result to report on its
-own. BODHI-S lowers it to 86%, and MI to 60%, because the overlap score punishes enriched
-conditions (EXP-016): 2a must replace the score. The chest-pain parquet is on the laptop for
+patients 92% top-1 (2a), and that is circularity (EXP-005, R-12)**, never a result to report on
+its own; ~~BODHI-S lowers it to 86%, and MI to 60%~~ 2a fixed the overlap score's punishment of
+enriched conditions (EXP-016). The chest-pain parquet is on the laptop for
 **validate** only; train was built on Colab (`docs/03` §2.1). EXP-013 found two things everyone must know. First, **a listed
 DDXPlus token can mean "no"** (`E_204_@_V_10` = "did not travel"), so use `positive_codes()`.
 Second, **the ground-truth differentials are open-world**, so `Recall@5` as first written tops
 out at 0.434; **D-8** (decided 2026-09-19) makes the headline count only D's in-scope part. The KG now loads into a NetworkX store, but read its card (`docs/02` §5.1) before
-trusting a score. It links conditions to *questions*, not answers, and ranks **stable angina above
-must-not-miss unstable angina** even when rest pain is present; 2a must fix this. **The crosswalk
+trusting a score. It links conditions to *questions*, not answers; ~~and ranks **stable angina above
+must-not-miss unstable angina** even when rest pain is present~~ 2a fixed that (EXP-005). **The crosswalk
 (`docs/02` §5.2) now links the `SYM:*`/`RF:*` concepts to DDXPlus.** It showed (EXP-014) that the
 **red-flag rules over-fire** on DDXPlus: 59% of patients get a flag, and the aortic-dissection rule
-flags 50% (R-15, a 2d fix). The golden cases pass on the real graph only because red flags rank
-first. Before touching the knowledge graph,
+flags 50% (R-15, a 2d fix). ~~The golden cases pass on the real graph only because red flags rank
+first.~~ Since 2a they pass by graph score alone too. Before touching the knowledge graph,
 read `docs/10-spike-r01-crosswalk.md` — the KG is built from DDXPlus `release_conditions.json`,
 **not** BODHI-S, which creates circularity risk R-12. EXP-002 added two things every result must
 respect: the system is **closed-world** (R-13 — only 13 conditions exist for it), and DDXPlus
@@ -74,7 +81,22 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-_Nothing in flight._
+**Task (2026-09-24):** put the `docs/05` amendment 3 proposal in the repo for the team, as
+`docs/proposals/05-amendment-3.md`, with `scripts/check_mask_rules.py` reproducing its mask
+figures, and point D-10's row at it. `docs/05` itself is **not** edited: the team approves first.
+
+**Done so far:** 2a committed (see §8). The draft was written by an agent before the spend limit
+hit; its adversarial critique never ran. Claude has read it in full, verified its numbers against
+EXP-004/EXP-017, confirmed from git that the 25%/50% levels were proposed (D-10, `98c746b`,
+2026-09-20) before EXP-017 scored anything at them (`cb8ddc6`, 2026-09-23), and written
+`scripts/check_mask_rules.py`, which reproduces every figure in the draft's mask table exactly.
+
+**Remaining:** revise the draft (the disclosure sentence above; EXP-005 now among the known
+results; the corrected 0.59 gap; the reproducible script); add it to `docs/README.md`; update
+this file; commit and push.
+
+**If interrupted:** the draft is `scratchpad/amendment3/draft.md` in the 2026-09-23 session's
+scratchpad; nothing of this task is in the repository until its commit.
 
 ---
 
@@ -85,7 +107,7 @@ _Nothing in flight._
 | **D-5** | Which LLM, and pulling it (`ollama pull llama3.1:8b`, ~4.9 GB) | llama3.1:8b · qwen2.5:7b-instruct · reuse the installed `qwen2.5-coder:7b` | **llama3.1:8b**, a general instruct model (the coder model is tuned for code, not clinical prose). **Deferred to Phase 3** (Week 6). Under D-7 and D-9, a laptop test runs only after the user's yes (`docs/11` §3, which uses the installed `qwen2.5-coder:7b`, so no download), and batch runs pull the model on the chosen cloud runtime | Phase 3 explainer |
 | **D-10** | How to evaluate the fusion now that B1 reaches the ceiling of DDXPlus's headline metrics (EXP-004, R-16). On full-evidence validate, B1 already scores 1.000 on top-3 and on must-not-miss recall@3, so H1 and H2 cannot be supported there, and `docs/05` §7's *Target* is out of reach | (a) keep the protocol and explain the ceiling in the report · (b) **amend `docs/05`: add a reduced-evidence condition**: each patient keeps their initial evidence plus a fixed random share of the rest (say 25% and 50%), the masks drawn once with seed 42, and every system is scored on full and reduced evidence · (c) add a small independent set of clinical vignettes written by the team, like the golden cases · (b) with (c) | **(b)**, plus (c) if time allows. A partial history is the realistic case, the metrics get room again, and the masks and levels can be fixed before any fusion result is seen, so the amendment stays pre-registered. Training the ranker on masked evidence is a new training run, so where it runs is asked first (D-7) | The fusion evaluation (2c, EXP-006) and the Phase 4 ablation (EXP-012): decide before 2c starts |
 
-| **D-11** | Whether the deep model becomes the **primary** ranker, as the supervisor suggested (2026-09-20) | (a) ratify: a deep ranker replaces B1 as primary, measured against it at every evidence level · (b) keep B1 primary and add the deep model as one more baseline · (c) neither | **(a)**, with the honest caveat now measured: on *full-evidence* DDXPlus no model can beat B1 (R-16), so the deep model will tie there and the report must say so. The place it can win is the partial-history regime, where the two classical models already differ by 0.7 top-1 (EXP-017, R-18). The owner has chosen this direction; the row is here so the team ratifies it | Phase B of the deep-ranker plan. **Nothing deep is trained before this and D-10 are settled** |
+| **D-11** | Whether the deep model becomes the **primary** ranker, as the supervisor suggested (2026-09-20) | (a) ratify: a deep ranker replaces B1 as primary, measured against it at every evidence level · (b) keep B1 primary and add the deep model as one more baseline · (c) neither | **(a)**, with the honest caveat now measured: on *full-evidence* DDXPlus no model can beat B1 (R-16), so the deep model will tie there and the report must say so. The place it can win is the partial-history regime, where the two classical models already differ by ~~0.7~~ 0.59 top-1 at 25% evidence (0.38 at 50%; corrected 2026-09-24) (EXP-017, R-18). The owner has chosen this direction; the row is here so the team ratifies it | Phase B of the deep-ranker plan. **Nothing deep is trained before this and D-10 are settled** |
 | **A-8** | Whether the concept → token inversion may use `Match.NARROWER` crosswalk entries, and the clinical review of the 17 representative answers (docs/02 §9, R-17) | admit them (current setting) · exclude them | **Admit.** Excluding them drops sudden onset, exertional pain and relief by rest, so a golden case reaches the model with nothing to separate embolism, pneumothorax, dissection and the anginas. Every token so derived is recorded | Nothing today; it changes what the model sees |
 
 When the user decides, move the row to §6 with the date, and record it in §8.
@@ -162,7 +184,7 @@ changes — update this table when they do.
 |---|---|---|---|
 | 0 — Preparation & documentation | 1 | 2026-09-23 | ✅ 2026-09-17 · env items → 1.0 |
 | 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 ✅ · 1a ✅ · 1b ✅ · 1c ✅ · 1d, 1e to go |
-| 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | ⬜ |
+| 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | 🔄 2a ✅ (pulled forward) |
 | 3 — Evidence & explanation | 6–7 | 2026-11-04 | ⬜ |
 | 4 — Evaluation, ablations & write-up | 8–9 | 2026-11-18 | ⬜ |
 | Buffer | 10 | 2026-11-25 | ⬜ |
@@ -287,9 +309,17 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
 - [x] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1). Also top-1/3/5, MRR, per-condition F1, must-not-miss recall@3, the dangerous false-negative rate, red-flag sensitivity against the true condition (amendment 2) and precision, ECE, Brier and the reliability table, a 95% bootstrap interval for every ratio metric (1,000 resamples, seed 42; 3.6 s for 11 metrics on 34k cases), and McNemar's test. 25 tests with hand-computed answers. Open decision **A-7** added (what makes a red flag "appropriate") — `fafabb2`
 - [ ] Re-verify golden cases against real components — **fix the component, not the expectation**
 
-### Phase 2 — Reasoning, Fusion & Prototype · ⬜
+### Phase 2 — Reasoning, Fusion & Prototype · 🔄
 **Exit criteria:** 🎯 **W5 milestone** — working prototype in the UI, tagged `v0.1-prototype`, demo video recorded.
-- **2a** · P1 — KG scoring (overlap → Personalised PageRank) + reasoning paths · EXP-005.
+- **2a** · P1 — KG scoring ~~(overlap → Personalised PageRank)~~ + reasoning paths · EXP-005.
+  ✅ **2026-09-24: naive-Bayes over the graph closed under the crosswalk**
+  (`src/medical_kg/scoring.py`; PageRank was measured and not chosen). Every golden case
+  first by graph score alone; unstable above stable angina with rest pain present, stable
+  above unstable with it denied; BODHI-S no longer lowers MI; each fact counted once (a
+  defect found in review). Reasoning paths cite only edges the graph holds, and
+  `contributions()` gives each finding's exact part in a score. 27 tests; GC-001's strict
+  xfail promoted. B2 on validate (circular): top-1 0.923, Precision@3 0.756 — → pending
+  *(The task as first written, kept for the record:)*
   **Must fix:** the current overlap ranks stable angina above must-not-miss unstable angina even with
   rest pain present (`docs/02` §5.1, limitation 2). Add that case as a regression test once fixed.
   **Also (EXP-014):** by graph score alone, GC-001's MI ranks **fifth**, because overlap is divided by
@@ -302,7 +332,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green.
   likelihood-ratio scoring over the likelihood bands, or PPR); until then `only_sources()` can
   keep BODHI-S out of scoring
 - **2b** · P2 — Calibration (Platt vs isotonic) + SHAP · EXP-007. B1's raw scores already have ECE 0.0001 on validate (EXP-004), so calibration matters mainly for fused and reduced-evidence scores (D-10)
-- **2c** · P4 — Fusion layer, ✓/?/✗ analysis, weight sweep on validation only · EXP-006. **Decide D-10 first** (R-16): on full-evidence DDXPlus, B1 leaves no room on top-3 or must-not-miss recall
+- **2c** · P4 — Fusion layer, ✓/?/✗ analysis, weight sweep on validation only · EXP-006. **Decide D-10 first** (R-16): on full-evidence DDXPlus, B1 leaves no room on top-3 or must-not-miss recall. **Also decide (EXP-005 point 7):** how a knowledge-graph-only condition is fused — with red flags off, dissection's ML score is 0, so after min-max its fused score is at most the graph weight and GC-003 ranks it 3rd although the graph ranks it 1st; and whether log-likelihood graph scores should be rescaled by min-max at all, since one extreme score sets everyone's floor
 - **2d** · P3 — Red-flag rules on real concepts + safety layer v1 · EXP-008. Three
   must-not-miss conditions have **no rule yet**: unstable angina, myocarditis, acute pulmonary edema.
   **R-15 (EXP-014):** the aortic-dissection rule flags 50% of validate patients, because back
@@ -387,6 +417,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-24 | the user + Claude | **2a ✅ (EXP-005): the graph's overlap score replaced.** The user asked to start the recommended work. A fixed harness, validated by reproducing EXP-015/016 exactly, judged every candidate. The planned five-design panel died at the user's spend limit after one design (PageRank) finished, so the comparison was done directly: PageRank and naive-Bayes, each on two versions of a crosswalk closure the PageRank designer found necessary (the graph mixes question-level and answer-level edges). **Chosen: naive-Bayes**, equal on validate and on every golden ranking, far more robust on the angina case, and exactly decomposable into per-finding contributions. Constants fixed a priori and stable across LEAK 0.001–0.03 and CAP 0.8–0.95 on the hand-written checks; no parameter chosen on validate. A review agent, cut off when the session ended, had already found one real defect: an answer and the questions it implies were counted separately, up to three times; fixed (each fact counted once). B2 on validate (circular, R-12): top-1 0.923, Precision@3 0.756 near B1's 0.764; stable angina is never first, since with nothing denied it ties with unstable angina. **Correction:** EXP-017's gap between the two B1 models at 25% evidence is **0.59** top-1 (0.38 at 50%), not the 0.7 / 0.73 written on 2026-09-23 and repeated in the config and the ranker's docstring; struck through and fixed. The amendment-3 drafter caught it | → pending |
 | 2026-09-23 | Claude | **`src/eval/reports.py`, and phase A of the deep-ranker plan is done (1c ✅).** The scoring helpers moved out of `scripts/train_baselines.py` so the deep job cannot quietly produce an incomparable `metrics.json`; `compare()` refuses an unpaired McNemar. The deep work is now gated on the team: **D-10**, **D-11**, **A-8** with the clinical review of the 17 representative answers, and `docs/05` amendment 3. *Protocol slip: the §2 write-ahead marker for this task was written after the code, not before (§4.2); the same slip as 2026-09-19* | `4698759` |
 | 2026-09-23 | Claude | **The real model ranks behind the pipeline (1c) — the W3 walking skeleton.** `src/ml/ranker.py`: `ModelRanker` over anything with `labels` and `predict_proba`, and an `open_ranker()` that degrades exactly as `open_graph_store()` does. A degraded ranker returns *flat* scores rather than none, so the fused ranking provably equals a graph-only one, which a test asserts by equality. Three lines in the pipeline report `ml`; `configs/config.yaml` grew an `ml:` block, and the two scripts a `--config` flag. Then the golden cases were re-run **with the red flags off**, which is the first time their *ranking* has ever been tested: three of the four are flagged, and the pipeline sorts flagged candidates first, so until now a ranker returning noise would have passed them. All four pass on the stubs; on the real graph and model GC-002/003/004 pass and **GC-001's infarction ranks 4th**, behind Boerhaave and pericarditis, because the graph's overlap score divides by each condition's evidence-set size (EXP-014, a 2a fix). That is recorded as a strict xfail so it fails the day 2a repairs it. **A-8** opened (docs/02 §9) and **D-11** raised for the team | `3436d0b` |
 | 2026-09-23 | Claude | **The ranker seam, and what it uncovered (1c).** `src/ml/case_tokens.py` turns a hand-authored case into the DDXPlus tokens a patient would have given — the inversion the crosswalk never had, and the piece every ranker needs. Smoke-testing it against the Colab bundle found something bigger: **B1's two models are indistinguishable on full evidence and far apart without it** (**EXP-017**). Keeping each patient's initial evidence plus half the rest, XGBoost's top-1 falls 0.9985 → 0.597 while logistic regression holds 0.976; at a quarter it is 0.267 against 0.856, and XGBoost answers atrial fibrillation for 76% of patients — with probability 1.000 when given no evidence at all. The encoder gives a default "no" answer no column, so it cannot tell a denied question from an unasked one, and AF is the condition whose DDXPlus patients answer fewest questions. At 25% evidence XGBoost's must-not-miss recall@3 is 0.935, **below the 0.95 target**. **R-18 opened**; the real ranker will be logistic regression, overriding the plan's "wire XGBoost first". **R-17 opened** (the inversion has no ground truth). This is also the measured answer to the supervisor's robustness point, and the strongest argument yet for **D-10** option (b) | `cb8ddc6` |

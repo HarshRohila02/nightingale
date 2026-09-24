@@ -240,12 +240,16 @@ def rank_without_flags(case: PatientCase, graph, ranker) -> list[str]:
 
 @needs_real_data
 @pytest.mark.golden
-@pytest.mark.parametrize("golden", GOLDEN_CASES[1:], ids=[c["id"] for c in GOLDEN_CASES[1:]])
+@pytest.mark.parametrize("golden", GOLDEN_CASES, ids=[c["id"] for c in GOLDEN_CASES])
 def test_the_real_components_rank_a_golden_case_without_its_red_flag(golden, real_graph):
     """`pipeline.run` sorts by (red_flag, fused_score), so a flagged candidate wins whatever it
     scores. Three of the four golden cases are flagged, so with the flags on they cannot detect a
     ranking regression at all. This turns them off and puts the ranking itself under test, on the
     real graph and the real model.
+
+    GC-001 was a strict xfail here until 2a: its infarction ranked 4th, behind Boerhaave and
+    pericarditis, because the overlap score divided by each condition's evidence-set size
+    (EXP-014). The naive-Bayes score puts it 2nd (EXP-005), so it is a plain assertion now.
     """
     ranker = open_ranker(
         model_dir=REAL_MODELS, evidences_path=REAL_EVIDENCES, conditions_path=REAL_CONDITIONS
@@ -257,21 +261,3 @@ def test_the_real_components_rank_a_golden_case_without_its_red_flag(golden, rea
             f"{golden['id']}: {required} is ranked {ranking.index(required) + 1} of "
             f"{len(ranking)} without its red flag. Fix the component, not this expectation."
         )
-
-
-@needs_real_data
-@pytest.mark.golden
-@pytest.mark.xfail(
-    strict=True,
-    reason="GC-001's infarction ranks 4th without its red flag: the graph's overlap score is "
-    "divided by the size of each condition's evidence set, so Boerhaave and pericarditis outrank "
-    "it (EXP-014), and the model prefers unstable angina (EXP-004). 2a replaces the graph score "
-    "and adds this exact case as a regression test; this xfail is strict, so it fails loudly the "
-    "day 2a fixes it and must then be promoted to a plain assertion.",
-)
-def test_the_real_components_rank_gc001_without_its_red_flag(real_graph):
-    ranker = open_ranker(
-        model_dir=REAL_MODELS, evidences_path=REAL_EVIDENCES, conditions_path=REAL_CONDITIONS
-    )
-    ranking = rank_without_flags(PatientCase(**GOLDEN_CASES[0]["case"]), real_graph, ranker)
-    assert "COND:nstemi_stemi" in ranking[:3]

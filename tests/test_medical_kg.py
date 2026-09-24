@@ -8,6 +8,7 @@ data/ is absent (as it is in CI, because data/ is never committed).
 from __future__ import annotations
 
 import json
+import math
 import subprocess
 import sys
 from collections import Counter
@@ -17,7 +18,7 @@ import networkx as nx
 import pytest
 
 from src.conditions import CONDITIONS, trainable_ids
-from src.contracts import DISCLAIMER, EvidenceRole, GraphStore, PatientCase
+from src.contracts import DISCLAIMER, Assertion, EvidenceRole, Finding, GraphStore, PatientCase
 from src.medical_kg.loader import (
     EdgeSource,
     KGEdge,
@@ -28,6 +29,7 @@ from src.medical_kg.loader import (
     load_ddxplus_kg,
 )
 from src.medical_kg.networkx_store import NetworkXGraphStore
+from src.medical_kg.scoring import CAP, LEAK
 from src.pipeline import DiagnosisPipeline
 from src.stubs import ConstantRanker, EmptyRetriever, TemplateExplainer
 
@@ -170,22 +172,36 @@ class TestNetworkXGraphStore:
     def test_implements_the_graph_store_protocol(self, store):
         assert isinstance(store, GraphStore)
 
-    def test_scores_every_condition_by_weighted_overlap(self, store):
+    def test_scores_every_condition_by_how_well_it_explains_the_case(self, store):
+        """Naive-Bayes (src/medical_kg/scoring.py): PE explains both findings, GERD one, and a
+        condition with no edges neither. An unexplained finding costs log(LEAK)."""
         scores = store.score_by_connectivity(_case(present=["DDX:E_53", "DDX:E_66"]))
         assert set(scores) == {c.id for c in CONDITIONS}
-        assert scores[PE] == pytest.approx(2 / 4)
-        assert scores[GERD] == pytest.approx(1 / 4)
-        assert scores["COND:aortic_dissection"] == 0.0, "DDXPlus alone has no aortic dissection"
+        assert scores[PE] == pytest.approx(2 * math.log(CAP))
+        assert scores[GERD] == pytest.approx(math.log(CAP) + math.log(LEAK))
+        dissection = scores["COND:aortic_dissection"]
+        assert dissection == pytest.approx(2 * math.log(LEAK)), "DDXPlus has no aortic dissection"
+        assert scores[PE] > scores[GERD] > dissection
 
     def test_risk_factors_count_towards_the_score(self, store):
         scores = store.score_by_connectivity(_case(present=["DDX:E_53"], risk_factors=["DDX:E_2"]))
-        assert scores[PE] == pytest.approx(2 / 4)
+        assert scores[PE] == pytest.approx(2 * math.log(CAP)), "PE lists the risk factor"
+        assert scores[PE] > scores[GERD], "GERD does not, so it is unexplained there"
 
-    def test_denied_findings_count_against(self, store):
-        scores = store.score_by_connectivity(_case(present=["DDX:E_53"], absent=["DDX:E_66"]))
-        assert scores[PE] == pytest.approx((1 - 0.5) / 4)
+    def test_denied_findings_count_against_only_the_conditions_expecting_them(self, store):
+        without = store.score_by_connectivity(_case(present=["DDX:E_53"]))
+        denied = store.score_by_connectivity(_case(present=["DDX:E_53"], absent=["DDX:E_66"]))
+        assert denied[PE] == pytest.approx(without[PE] + math.log(1 - CAP)), "PE expects E_66"
+        assert denied[GERD] == without[GERD], "denying what GERD never shows says nothing"
         only_denied = store.score_by_connectivity(_case(absent=["DDX:E_53"]))
-        assert only_denied[PE] == 0.0, "clamped at zero"
+        assert only_denied[PE] < only_denied["COND:aortic_dissection"] == 0.0
+
+    def test_a_finding_the_case_does_not_assert_counts_for_nothing(self, store):
+        """Unknown is not denied (EXP-016, EXP-017): silence must not move any condition."""
+        base = _case(present=["DDX:E_53"])
+        silent = Finding(concept_id="DDX:E_66", label="x", assertion=Assertion.UNKNOWN)
+        unknown = base.model_copy(update={"findings": [*base.findings, silent]})
+        assert store.score_by_connectivity(unknown) == store.score_by_connectivity(base)
 
     def test_paths_link_present_findings_and_risk_factors(self, store):
         case = _case(
@@ -225,7 +241,7 @@ class TestNetworkXGraphStore:
         store = NetworkXGraphStore(KnowledgeGraph(nodes=nodes, edges=edges))
         assert store.graph.number_of_edges(PE, "DDX:E_53") == 2
         scores = store.score_by_connectivity(_case(present=["DDX:E_53"]))
-        assert scores[PE] == pytest.approx(1.0 / 2.0)
+        assert scores[PE] == pytest.approx(math.log(CAP)), "once, at the strongest weight"
 
 
 def test_drop_in_replacement_for_the_stub_in_the_pipeline(store):

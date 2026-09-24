@@ -445,10 +445,12 @@ def test_the_pipeline_scores_a_hand_authored_case_on_the_ddxplus_graph(small_gra
 
     assert pipeline.run(raw).candidates[0].kg_score == 0.0, "SYM ids alone never meet DDX ids"
 
-    result = pipeline.run(expand_case(raw, labels))
+    expanded = expand_case(raw, labels)
+    result = pipeline.run(expanded)
     pe = next(c for c in result.candidates if c.condition_id == PE)
     assert result.candidates[0].condition_id == PE
-    assert pe.kg_score == pytest.approx(3 / 5)
+    graph_scores = small_graph.score_by_connectivity(expanded)
+    assert max(graph_scores, key=graph_scores.get) == PE, "the graph itself ranks PE first"
     assert {a.finding_id for a in pe.assessments if a.role is EvidenceRole.SUPPORTING} == {
         "DDX:E_66",
         "DDX:E_110",

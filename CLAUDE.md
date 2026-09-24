@@ -70,19 +70,32 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   new `SYM:*` / `RF:*` id needs a crosswalk entry, and a test enforces it;
   `canonical_concept_id()` decides which graph node it lives on.
 - **The red-flag rules over-fire on DDXPlus** (EXP-014, R-15). 59% of validate patients get a flag,
-  and the aortic-dissection rule flags 50%, because back radiation alone fires it. The golden cases
-  pass on the real graph only because flagged candidates rank first: by graph score alone, GC-001's
-  MI ranks fifth. Neither result shows the system working.
-- **The KG knows questions, not answers** (`docs/02` §5.1). Stable angina's evidence set also sits
-  entirely inside unstable angina's. So with rest pain present, overlap scoring still ranks stable
-  angina (1.00) above must-not-miss unstable angina (0.875). 2a must fix this; until then, don't
-  trust a KG-only ranking of the anginas. (DDXPlus's edges are question-level; the hand-authored
-  edges, and BODHI-S's, are answer-level and weighted by likelihood bands, open decision A-6.)
-- **On DDXPlus patients the graph alone scores 88% top-1, and that is circularity** (EXP-015,
+  and the aortic-dissection rule flags 50%, because back radiation alone fires it. The pipeline
+  sorts flagged candidates first, so a golden case with a flag cannot detect a ranking regression:
+  test the ranking with red flags off too (`tests/test_ranker.py`). Under the old overlap score
+  GC-001's MI ranked fifth by graph score; under 2a's every golden case ranks first (EXP-005).
+- **The KG knows questions, not answers** (`docs/02` §5.1). DDXPlus's edges are question-level;
+  the hand-authored edges, and BODHI-S's, are answer-level and weighted by likelihood bands (A-6).
+  **The graph score is a naive-Bayes log-likelihood over the graph closed under the crosswalk**
+  (`src/medical_kg/scoring.py`, 2a, EXP-005): answers imply their questions, and a condition that
+  asks a question without the graph stating its answer gets that answer at the mean of those that
+  do. Without the closure, every chest-pain patient's `SYM:chest_pain` would go to aortic
+  dissection, the one condition naming it. The price: an answer only one condition states
+  (tearing, for dissection) cannot discriminate. Scores are log-likelihoods, at most 0.
+- **Not mentioned is not denied, in the graph too** (EXP-005). A finding the case does not mention
+  counts for nothing; a denied one counts against the conditions expecting it. Stable angina's
+  evidence sits inside unstable angina's, so rest pain now puts unstable first and denied rest pain
+  puts stable first, but with neither they **tie**, and the tie rule puts unstable first: the graph
+  alone ranks stable angina first for 0.000 of its validate patients. The ML ranker separates them.
+- **On DDXPlus patients the graph alone scores 92% top-1, and that is circularity** (EXP-005,
   R-12): DDXPlus generated them from the definitions the graph is built from. Never report a KG
-  number on DDXPlus data without saying so. Unstable angina is first for only 21% of its own.
-  BODHI-S lowers the figure to 86%, and MI's to 60% (EXP-016): the overlap score punishes the four
-  conditions BODHI-S enriches. 2a must replace the score before the enriched graph ranks anything.
+  number on DDXPlus data without saying so. Its Precision@3 (0.756) nearly matches B1's, with no
+  training. The old overlap score scored 88% and punished the conditions BODHI-S enriches (MI 0.60,
+  EXP-016); 2a fixed that (MI 1.000). The golden cases are the evidence that counts.
+- **With red flags off, a condition the ML ranker cannot score can never outrank one it can**
+  (EXP-005): dissection's ML score is 0, so after min-max its fused score is at most the graph's
+  weight. GC-003's dissection is first by graph score and 3rd fused. How to fuse a
+  knowledge-graph-only condition is 2c's decision; red flags rank it first today.
 - **BODHI-S is CC-BY-NC: never commit its text.** `src/medical_kg/bodhi_s.py` keys facts by
   BODHI-S's ids, with paraphrased notes, and the KG card prints counts only.
 - The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced

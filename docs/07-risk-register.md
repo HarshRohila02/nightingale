@@ -68,6 +68,12 @@ caveat. The independent BODHI-S edges lower the graph-only score on DDXPlus pati
 0.856; MI 0.60, EXP-016) while lifting GC-001's MI from fifth to third: circularity rewards
 DDXPlus's own knowledge, so independent knowledge looks worse on DDXPlus data.
 
+*Updated 2026-09-24 (EXP-005, 2a).* The overlap score has been replaced, and the circularity is
+now starker: the graph alone reaches top-1 **0.923** (protocol tie rule), must-not-miss recall@3
+**1.000** and Precision@3 **0.756** on validate — close to B1 XGBoost's 0.764, with no training at
+all. The independent BODHI-S edges no longer lower MI (0.992 → 1.000). None of this is skill: the
+golden cases, on which every expectation now holds by graph score alone, remain the evidence.
+
 *Expected honest finding:* the KG earns its place on **safety and explainability**, not raw
 accuracy. Predicting this in advance is better science than discovering it at the end. Recorded as
 a limitation in [05-evaluation-protocol.md](05-evaluation-protocol.md) §8.
@@ -423,5 +429,6 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | R-12: 56 BODHI-S edges added (76 of 321 now independent of DDXPlus). EXP-016: they lower the graph-only score on DDXPlus and raise MI on GC-001. R-10: no BODHI-S text committed | — |
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
+| 1 | 2026-09-24 | **R-12 updated** (EXP-005, 2a): the naive-Bayes score lifts the graph's circular top-1 on validate to 0.923 and its Precision@3 to 0.756, near B1's 0.764, so any KG figure on DDXPlus is now even less informative about skill. The overlap score's three defects — the angina inversion, GC-001's infarction, BODHI-S punishing MI — are fixed. Other scores unchanged | — |
 | 1 | 2026-09-23 | **R-18 opened** (found by EXP-017, while smoke-testing the new ranker seam): B1's two models are 0.001 apart on full evidence and 0.38-0.59 top-1 apart once half the history is missing, because the encoder cannot tell a denied question from an unasked one. XGBoost falls below the 0.95 must-not-miss target at 25% evidence. **R-17 opened** with `src/ml/case_tokens.py`: the concept -> token inversion has no ground truth. R-16 unchanged: at 100% evidence every EXP-004 figure reproduces exactly | — |
 | 1 | 2026-09-20 | **R-16 opened** (found by EXP-004): B1 reaches the ceiling of DDXPlus's top-3 and must-not-miss recall@3 (both 1.000), which raises decision D-10. **R-03 confirmed** on the real train counts (rarest 10,162, 2.70×; EXP-003). R-09 cannot be tested on full-evidence DDXPlus (see R-16). R-14: the first cloud job, B0/B1, ran on a Colab T4 in about a minute. Other scores unchanged | — |

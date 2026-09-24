@@ -51,7 +51,7 @@ ml:
   # keys when it builds its pipeline (1e); scripts take them as flags.
   #
   # logreg, NOT xgboost (EXP-017, R-18). The two are 0.0002 apart on full-evidence
-  # validate and 0.7 top-1 apart at a quarter of the history, where XGBoost answers
+  # validate and 0.59 top-1 apart at a quarter of the history, where XGBoost answers
   # atrial fibrillation for 76% of patients — and with probability 1.000 when given no
   # evidence at all. The encoder gives a default "no" answer no column, so it cannot tell
   # a denied question from an unasked one, and AF is the condition whose DDXPlus patients
