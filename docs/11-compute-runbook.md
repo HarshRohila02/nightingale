@@ -235,7 +235,9 @@ patient data, and ours (~100 nodes) is far below the free tier's limits.
 A free instance pauses after 72 hours without use; resume it with **Play** on its card in the
 console. After 30 days paused, Aura deletes it: then create a new one, update `.env` and run
 `scripts/load_neo4j.py`. The Neo4j store falls back to the in-memory NetworkX graph whenever Aura
-cannot be reached (`docs/02` §7). `docker-compose.yml` remains for anyone who prefers a local
+cannot be reached (`docs/02` §7). On 2026-09-24 the instance's host name did
+not resolve at all, most likely because it had been paused; that is handled as unreachable too. Only `scripts/load_neo4j.py` writes to
+Aura: `scripts/demo.py` reads it, and falls back rather than write when Aura's copy is stale. `docker-compose.yml` remains for anyone who prefers a local
 Neo4j.
 
 **Done 2026-09-19.** The owner created the instance, and the graph is loaded under the label

@@ -510,6 +510,18 @@ NetworkX store over the locally built graph stands in. Its results are complete,
 `graph_backend` in `degraded_components` says the configured backend is missing. If the graph
 store fails outright, the ranking is ML-only, reported the same way.
 
+*2026-09-24.* `scripts/demo.py` runs on this graph (`--graph neo4j | networkx | stub`, default
+`graph.backend`), which completes the W3 walking skeleton: a hand-authored case, expanded through
+the crosswalk, ranked by the real model and the real graph. It opens the graph **read-only**
+(`open_graph_store(..., sync=False)`): when Aura's copy differs from the local build, it falls back
+instead of writing, since only `scripts/load_neo4j.py` changes the shared graph. neo4j 5.28 raises
+a bare `ValueError` when the instance's host name does not resolve, which crashed the demo instead
+of falling back; `connect()` now reports it as `ServiceUnavailable`. With no graph at all, the demo
+stops and says how to build one, rather than quietly using the stub: a stub result must never pass
+for the real graph's. Its "why" section keeps each supporting *question* the graph matched, with
+the recorded finding that answered it beside it (§5.2); it and the template explanation name five
+of the findings not recorded and count the rest. Which to ask first is 3d's.
+
 ---
 
 ## 8. Directory layout

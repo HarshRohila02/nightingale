@@ -306,6 +306,30 @@ class TestOpenGraphStore:
         assert "not-the-password" not in store.degraded_reason
         assert_same_answers(store, NetworkXGraphStore(kg), [PE, GERD])
 
+    def test_a_read_only_open_falls_back_rather_than_write(self, monkeypatch):
+        """``sync=False`` reaches ``connect``, whose refusal to write a stale copy is a fallback.
+        scripts/demo.py opens the graph this way: only scripts/load_neo4j.py changes Aura."""
+        seen = {}
+
+        def stale(settings, **kwargs):
+            seen.update(kwargs)
+            raise neo4j_store.GraphOutOfDate("the CardiacKG graph in Neo4j is out of date")
+
+        monkeypatch.setattr(neo4j_store.Neo4jGraphStore, "connect", stale)
+        store = open_graph_store("neo4j", local_kg=small_kg(), settings=UNREACHABLE, sync=False)
+        assert seen["sync"] is False
+        assert store.degraded and "out of date" in store.degraded_reason
+
+    def test_falls_back_when_the_host_name_does_not_resolve(self):
+        """neo4j 5.28 raises a bare ValueError for an unresolvable routing host, which crashed
+        scripts/demo.py instead of falling back (found 2026-09-24). ``.invalid`` never resolves
+        (RFC 2606), so this needs no network."""
+        nowhere = replace(UNREACHABLE, uri="neo4j+s://nightingale-test.invalid")
+        store = open_graph_store("neo4j", local_kg=small_kg(), settings=nowhere, timeout=3)
+        assert type(store) is NetworkXGraphStore
+        assert store.degraded and store.degraded_reason.startswith("ServiceUnavailable")
+        assert "nightingale-test" not in store.degraded_reason
+
     def test_without_neo4j_or_a_local_graph_there_is_no_graph(self):
         with pytest.raises(GraphUnavailable, match="no local graph"):
             open_graph_store("neo4j", settings=UNREACHABLE, timeout=3)

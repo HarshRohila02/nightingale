@@ -164,7 +164,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   when the local build changes. **Aura's home database is named after the instance id, not
   `neo4j`**: never hard-code a database name. The Neo4j store reads the graph once at start-up
   and scores it in memory, so it answers exactly as NetworkX does; when Aura is paused or
-  offline, `open_graph_store()` falls back to NetworkX and reports `graph_backend`. The live
+  offline, `open_graph_store()` falls back to NetworkX and reports `graph_backend`. **The instance's
+  host can stop resolving altogether (seen 2026-09-24, most likely because it was paused), and
+  the driver then raises a bare `ValueError`**, not `ServiceUnavailable`; `connect()` translates it. Scripts open Aura read-only (`sync=False`);
+  only `scripts/load_neo4j.py` writes it. The live
   tests (marker `neo4j`) run in CI against a throwaway container, and locally only with
   `NEO4J_TEST_DOTENV=1`; they use the `NightingaleTest` namespace and delete it afterwards.
 
@@ -174,7 +177,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe -m pytest                        # tests, incl. golden clinical cases
 ./.venv/Scripts/python.exe -m black src tests scripts       # format
 ./.venv/Scripts/python.exe -m ruff check src tests scripts  # lint
-./.venv/Scripts/python.exe scripts/demo.py --case GC-003    # walking skeleton
+./.venv/Scripts/python.exe scripts/demo.py --case GC-003    # walking skeleton, real graph + model (--graph stub without data/)
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data

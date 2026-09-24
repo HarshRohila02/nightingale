@@ -486,7 +486,13 @@ class Neo4jGraphStore(NetworkXGraphStore):
                 or could not be reached.
         """
         with _driver(settings, timeout) as driver:
-            driver.verify_connectivity()
+            try:
+                driver.verify_connectivity()
+            except ValueError as exc:
+                # The driver (5.28) raises a bare ValueError when a routing host name does not
+                # resolve: no network, or the instance is gone. That is as unreachable as a
+                # timeout. The host is left out of the message, since it comes from .env.
+                raise ServiceUnavailable("the Neo4j host name did not resolve") from exc
             server = driver.get_server_info().agent
             stored = read_kg(driver, database=settings.database, namespace=namespace)
             wrote = False
@@ -545,6 +551,7 @@ def open_graph_store(
     settings: Neo4jSettings | None = None,
     namespace: str = DEFAULT_NAMESPACE,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
+    sync: bool = True,
 ) -> NetworkXGraphStore:
     """The graph store the configuration asks for, degrading instead of failing (docs/02 §7).
 
@@ -557,6 +564,9 @@ def open_graph_store(
         settings: Connection settings; by default :func:`settings_from_env`.
         namespace: The label that marks this graph's nodes in Neo4j.
         timeout: Seconds to wait for Neo4j.
+        sync: Write ``local_kg`` to Neo4j when the stored copy differs. If False, a stale stored
+            copy is one more reason to fall back: a read-only caller, such as
+            ``scripts/demo.py``, never changes the shared graph (``scripts/load_neo4j.py`` does).
 
     Raises:
         GraphUnavailable: there is no graph at all. Neo4j failed and ``local_kg`` is None, or
@@ -573,6 +583,7 @@ def open_graph_store(
         return Neo4jGraphStore.connect(
             settings or settings_from_env(),
             local_kg=local_kg,
+            sync=sync,
             namespace=namespace,
             timeout=timeout,
         )

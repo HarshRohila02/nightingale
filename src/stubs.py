@@ -23,6 +23,7 @@ from src.contracts import (
 )
 
 __all__ = [
+    "MISSING_SHOWN",
     "STUB_SYMPTOM_MAP",
     "ConstantRanker",
     "InMemoryGraphStore",
@@ -185,6 +186,10 @@ class EmptyRetriever:
         return []
 
 
+MISSING_SHOWN = 5
+"""How many unrecorded findings the template names before it just counts the rest."""
+
+
 class TemplateExplainer:
     """Builds an explanation from derived findings only — never generates facts.
 
@@ -212,9 +217,14 @@ class TemplateExplainer:
 
         missing = top.missing()
         if missing:
+            # The real graph expects two dozen findings of some conditions. Choosing which to ask
+            # first is task 3d's; until then, the first few in the graph's order, and a count.
+            shown = ", ".join(a.label for a in missing[:MISSING_SHOWN])
+            more = len(missing) - MISSING_SHOWN
             lines.append(
                 "Not recorded, and would help confirm or exclude: "
-                + ", ".join(a.label for a in missing)
+                + shown
+                + (f" (and {more} more)" if more > 0 else "")
                 + "."
             )
 

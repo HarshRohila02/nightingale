@@ -418,10 +418,12 @@ py -3.11 -m venv .venv                  # macOS/Linux: python3.11 -m venv .venv
 # Windows:  .venv\Scripts\activate    |  macOS/Linux:  source .venv/bin/activate
 pip install -r requirements-dev.txt     # light — all the skeleton and the tests need
 
-# 2. Run the walking skeleton — works immediately, no data download needed
-python scripts/demo.py                  # anchor ACS case
-python scripts/demo.py --case GC-003    # aortic dissection (KG-only red flag)
+# 2. Run the walking skeleton on the stub graph — works immediately, no data download needed
+python scripts/demo.py --graph stub                  # anchor ACS case
+python scripts/demo.py --graph stub --case GC-003    # aortic dissection (KG-only red flag)
 python scripts/demo.py --list
+# With the data downloaded and decoded, drop --graph stub: the demo then runs on the real
+# knowledge graph (AuraDB, or the local build when Aura is paused) and the trained model
 
 # 3. Run the tests, including the golden clinical cases
 pytest

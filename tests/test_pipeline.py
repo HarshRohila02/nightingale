@@ -13,10 +13,22 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.contracts import DISCLAIMER, PatientCase
+from src.contracts import (
+    DISCLAIMER,
+    Candidate,
+    EvidenceRole,
+    FindingAssessment,
+    PatientCase,
+)
 from src.pipeline import DiagnosisPipeline, fuse_scores
 from src.reasoning.red_flags import evaluate_red_flags
-from src.stubs import ConstantRanker, EmptyRetriever, InMemoryGraphStore, TemplateExplainer
+from src.stubs import (
+    MISSING_SHOWN,
+    ConstantRanker,
+    EmptyRetriever,
+    InMemoryGraphStore,
+    TemplateExplainer,
+)
 
 GOLDEN_PATH = Path(__file__).parent / "fixtures" / "golden_cases.yaml"
 
@@ -195,6 +207,23 @@ def test_every_golden_case_produces_an_explanation(pipeline: DiagnosisPipeline):
         assert result.explanation is not None
         assert result.explanation.grounded, "template explanations are grounded by construction"
         assert result.explanation.text
+
+
+def test_the_template_names_a_few_unrecorded_findings_and_counts_the_rest():
+    """The real graph expects two dozen findings of some conditions; the template names the first
+    MISSING_SHOWN and counts the rest, so an explanation stays readable (ranking them is 3d's)."""
+    candidate = Candidate(
+        condition_id="COND:gerd",
+        label="GERD",
+        assessments=[
+            FindingAssessment(finding_id=f"SYM:x{i}", label=f"x{i}", role=EvidenceRole.MISSING)
+            for i in range(MISSING_SHOWN + 2)
+        ],
+    )
+    case = PatientCase(case_id="T", age=40, sex="F")
+    text = TemplateExplainer().explain(case, [candidate]).text
+    assert f"x{MISSING_SHOWN - 1} (and 2 more)." in text
+    assert f"x{MISSING_SHOWN}," not in text
 
 
 @pytest.mark.golden
