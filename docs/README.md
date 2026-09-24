@@ -19,6 +19,7 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | 08 | [Experiment Log](08-experiment-log.md) | Running record of every run | P2 |
 | 10 | [Spike R-01: Crosswalk](10-spike-r01-crosswalk.md) | Measured result that set the knowledge-graph strategy | P1 |
 | 11 | [Compute Runbook](11-compute-runbook.md) | Where each job runs; the owner's laptop-GPU steps; cloud jobs; AuraDB setup | Owner + P4 |
+| — | [Proposal: `docs/05` amendment 3](proposals/05-amendment-3.md) | Reduced evidence (D-10) and the deep ranker (D-11): **for the team to approve**; `docs/05` is unchanged until it does | All four |
 
 ## Reading paths
 
