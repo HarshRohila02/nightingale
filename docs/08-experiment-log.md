@@ -890,3 +890,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
 | EXP-016 | BODHI-S enrichment: coverage and effect *(unplanned, run 2026-09-19)* | 1 | 2a: a score that does not punish enriched conditions |
 | EXP-017 | B1 under a partial history *(unplanned, run 2026-09-23)* | 1 | R-18: the models separate once the history is incomplete; evidence for D-10 (b) |
+| EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Job ready 2026-09-24* (`notebooks/colab_b1_asked.ipynb`); **the owner chooses where it runs** (D-7). Validate at full evidence and the no-findings probe now; the reduced levels only after amendment 3 is approved |

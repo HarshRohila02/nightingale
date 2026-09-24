@@ -278,3 +278,91 @@ def test_every_validate_patient_encodes_and_matches_their_positive_codes():
     assert matrix[:, answered].sum() == 94_062, "every ordinal token (docs/03 §2.1) is encoded"
     assert elapsed < 60, f"encoding took {elapsed:.1f} s"
     assert np.array_equal(encoder.transform_sparse(frame).toarray(), matrix)
+
+
+# --------------------------------------------------------------------------- #
+# The "asked" channel (R-18)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(scope="module")
+def asked_encoder() -> EvidenceEncoder:
+    return EvidenceEncoder(SPECS, SPECS, asked_channel=True)
+
+
+def test_without_the_channel_the_columns_are_the_trained_ones(encoder, asked_encoder):
+    """The channel is appended, so the B1 models' columns keep their places and names."""
+    assert not encoder.asked_channel and asked_encoder.asked_channel
+    base = len(encoder.feature_names)
+    assert asked_encoder.feature_names[:base] == encoder.feature_names
+    assert asked_encoder.feature_names[base:] == tuple(f"{c}=unasked" for c in encoder.codes)
+    assert asked_encoder.fingerprint != encoder.fingerprint
+
+
+def test_asked_is_ignored_without_the_channel(encoder):
+    assert np.array_equal(
+        encoder.encode(50, "M", ["E_91"], asked=["E_91"]), encoder.encode(50, "M", ["E_91"])
+    )
+
+
+def test_full_evidence_asks_everything(asked_encoder):
+    """A DDXPlus record is the closed world: an unlisted question was answered "no"."""
+    assert not any(n.endswith("=unasked") for n in features(asked_encoder, "E_91"))
+
+
+def test_every_question_not_asked_is_marked(asked_encoder):
+    row = asked_encoder.encode(50, "M", ["E_91"], asked=["E_91", "E_79"])
+    unasked = {
+        n.removesuffix("=unasked")
+        for n, v in zip(asked_encoder.feature_names, row, strict=True)
+        if v and n.endswith("=unasked")
+    }
+    assert unasked == set(SPECS) - {"E_91", "E_79"}
+    # E_79 was asked and not listed: a denial, now distinguishable from not asking.
+    denied = asked_encoder.encode(50, "M", ["E_91"], asked=["E_91", "E_79"])
+    unknown = asked_encoder.encode(50, "M", ["E_91"], asked=["E_91"])
+    assert not np.array_equal(denied, unknown)
+
+
+def test_nothing_asked_marks_every_question(asked_encoder):
+    row = asked_encoder.encode(50, "F", [], asked=[])
+    assert row[-len(SPECS) :].sum() == len(SPECS), "the unasked columns are the last ones"
+
+
+@pytest.mark.parametrize(
+    ("tokens", "asked", "message"),
+    [
+        (["E_91"], ["E_79"], "answered but not asked"),
+        (["E_55_@_V_16"], ["E_91"], "answered but not asked"),
+        ([], ["E_999"], "not encoded evidences"),
+    ],
+)
+def test_an_inconsistent_asked_set_fails_loudly(asked_encoder, tokens, asked, message):
+    with pytest.raises(ValueError, match=message):
+        asked_encoder.encode(50, "M", tokens, asked=asked)
+
+
+def test_transform_reads_the_asked_column_and_a_missing_cell_means_everything(asked_encoder):
+    frame = pd.DataFrame(
+        {
+            "age": [50, 60, 70],
+            "sex": ["M", "F", "M"],
+            "evidences": [["E_91"], ["E_91"], []],
+            "asked": [None, ["E_91"], float("nan")],
+        }
+    )
+    matrix = asked_encoder.transform(frame)
+    assert np.array_equal(matrix[0], asked_encoder.encode(50, "M", ["E_91"]))
+    assert np.array_equal(matrix[1], asked_encoder.encode(60, "F", ["E_91"], asked=["E_91"]))
+    assert np.array_equal(matrix[2], asked_encoder.encode(70, "M", []))
+    assert np.array_equal(asked_encoder.transform_sparse(frame).toarray(), matrix)
+
+
+@needs_real_data
+def test_the_b1_models_features_are_unchanged():
+    """The Colab-trained B1 models record fingerprint 3a0d5a5e01d7f427; the channel must not move
+    it, or they would stop loading."""
+    plain = EvidenceEncoder.from_release(REAL_EVIDENCES, REAL_CONDITIONS)
+    asked = EvidenceEncoder.from_release(REAL_EVIDENCES, REAL_CONDITIONS, asked_channel=True)
+    assert plain.fingerprint == "3a0d5a5e01d7f427" and len(plain.feature_names) == 607
+    assert len(asked.feature_names) == 607 + 84

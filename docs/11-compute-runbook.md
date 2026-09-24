@@ -215,6 +215,19 @@ Colab ran Python 3.13, NumPy 2.1 and scikit-learn 1.6; the laptop has Python 3.1
 scikit-learn 1.9. The models are plain JSON, and the laptop reloads them and reproduces every
 validate score to within 3 × 10⁻¹². Results: EXP-003 and EXP-004 in `docs/08`.
 
+### 4.2 The R-18 retrain (EXP-018) · *ready 2026-09-24 · waits for the owner to say where*
+
+Where it runs is the owner's call (D-7); Colab is suggested, like 4.1. The notebook is
+`notebooks/colab_b1_asked.ipynb`, and the steps are 4.1's with that notebook: open
+<https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b1_asked.ipynb>,
+set `COMMIT`, **Runtime → Run all**. It takes about 25–35 minutes, most of it the same download and
+decoding as 4.1; the two training runs take a few minutes each. It trains B1 twice on the train
+split plus one masked copy of every patient: **B1 +aug** (the original features) and **B1′+aug**
+(with the "asked" channel). Your browser downloads **`nightingale_b1_asked.zip`**; unzip it into
+`models/` on the laptop, which gives `models/b1_aug/` and `models/b1_asked_aug/`, then tell
+Claude. Validate is scored at full evidence only, and each bundle records what each model answers
+to a patient with no findings. No patient rows are in the zip.
+
 ---
 
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)

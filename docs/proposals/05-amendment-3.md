@@ -215,7 +215,9 @@ prefix of the same permutation, so a patient's 25% history is part of their 50% 
 red-flag rules all read the kept tokens. No component reads a dropped one. **`initial_evidence`
 defines the mask and is never a model input** (§2). The mask's output includes the set of questions
 kept, so the encoder's "asked" channel (R-18) can be set from it. How that channel treats questions
-DDXPlus does not list is decided with the encoder, not here.
+DDXPlus does not list is decided with the encoder, not here. *(2026-09-24: the encoder's working
+answer is open decision A-9 in `docs/02` §9, for the team with this amendment. It does not change
+the kept tokens or the digest.)*
 
 **Drawn once.** `src/ml/evidence_masks.py` draws the masks for the validation split once. Their
 digest, the NumPy version and the commit are recorded in docs/08 before any fusion or deep-model

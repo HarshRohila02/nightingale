@@ -201,12 +201,19 @@ class LogisticBaseline:
         scaler = MaxAbsScaler().fit(X)
         model = LogisticRegression(C=C, max_iter=max_iter, random_state=seed)
         model.fit(scaler.transform(X), y)
+        coef = np.asarray(model.coef_, dtype=float)
+        intercept = np.asarray(model.intercept_, dtype=float)
+        if len(labels) == 2:
+            # scikit-learn keeps one row for two classes, the second class's log-odds; a zero row
+            # for the first makes the softmax exactly that sigmoid.
+            coef = np.vstack([np.zeros_like(coef), coef])
+            intercept = np.concatenate([[0.0], intercept])
         return cls(
             labels=tuple(labels),
             feature_fingerprint=feature_fingerprint,
             scale=np.asarray(scaler.scale_, dtype=float),
-            coef=np.asarray(model.coef_, dtype=float),
-            intercept=np.asarray(model.intercept_, dtype=float),
+            coef=coef,
+            intercept=intercept,
             params={
                 "C": C,
                 "max_iter": max_iter,

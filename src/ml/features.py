@@ -28,6 +28,25 @@ Plus ``age`` in years and ``sex=F``: 1 for female, 0 for male.
 
 So the question and binary columns hold exactly the patient's ``positive_codes``, the level the
 knowledge graph works at. The tests check that on every validate patient.
+
+**The "asked" channel** (``asked_channel=True``, risk R-18). Without it, a default answer and a
+question nobody asked both leave their columns at 0, so a short history looks exactly like a long
+list of denials, and XGBoost answers atrial fibrillation to an empty row (EXP-017). The channel adds
+one column per question, ``E_nn=unasked``, 1 when the question was not asked. It is stored as the
+complement so that a full-evidence row stays sparse:
+
+* **A DDXPlus patient at full evidence was asked everything**: an unlisted question means "no"
+  (the closed world DDXPlus generates), so ``asked=None`` sets no ``unasked`` column. "Asked" is
+  never read from the default answers DDXPlus happens to list (``E_204_@_V_10``, "did not
+  travel"): those are listed only for conditions whose definition includes the question, so
+  reading them would leak the label.
+* **A masked patient** (:mod:`src.ml.evidence_masks`) or **a hand-authored case**
+  (:mod:`src.ml.case_tokens`) passes the questions it asked; every other question is ``unasked``.
+  A listed answer to a question not asked is an error.
+
+The channel only means something to a model trained on masked copies of patients: at full
+evidence it is constant. With the channel off, ``asked`` is ignored and the columns and the
+fingerprint are exactly those the B1 models were trained on (``3a0d5a5e01d7f427``).
 """
 
 from __future__ import annotations
@@ -77,13 +96,26 @@ def _value_order(value: str) -> int:
 
 def _inputs(
     patients: pd.DataFrame | Iterable[Mapping[str, Any]],
-) -> tuple[Iterator[tuple[Any, Any, Any]], int]:
-    """(age, sex, evidences) for each patient, and how many there are. Nothing else is read."""
+) -> tuple[Iterator[tuple[Any, Any, Any, Any]], int]:
+    """(age, sex, evidences, asked) for each patient, and how many there are.
+
+    Nothing else is read. ``asked`` is optional: a mask writes it (src/ml/evidence_masks.py), and
+    without it a patient was asked everything.
+    """
     if isinstance(patients, pd.DataFrame):
-        columns = (patients["age"], patients["sex"], patients["evidences"])
+        asked = patients["asked"] if "asked" in patients else [None] * len(patients)
+        columns = (patients["age"], patients["sex"], patients["evidences"], asked)
         return zip(*columns, strict=True), len(patients)
     records = list(patients)
-    return iter([(r["age"], r["sex"], r["evidences"]) for r in records]), len(records)
+    rows = [(r["age"], r["sex"], r["evidences"], r.get("asked")) for r in records]
+    return iter(rows), len(records)
+
+
+def _asked_set(asked: Any) -> frozenset[str] | None:
+    """None for "asked everything"; otherwise the questions asked. A missing cell is None."""
+    if asked is None or (isinstance(asked, float) and np.isnan(asked)):
+        return None
+    return frozenset(str(code) for code in asked)
 
 
 class EvidenceEncoder:
@@ -94,12 +126,20 @@ class EvidenceEncoder:
         codes: The evidences to encode: those the in-scope conditions use
             (:func:`evidence_codes_in_scope`). A patient token for any other evidence is an
             error, not a silently dropped finding.
+        asked_channel: Add one ``E_nn=unasked`` column per evidence (R-18; module docstring).
+            Off by default, which keeps the columns the B1 models were trained on.
 
     Raises:
         ValueError: if a code is not in ``specs``, or a categorical evidence lists no answers.
     """
 
-    def __init__(self, specs: Mapping[str, EvidenceSpec], codes: Iterable[str]) -> None:
+    def __init__(
+        self,
+        specs: Mapping[str, EvidenceSpec],
+        codes: Iterable[str],
+        *,
+        asked_channel: bool = False,
+    ) -> None:
         ordered = sorted(set(codes), key=code_sort_key)
         missing = [code for code in ordered if code not in specs]
         if missing:
@@ -128,40 +168,64 @@ class EvidenceEncoder:
                         continue
                     self._answer[(code, value)] = len(names)
                     names.append(f"{code}={'NA' if value == NA_VALUE else value}")
+        self.asked_channel = asked_channel
+        self._unasked: dict[str, int] = {}
+        if asked_channel:  # appended, so the columns before them keep their positions
+            for code in ordered:
+                self._unasked[code] = len(names)
+                names.append(f"{code}=unasked")
         self.feature_names: tuple[str, ...] = tuple(names)
         self.fingerprint: str = hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()[:16]
 
     @classmethod
-    def from_release(cls, evidences_path: Path, conditions_path: Path) -> EvidenceEncoder:
+    def from_release(
+        cls, evidences_path: Path, conditions_path: Path, *, asked_channel: bool = False
+    ) -> EvidenceEncoder:
         """The encoder for the 13 in-scope conditions.
 
         Args:
             evidences_path: ``data/raw/ddxplus/release_evidences.json``.
             conditions_path: ``data/interim/ddxplus_chestpain_conditions.json``.
+            asked_channel: As the constructor.
         """
-        return cls(load_evidence_specs(evidences_path), evidence_codes_in_scope(conditions_path))
+        return cls(
+            load_evidence_specs(evidences_path),
+            evidence_codes_in_scope(conditions_path),
+            asked_channel=asked_channel,
+        )
 
     @property
     def codes(self) -> tuple[str, ...]:
         """The evidences this encoder knows, in column order."""
         return tuple(self._specs)
 
-    def encode(self, age: float, sex: str, evidences: Sequence[str]) -> np.ndarray:
+    def encode(
+        self,
+        age: float,
+        sex: str,
+        evidences: Sequence[str],
+        asked: Iterable[str] | None = None,
+    ) -> np.ndarray:
         """One patient as a 1-D float32 row.
 
+        Args:
+            age, sex, evidences: The model inputs.
+            asked: The questions asked, for the "asked" channel. None means all of them, as for
+                a DDXPlus patient at full evidence. Ignored when the channel is off.
+
         Raises:
-            ValueError: on an unknown sex, an evidence the encoder does not know, or an answer
-                that evidence does not allow.
+            ValueError: on an unknown sex, an evidence the encoder does not know, an answer that
+                evidence does not allow, or an answer to a question that was not asked.
         """
         row = np.zeros(len(self.feature_names), dtype=np.float32)
-        self._fill(row, age, sex, evidences)
+        self._fill(row, age, sex, evidences, asked)
         return row
 
     def transform(self, patients: pd.DataFrame | Iterable[Mapping[str, Any]]) -> np.ndarray:
         """Many patients as a 2-D float32 matrix, one row each, in order.
 
-        Reads only ``age``, ``sex`` and ``evidences``. A data frame may hold other columns,
-        labels included; they are never looked at.
+        Reads only ``age``, ``sex`` and ``evidences``, and ``asked`` when a mask wrote it. A data
+        frame may hold other columns, labels included; they are never looked at.
 
         Raises:
             ValueError: naming the first row that cannot be encoded, and why.
@@ -175,7 +239,8 @@ class EvidenceEncoder:
         """As :meth:`transform`, but a SciPy CSR matrix, built ``chunk`` rows at a time.
 
         About 28 of the 607 columns are nonzero per patient, so the train split takes about
-        60 MB this way instead of 640 MB dense.
+        60 MB this way instead of 640 MB dense. The ``unasked`` columns are zero at full
+        evidence, so the asked channel adds nothing there.
         """
         from scipy import sparse  # only the training job needs SciPy
 
@@ -191,18 +256,20 @@ class EvidenceEncoder:
     # -- internals --------------------------------------------------------- #
 
     def _dense(
-        self, rows: Iterator[tuple[Any, Any, Any]], count: int, *, offset: int
+        self, rows: Iterator[tuple[Any, Any, Any, Any]], count: int, *, offset: int
     ) -> np.ndarray:
         """The next ``count`` rows as a dense block. Errors name the row across all blocks."""
         matrix = np.zeros((count, len(self.feature_names)), dtype=np.float32)
-        for index, (age, sex, evidences) in zip(range(count), rows, strict=False):
+        for index, (age, sex, evidences, asked) in zip(range(count), rows, strict=False):
             try:
-                self._fill(matrix[index], age, sex, evidences)
+                self._fill(matrix[index], age, sex, evidences, asked)
             except ValueError as exc:
                 raise ValueError(f"row {offset + index}: {exc}") from exc
         return matrix
 
-    def _fill(self, row: np.ndarray, age: float, sex: str, evidences: Sequence[str]) -> None:
+    def _fill(
+        self, row: np.ndarray, age: float, sex: str, evidences: Sequence[str], asked: Any = None
+    ) -> None:
         if sex not in SEXES:
             raise ValueError(f"sex must be one of {SEXES}, got {sex!r}")
         row[0] = float(age)
@@ -237,3 +304,21 @@ class EvidenceEncoder:
                 row[self._answer[(token.code, token.value)]] = 1.0
                 if token.kind is not TokenKind.NA:
                     row[self._question[token.code]] = 1.0
+        if self.asked_channel:
+            self._fill_unasked(row, evidences, _asked_set(asked))
+
+    def _fill_unasked(
+        self, row: np.ndarray, evidences: Sequence[str], asked: frozenset[str] | None
+    ) -> None:
+        if asked is None:
+            return  # asked everything: the closed world of a full DDXPlus record
+        unknown = sorted(asked - self._specs.keys(), key=code_sort_key)
+        if unknown:
+            raise ValueError(f"asked {unknown}, which are not encoded evidences")
+        answered = {parse_token(str(raw)).code for raw in evidences}
+        unasked_but_answered = sorted(answered - asked, key=code_sort_key)
+        if unasked_but_answered:
+            raise ValueError(f"{unasked_but_answered} answered but not asked")
+        for code, column in self._unasked.items():
+            if code not in asked:
+                row[column] = 1.0

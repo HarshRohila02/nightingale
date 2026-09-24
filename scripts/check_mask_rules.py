@@ -9,11 +9,13 @@ The two rules, keyed exactly as the proposal states them:
 * **token** — EXP-017's diagnostic rule. Keep the initial evidence's tokens; of the other tokens
   ``R``, keep ``round(len(R) * share)`` chosen by ``rng.choice(len(R), n, replace=False)``, a
   fresh generator per level, in their original order.
-* **question** — the proposal's §3.7. Keep the initial evidence's question with all its tokens;
-  of the other distinct questions ``Q`` (first-appearance order), keep the first
-  ``round(len(Q) * share)`` of one ``rng.permutation(len(Q))``, so the levels nest; a kept
-  follow-up brings its parent question (``E_54``-``E_59`` follow ``E_53``, ``E_152`` follows
-  ``E_151``) when the patient has it; every token of a kept question stays, in original order.
+* **question** — the proposal's §3.7, as implemented in src/ml/evidence_masks.py (this script
+  checks that module). Keep the initial evidence's question with all its tokens; of the other
+  distinct questions ``Q`` (first-appearance order), keep the first ``round(len(Q) * share)`` of
+  one ``rng.permutation(len(Q))``, so the levels nest; a kept follow-up brings its parent question
+  (``E_54``-``E_59`` follow ``E_53``, ``E_152`` follows ``E_151``) when the patient has it; every
+  token of a kept question stays, in original order. The module also draws which *unlisted*
+  questions count as asked, for the encoder's "asked" channel; the script reports how many.
 
 Both use ``numpy.random.default_rng(int.from_bytes(sha256(f"42:{case_id}").digest()[:8], "big"))``.
 
@@ -39,18 +41,17 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.ddxplus import is_positive, load_evidence_specs, parse_token  # noqa: E402
+from src.ddxplus import (  # noqa: E402
+    code_sort_key,
+    is_positive,
+    load_evidence_specs,
+    parse_token,
+)
+from src.medical_kg.crosswalk import PARENT_QUESTION as PARENT  # noqa: E402
+from src.ml.evidence_masks import LEVELS, draw_masks, evaluation_rng  # noqa: E402
+from src.ml.features import evidence_codes_in_scope  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SEED = 42
-LEVELS = (0.5, 0.25)
-PARENT = {f"E_{n}": "E_53" for n in range(54, 60)} | {"E_152": "E_151"}
-"""Follow-up question -> the question it follows (``code_question`` in the release file)."""
-
-
-def _rng(case_id: str) -> np.random.Generator:
-    digest = hashlib.sha256(f"{SEED}:{case_id}".encode()).digest()
-    return np.random.default_rng(int.from_bytes(digest[:8], "big"))
 
 
 def _question(token: str) -> str:
@@ -61,19 +62,14 @@ def token_rule(case_id: str, initial: str, tokens: list[str], share: float) -> l
     fixed = [i for i, t in enumerate(tokens) if _question(t) == initial]
     rest = [i for i in range(len(tokens)) if i not in fixed]
     n = round(len(rest) * share)
-    picked = _rng(case_id).choice(len(rest), n, replace=False) if n else []
+    picked = evaluation_rng(case_id).choice(len(rest), n, replace=False) if n else []
     kept = set(fixed) | {rest[j] for j in picked}
     return [tokens[i] for i in sorted(kept)]
 
 
-def question_rule(case_id: str, initial: str, tokens: list[str], share: float) -> list[str]:
-    questions = list(dict.fromkeys(_question(t) for t in tokens))
-    others = [q for q in questions if q != initial]
-    order = _rng(case_id).permutation(len(others))
-    kept = {initial} | {others[i] for i in order[: round(len(others) * share)]}
-    has = set(questions)
-    kept |= {PARENT[q] for q in list(kept) if q in PARENT and PARENT[q] in has}
-    return [t for t in tokens if _question(t) in kept]
+def question_masks(case_id: str, initial: str, tokens: list[str], codes: list[str]) -> dict:
+    """{level: Mask} under the question rule, from src/ml/evidence_masks.py."""
+    return draw_masks(initial, tokens, LEVELS, codes=codes, rng=evaluation_rng(case_id))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -83,6 +79,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     specs = load_evidence_specs(args.raw / "release_evidences.json")
+    codes = sorted(
+        evidence_codes_in_scope(args.interim / "ddxplus_chestpain_conditions.json"),
+        key=code_sort_key,
+    )
     frame = pd.read_parquet(
         args.interim / "ddxplus_chestpain_validate.parquet",
         columns=["case_id", "initial_evidence", "evidences"],
@@ -113,8 +113,12 @@ def main(argv: list[str] | None = None) -> int:
         f"orphaned positive follow-ups at full evidence: "
         f"{sum(orphaned(t, t) for *_, t in rows)}"
     )
-    for name, rule in (("token (EXP-017)", token_rule), ("question (proposed)", question_rule)):
-        masks = {s: [rule(c, i, t, s) for c, i, t in rows] for s in LEVELS}
+    drawn = [question_masks(c, i, t, codes) for c, i, t in rows]
+    rules = {
+        "token (EXP-017)": {s: [token_rule(c, i, t, s) for c, i, t in rows] for s in LEVELS},
+        "question (proposed)": {s: [list(d[s].tokens) for d in drawn] for s in LEVELS},
+    }
+    for name, masks in rules.items():
         print(f"\n{name}")
         for s in LEVELS:
             kept = masks[s]
@@ -135,6 +139,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         digest = hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
         print(f"  digest (validate, levels 0.5 and 0.25): {digest[:16]}  numpy {np.__version__}")
+    print(f"\nasked channel, question rule ({len(codes)} questions in scope):")
+    for s in LEVELS:
+        asked = [len(d[s].asked) for d in drawn]
+        print(f"  {s:.0%}: {np.mean(asked):.2f} questions asked, listed or not")
     return 0
 
 

@@ -204,6 +204,25 @@ silently dropped finding.
 | Time and size | 1.0 s for 33,963 patients; 82.5 MB as float32 |
 | Train split, projected (about 263,000 patients) | About 640 MB dense and 7 s, so the training job stores it as a sparse matrix |
 
+**The "asked" channel** · *added 2026-09-24, for R-18.* Without it, a question answered "no" and
+a question nobody asked are the same row, so a short history reads as a long list of denials
+(EXP-017). `EvidenceEncoder(..., asked_channel=True)` appends one column per question,
+`E_nn=unasked`: **691 columns, fingerprint `ddd14019c66eff10`**. The 607 columns before them are
+unchanged, and with the channel off the encoder is exactly the one the B1 models were trained on
+(`3a0d5a5e01d7f427`, pinned by a test).
+
+| Patient | `asked` | The `unasked` columns |
+|---|---|---|
+| DDXPlus, full evidence | None: every question asked, since an unlisted question means "no" | All 0, so the row stays sparse |
+| DDXPlus, masked (`src/ml/evidence_masks.py`) | The questions the mask kept, plus unlisted ones drawn at the same share (open decision A-9, `docs/02` §9) | 1 for every other question |
+| Hand-authored (`src/ml/case_tokens.py`) | The questions its tokens answer, plus the yes/no questions its denials answer "no" | 1 for every other question |
+
+"Asked" is **never read from the default answers DDXPlus lists** (`E_204_@_V_10`, "did not
+travel"): DDXPlus lists them only for conditions whose definition includes the question, so they
+would leak the label. A listed answer to a question marked not asked is an error. At full evidence
+the channel is constant, so only a model trained on masked copies of patients (`+aug`) learns
+anything from it; `scripts/train_baselines.py` refuses `--asked-channel` without `--augment`.
+
 ---
 
 ## 3. Reproducibility

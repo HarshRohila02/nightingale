@@ -262,8 +262,10 @@ class TestNarrower:
 
 
 class TestNothingIsLostSilently:
-    def test_a_denial_is_recorded_but_not_encoded(self):
-        """The encoder has no 'asked' channel yet: 0 means denied and never-asked alike (R2)."""
+    def test_a_denial_is_never_a_token_but_settles_its_question(self):
+        """A denial produces no token. It answers "increased sweating?" no, which only an encoder
+        with the "asked" channel can say (R-18); without it, 0 means denied and never-asked
+        alike."""
         case = PatientCase(
             case_id="T-002",
             age=40,
@@ -278,11 +280,18 @@ class TestNothingIsLostSilently:
         tokens = tokens_for_case(case)
         assert tokens.denied == ("SYM:diaphoresis",)
         assert "E_50" not in tokens.tokens
+        assert tokens.denials_asked == {"SYM:diaphoresis": "E_50"}
+        assert "E_50" in tokens.asked
 
-    def test_gc004_denies_three_findings_the_model_cannot_see(self):
-        """The case written to guard against over-flagging is the one that loses the most."""
+    def test_gc004s_denials_two_of_which_settle_a_question(self):
+        """The case written to guard against over-flagging denies three findings. Exertional pain
+        and diaphoresis settle yes/no questions; "no radiation to the jaw or arm" cannot settle
+        "does the pain radiate?", so no model sees it."""
         gc004 = next(c for c in GOLDEN_CASES if c["id"] == "GC-004")
-        assert len(tokens_for_case(PatientCase(**gc004["case"])).denied) == 3
+        tokens = tokens_for_case(PatientCase(**gc004["case"]))
+        assert len(tokens.denied) == 3
+        assert set(tokens.denials_asked) == {"SYM:exertional", "SYM:diaphoresis"}
+        assert "SYM:radiation_jaw_arm" in tokens.denied
 
     def test_a_concept_ddxplus_cannot_express_is_dropped_with_its_reason(self):
         assert dropped_reasons(case_with("SYM:interarm_bp_difference")) == {
@@ -320,6 +329,65 @@ class TestNothingIsLostSilently:
     def test_the_summary_line_counts_everything(self):
         summary = tokens_for_case(PatientCase(**GOLDEN_CASES[3]["case"])).summary()
         assert "denied" in summary and "dropped" in summary
+
+
+# --------------------------------------------------------------------------- #
+# The questions a case asked (R-18)
+# --------------------------------------------------------------------------- #
+
+
+def denying(*concepts: str, present: tuple[str, ...] = ()) -> PatientCase:
+    return case_with(*present).model_copy(
+        update={
+            "findings": [
+                *case_with(*present).findings,
+                *[
+                    Finding(concept_id=c, label=BY_CONCEPT[c].label, assertion=Assertion.ABSENT)
+                    for c in concepts
+                ],
+            ]
+        }
+    )
+
+
+class TestAsked:
+    def test_every_answered_question_is_asked_parents_included(self):
+        tokens = tokens_for_case(case_with("SYM:radiation_jaw_arm", "SYM:diaphoresis"))
+        assert set(tokens.asked) == set(codes_of(tokens.tokens)) == {"E_50", "E_53", "E_57"}
+
+    def test_a_denied_answer_to_a_multi_choice_question_settles_nothing(self):
+        """No radiation to the back leaves open whether the pain radiates elsewhere."""
+        tokens = tokens_for_case(denying("SYM:radiation_back"))
+        assert tokens.denied == ("SYM:radiation_back",)
+        assert tokens.denials_asked == {} and tokens.asked == ()
+
+    def test_a_denial_contradicted_by_a_yes_is_not_asked_twice(self, caplog):
+        tokens = tokens_for_case(denying("SYM:diaphoresis", present=("SYM:diaphoresis",)))
+        assert "E_50" in tokens.tokens and tokens.denials_asked == {}
+        assert "the answer stands" in caplog.text
+
+    def test_a_denial_of_an_evidence_the_encoder_lacks_settles_nothing(self):
+        tokens = tokens_for_case(denying("SYM:diaphoresis"), codes=["E_53"])
+        assert tokens.denials_asked == {} and tokens.asked == ()
+
+    @needs_real_data
+    def test_an_asked_channel_encoder_marks_every_other_question_unasked(self):
+        from src.ml.features import EvidenceEncoder
+
+        plain = EvidenceEncoder.from_release(REAL_EVIDENCES, REAL_CONDITIONS)
+        asked = EvidenceEncoder.from_release(REAL_EVIDENCES, REAL_CONDITIONS, asked_channel=True)
+        gc004 = PatientCase(**next(c for c in GOLDEN_CASES if c["id"] == "GC-004")["case"])
+        row, tokens = encode_case(gc004, asked)
+        plain_row, _ = encode_case(gc004, plain)
+        base = len(plain.feature_names)
+        assert (row[:base] == plain_row).all(), "the answers are encoded exactly as before"
+        unasked = {
+            name.removesuffix("=unasked")
+            for name, value in zip(asked.feature_names[base:], row[base:], strict=True)
+            if value
+        }
+        assert unasked == set(asked.codes) - set(tokens.asked)
+        assert {"E_50", "E_218"} <= set(tokens.asked), "the two denials reach the model"
 
 
 # --------------------------------------------------------------------------- #

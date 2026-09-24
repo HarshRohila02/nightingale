@@ -111,14 +111,21 @@ deployed one. A clinician using the prototype has a partial history by definitio
 1. **Decided 2026-09-23:** the pipeline's real ranker will be logistic regression, not
    XGBoost (`src/ml/ranker.py`, landing with the ranker wrapper), and the choice is recorded here
    rather than left as a preference.
-2. **Next:** give the encoder an explicit "asked" channel (one column per question), which changes
-   the feature fingerprint and needs both models retrained on identical rows — a training run, so
-   the owner chooses where (D-7). Until then no XGBoost figure on short input means anything.
+2. ~~**Next:** give the encoder an explicit "asked" channel (one column per question), which
+   changes the feature fingerprint and needs both models retrained on identical rows — a training
+   run, so the owner chooses where (D-7).~~ **Built 2026-09-24; the retrain waits for the owner to
+   say where (D-7).** The encoder has the channel (`docs/03` §2.2), masks draw which questions
+   were asked (`src/ml/evidence_masks.py`), and a hand-authored case's denials now reach a model
+   that has it. The channel is constant at full evidence, so the retrain (EXP-018,
+   `notebooks/colab_b1_asked.ipynb`) trains B1 on masked copies too, with and without the
+   channel, to separate the two effects. A toy test shows the intended effect: trained that way, a
+   one-finding history stays open (0.50) where a denial is decisive (0.99); without the channel both
+   read 0.98. Until a retrained model is scored, no XGBoost figure on short input means anything.
 3. Score every future model — the deep ranker included — at all three evidence levels from the
    start, never at 100% alone.
 4. It is the strongest argument for **D-10** option (b): the headline protocol cannot see this.
 
-*Trigger for review:* the "asked" channel lands, or D-10 is decided.
+*Trigger for review:* the retrained models come back (EXP-018), or D-10 is decided.
 
 ---
 
@@ -430,5 +437,6 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
 | 1 | 2026-09-24 | **R-12 updated** (EXP-005, 2a): the naive-Bayes score lifts the graph's circular top-1 on validate to 0.923 and its Precision@3 to 0.756, near B1's 0.764, so any KG figure on DDXPlus is now even less informative about skill. The overlap score's three defects — the angina inversion, GC-001's infarction, BODHI-S punishing MI — are fixed. Other scores unchanged | — |
+| 1 | 2026-09-24 | R-18: the "asked" channel, the masks and the retrain job are built; the retrain waits for the owner to say where (D-7). Score unchanged until a retrained model is scored | — |
 | 1 | 2026-09-23 | **R-18 opened** (found by EXP-017, while smoke-testing the new ranker seam): B1's two models are 0.001 apart on full evidence and 0.38-0.59 top-1 apart once half the history is missing, because the encoder cannot tell a denied question from an unasked one. XGBoost falls below the 0.95 must-not-miss target at 25% evidence. **R-17 opened** with `src/ml/case_tokens.py`: the concept -> token inversion has no ground truth. R-16 unchanged: at 100% evidence every EXP-004 figure reproduces exactly | — |
 | 1 | 2026-09-20 | **R-16 opened** (found by EXP-004): B1 reaches the ceiling of DDXPlus's top-3 and must-not-miss recall@3 (both 1.000), which raises decision D-10. **R-03 confirmed** on the real train counts (rarest 10,162, 2.70×; EXP-003). R-09 cannot be tested on full-evidence DDXPlus (see R-16). R-14: the first cloud job, B0/B1, ran on a Colab T4 in about a minute. Other scores unchanged | — |

@@ -32,11 +32,18 @@ and ``SYM:relieved_by_rest``, the discriminators for pulmonary embolism, pneumot
 and the anginas. Every token derived that way is listed in :attr:`CaseTokens.narrower`, so a result
 can always say how much of its input was inferred rather than observed.
 
-**Denials are recorded, not encoded** (:attr:`CaseTokens.denied`). The encoder gives a default
-answer no column, so ``0`` means "denied" and "never asked" alike — the collapse
-docs/04-safety-ethics.md §3 forbids. Fixing it needs an "asked" channel and a new feature
-fingerprint, which is experiment R2, not this task. Until then the denials are carried through, so
-that a result can say what the model was unable to see.
+**Denials reach the model only through the encoder's "asked" channel** (R-18). Without it the
+encoder gives a default answer no column, so ``0`` means "denied" and "never asked" alike — the
+collapse docs/04-safety-ethics.md §3 forbids — and the B1 models, trained that way, see no denial
+at all. :attr:`CaseTokens.asked` lists every question the case settles: those its tokens answer,
+and those a denial answers "no". A denial settles a question under the same rule as
+:func:`~src.medical_kg.crosswalk.expand_case`: only a yes/no question no broader than the concept
+("no diaphoresis" settles "increased sweating?"; "no radiation to the back" does not settle "does
+the pain radiate?", since it may radiate elsewhere). :attr:`CaseTokens.denials_asked` names the
+denials that did, and every other denial is still in :attr:`CaseTokens.denied`, so a result can
+say what the model was unable to see. An answered question is asked with all its answers: a case
+recording radiation to the jaw tells the model the pain radiates nowhere else, the same
+question-level reading a mask gives a DDXPlus patient (src/ml/evidence_masks.py).
 
 Reference: docs/02-architecture.md §5.2 (the crosswalk card), docs/03-data-management.md §2.2 (the
 feature card).
@@ -57,6 +64,7 @@ from src.ddxplus import CONCEPT_PREFIX, TOKEN_SEP, code_sort_key
 from src.medical_kg.crosswalk import (
     BY_CONCEPT,
     CONCEPT_IMPLIES_ANSWER,
+    DENIAL_CARRIES_OVER,
     PARENT_QUESTION,
     CrosswalkEntry,
     Match,
@@ -118,8 +126,13 @@ class CaseTokens:
         by_concept: concept id → the tokens it produced, parent questions included.
         narrower: Those tokens derived through a NARROWER match (decision A-8); a subset of
             ``tokens``.
-        denied: Concepts the case explicitly denies. **Not encoded** — see the module docstring.
+        denied: Concepts the case explicitly denies, all of them.
         dropped: Every finding that produced no token, with its reason.
+        asked: The questions the case settles, in evidence-code order: those ``tokens`` answer
+            and those ``denials_asked`` answer "no". The encoder's ``asked`` argument; only an
+            encoder with the "asked" channel reads it.
+        denials_asked: Denied concept → the yes/no question its denial answers "no". A denial
+            not listed here reaches no model.
     """
 
     tokens: tuple[str, ...]
@@ -127,13 +140,16 @@ class CaseTokens:
     narrower: tuple[str, ...] = ()
     denied: tuple[str, ...] = ()
     dropped: tuple[Dropped, ...] = ()
+    asked: tuple[str, ...] = ()
+    denials_asked: Mapping[str, str] = field(default_factory=dict)
 
     def summary(self) -> str:
         """One line for a log or a report."""
         return (
             f"{len(self.tokens)} tokens from {len(self.by_concept)} concepts"
-            f" ({len(self.narrower)} narrower), {len(self.denied)} denied,"
-            f" {len(self.dropped)} dropped"
+            f" ({len(self.narrower)} narrower), {len(self.denied)} denied"
+            f" ({len(self.denials_asked)} as a question), {len(self.dropped)} dropped,"
+            f" {len(self.asked)} questions asked"
         )
 
 
@@ -231,6 +247,17 @@ def _findings(case: PatientCase) -> Sequence[Finding]:
     return [*case.findings, *case.risk_factors]
 
 
+def _denied_question(concept: str, allowed: set[str] | None) -> str | None:
+    """The yes/no question a denial of ``concept`` answers "no", if it answers one."""
+    entry = BY_CONCEPT.get(concept)
+    if entry is None or entry.pattern is None or entry.match not in DENIAL_CARRIES_OVER:
+        return None
+    if not entry.pattern.whole_question:
+        return None
+    code = entry.pattern.code
+    return code if allowed is None or code in allowed else None
+
+
 def tokens_for_case(
     case: PatientCase, *, codes: Iterable[str] | None = None, include_narrower: bool = True
 ) -> CaseTokens:
@@ -325,6 +352,22 @@ def tokens_for_case(
                 keep(parent, request)
 
     tokens = tuple(sorted(chosen, key=_token_sort_key))
+    answered = {token.partition(TOKEN_SEP)[0] for token in tokens}
+    denials_asked: dict[str, str] = {}
+    for concept in denied:
+        code = _denied_question(concept, allowed)
+        if code is None:
+            continue
+        if code in answered:
+            logger.warning(
+                "case %s: %s is denied, but %s is answered yes; the answer stands",
+                case.case_id,
+                concept,
+                code,
+            )
+            continue
+        denials_asked[concept] = code
+    asked = tuple(sorted(answered | set(denials_asked.values()), key=code_sort_key))
     return CaseTokens(
         tokens=tokens,
         by_concept={c: tuple(t) for c, t in by_concept.items() if t},
@@ -333,6 +376,8 @@ def tokens_for_case(
         narrower=tuple(sorted(from_narrower - from_sound, key=_token_sort_key)),
         denied=tuple(denied),
         dropped=tuple(dropped),
+        asked=asked,
+        denials_asked=denials_asked,
     )
 
 
@@ -348,7 +393,8 @@ def encode_case(
 
     Returns:
         ``(row, tokens)``: a 1-D float32 row in the encoder's column order, and the
-        :class:`CaseTokens` it was built from.
+        :class:`CaseTokens` it was built from. An encoder with the "asked" channel is told which
+        questions the case settles; every other question is unasked.
 
     Raises:
         UnrepresentableCase: for a sex the feature space has no column for.
@@ -359,4 +405,5 @@ def encode_case(
             "for Sex.OTHER. The ranker degrades, and the ranking stays knowledge-graph only."
         )
     tokens = tokens_for_case(case, codes=encoder.codes, include_narrower=include_narrower)
-    return encoder.encode(case.age, case.sex.value, tokens.tokens), tokens
+    row = encoder.encode(case.age, case.sex.value, tokens.tokens, asked=tokens.asked)
+    return row, tokens

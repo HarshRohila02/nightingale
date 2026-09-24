@@ -2,6 +2,8 @@
 
     python scripts/train_baselines.py                 # CPU
     python scripts/train_baselines.py --device cuda   # XGBoost on a cloud GPU
+    python scripts/train_baselines.py --augment --out models/b1_aug                  # B1 +aug
+    python scripts/train_baselines.py --asked-channel --augment --out models/b1_asked_aug  # B1′+aug
 
 This is a training run on project data, so it runs only where the owner chooses (D-7). For B0 and
 B1 that is Google Colab, through notebooks/colab_b0_b1.ipynb (docs/11 §4). It reads the train and
@@ -16,6 +18,16 @@ validate parquets only, never the test split (docs/05 §2).
    scores, and McNemar's test on top-3 correctness.
 5. Write the bundle to --out (default models/b0_b1): the three models, metrics.json, run.json
    (commit, versions, device, timings), features.json and pip-freeze.txt.
+
+**The R-18 retrain** (EXP-017): ``--augment`` adds one masked copy of every train patient
+(src/ml/evidence_masks.py, a share drawn per patient from [0.1, 0.9]), and ``--asked-channel``
+encodes which questions were asked (src/ml/features.py). The channel is constant at full evidence,
+so it is only tried with ``--augment``: the two runs above give B1 +aug and B1′+aug, whose
+comparison separates what the channel does from what the masked copies do. The XGBoost holdout is
+split by patient, so no patient's copy is on the other side. **Validate is scored at full evidence
+only**: scoring masked validate patients waits for the team to approve a mask rule (docs/05
+amendment 3, proposed). Each bundle also records what every model answers to a patient with no
+findings at all, where B1 XGBoost said atrial fibrillation with probability 1.000.
 """
 
 from __future__ import annotations
@@ -46,10 +58,24 @@ from src.ml.baselines import (  # noqa: E402
     XGBoostBaseline,
     label_index,
 )
+from src.ml.evidence_masks import augment  # noqa: E402
 from src.ml.features import EvidenceEncoder  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-COLUMNS = ["case_id", *INPUT_COLUMNS, "label_condition_id", "label_differential"]
+COLUMNS = [
+    "case_id",
+    "initial_evidence",  # defines a mask (--augment); never a model input
+    *INPUT_COLUMNS,
+    "label_condition_id",
+    "label_differential",
+]
+ENCODED = ["age", "sex", "evidences", "asked"]
+"""What the encoder reads: ``asked`` exists only on masked rows, and means everything elsewhere."""
+EMPTY_ROWS = (
+    {"age": 50, "sex": "M", "evidences": [], "asked": []},
+    {"age": 50, "sex": "F", "evidences": [], "asked": []},
+)
+"""Patients with no findings, every question unasked: EXP-017's atrial-fibrillation probe."""
 
 
 def load_split(interim: Path, split: str) -> pd.DataFrame:
@@ -96,6 +122,28 @@ def provenance(device: str) -> dict[str, Any]:
     }
 
 
+def variant(asked_channel: bool, augmented: bool) -> str:
+    """The proposal's suffix for a model: ′ for the asked channel, +aug for masked copies."""
+    return ("′" if asked_channel else "") + ("+aug" if augmented else "")
+
+
+def empty_row_answers(encoder: EvidenceEncoder, models: dict[str, Any]) -> dict[str, Any]:
+    """Each model's top condition, and its probability, for a patient with no findings."""
+    rows = encoder.transform(list(EMPTY_ROWS))
+    answers = {}
+    for key, model in models.items():
+        probabilities = np.asarray(model.predict_proba(rows))
+        answers[key] = [
+            {
+                "sex": patient["sex"],
+                "top": model.labels[int(p.argmax())],
+                "probability": round(float(p.max()), 4),
+            }
+            for patient, p in zip(EMPTY_ROWS, probabilities, strict=True)
+        ]
+    return answers
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):  # cp1252 consoles (CLAUDE.md gotcha)
         with contextlib.suppress(AttributeError, OSError):
@@ -114,7 +162,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--resamples", type=int, default=1000, help="bootstrap resamples (docs/05 §6)"
     )
+    parser.add_argument(
+        "--asked-channel", action="store_true", help="encode which questions were asked (R-18)"
+    )
+    parser.add_argument(
+        "--augment", action="store_true", help="add one masked copy of every train patient"
+    )
     args = parser.parse_args(argv)
+    if args.asked_channel and not args.augment:
+        parser.error("--asked-channel is constant at full evidence; use it with --augment")
+    suffix = variant(args.asked_channel, args.augment)
 
     from sklearn.model_selection import train_test_split
 
@@ -132,21 +189,36 @@ def main(argv: list[str] | None = None) -> int:
     print("Loading the train and validate parquets")
     train, validate = load_split(args.interim, "train"), load_split(args.interim, "validate")
     encoder = EvidenceEncoder.from_release(
-        args.raw_dir / "release_evidences.json", args.interim / "ddxplus_chestpain_conditions.json"
+        args.raw_dir / "release_evidences.json",
+        args.interim / "ddxplus_chestpain_conditions.json",
+        asked_channel=args.asked_channel,
     )
     lap("load")
 
-    print(
-        f"Encoding {len(train):,} + {len(validate):,} patients into {len(encoder.feature_names)} columns"
+    patients = len(train)
+    fit_patients, holdout_patients = train_test_split(
+        np.arange(patients),
+        test_size=args.holdout,
+        stratify=label_index(train["label_condition_id"]),
+        random_state=args.seed,
     )
-    X_train = encoder.transform_sparse(train[list(INPUT_COLUMNS)])
+    if args.augment:
+        print(f"Drawing one masked copy of each of {patients:,} train patients")
+        train = augment(train, codes=encoder.codes, seed=args.seed)
+        # Row i and row i + patients are the same patient: keep them on the same side.
+        fit_rows = np.concatenate([fit_patients, fit_patients + patients])
+        holdout_rows = np.concatenate([holdout_patients, holdout_patients + patients])
+        lap("augment")
+    else:
+        fit_rows, holdout_rows = fit_patients, holdout_patients
+
+    print(
+        f"Encoding {len(train):,} + {len(validate):,} rows into {len(encoder.feature_names)} columns"
+    )
+    X_train = encoder.transform_sparse(train[[c for c in ENCODED if c in train]])
     X_validate = encoder.transform_sparse(validate[list(INPUT_COLUMNS)])
     y_train = label_index(train["label_condition_id"])
     lap("encode")
-
-    fit_rows, holdout_rows = train_test_split(
-        np.arange(len(train)), test_size=args.holdout, stratify=y_train, random_state=args.seed
-    )
 
     print("B0: prevalence prior")
     b0 = PrevalencePrior.fit(y_train)
@@ -174,8 +246,8 @@ def main(argv: list[str] | None = None) -> int:
     reports, hits = {}, {}
     for key, name, probabilities in (
         ("b0", "B0 prevalence prior", b0.predict_proba(len(validate))),
-        ("b1_logreg", "B1 logistic regression", logreg.predict_proba(X_validate)),
-        ("b1_xgboost", "B1 XGBoost", xgb.predict_proba(X_validate)),
+        ("b1_logreg", f"B1 logistic regression{suffix}", logreg.predict_proba(X_validate)),
+        ("b1_xgboost", f"B1 XGBoost{suffix}", xgb.predict_proba(X_validate)),
     ):
         reports[key], cases = score(
             name, validate, probabilities, resamples=args.resamples, seed=args.seed
@@ -185,6 +257,7 @@ def main(argv: list[str] | None = None) -> int:
         "b1_xgboost_vs_b0": mcnemar(hits["b1_xgboost"], hits["b0"]),
         "b1_xgboost_vs_b1_logreg": mcnemar(hits["b1_xgboost"], hits["b1_logreg"]),
     }
+    empty = empty_row_answers(encoder, {"b1_logreg": logreg, "b1_xgboost": xgb})
     lap("evaluate")
 
     out = args.out
@@ -206,9 +279,12 @@ def main(argv: list[str] | None = None) -> int:
                     "closed-world: 13 conditions only (R-13)",
                     "synthetic DDXPlus patients",
                     "raw scores, not calibrated probabilities",
+                    "full evidence only: masked validate patients wait for docs/05 amendment 3",
                 ],
+                "variant": suffix,
                 "models": reports,
                 "mcnemar_top3": comparisons,
+                "empty_row": empty,
             },
             indent=2,
         ),
@@ -221,7 +297,12 @@ def main(argv: list[str] | None = None) -> int:
         "started_at": started.isoformat(timespec="seconds"),
         "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "seed": args.seed,
+        "variant": {
+            "asked_channel": args.asked_channel,
+            "augment": {"low": 0.1, "high": 0.9} if args.augment else None,
+        },
         "rows": {
+            "train_patients": patients,
             "train": len(train),
             "train_fit": len(fit_rows),
             "train_holdout": len(holdout_rows),
@@ -245,6 +326,10 @@ def main(argv: list[str] | None = None) -> int:
         cells = [f"{n} {by_name[n]['value']:.3f}" for n in wanted]
         print(f"  {report['model']:<24} " + " · ".join(cells))
     print(f"  McNemar, top-3, XGBoost vs B0: p = {comparisons['b1_xgboost_vs_b0']['p_value']:.3g}")
+    print("\nA patient with no findings (EXP-017: B1 XGBoost said atrial fibrillation, 1.000):")
+    for key, answers in empty.items():
+        cells = [f"{a['sex']}: {a['top']} {a['probability']:.3f}" for a in answers]
+        print(f"  {key + suffix:<22} " + " · ".join(cells))
     print(f"\nWrote {out}")
     return 0
 

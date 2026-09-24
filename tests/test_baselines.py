@@ -107,6 +107,22 @@ def test_the_logistic_baseline_matches_scikit_learn():
     assert np.allclose(ours.predict_proba(X), theirs.predict_proba(scaler.transform(X)), atol=1e-8)
 
 
+def test_a_two_class_logistic_baseline_matches_scikit_learn():
+    """scikit-learn keeps one coefficient row for two classes; a softmax over it alone would give
+    every row probability 1 (found 2026-09-24; the 13-class models were never affected)."""
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import MaxAbsScaler
+
+    X, y = toy_data(seed=3)
+    y = (y % 2).astype(np.int64)
+    ours = LogisticBaseline.fit(X, y, feature_fingerprint="toy", labels=("A", "B"))
+    scaler = MaxAbsScaler().fit(X)
+    theirs = LogisticRegression(max_iter=1000, random_state=42).fit(scaler.transform(X), y)
+    assert ours.predict_proba(X).shape == (len(y), 2)
+    # scikit-learn answers in float32 here, the JSON model in float64.
+    assert np.allclose(ours.predict_proba(X), theirs.predict_proba(scaler.transform(X)), atol=1e-6)
+
+
 def test_xgboost_stops_early_and_survives_save_and_load(tmp_path):
     X, y = toy_data(rows_per_class=20)
     held_x, held_y = toy_data(rows_per_class=5, seed=3)
@@ -299,6 +315,59 @@ def test_the_training_job_runs_end_to_end_on_a_mini_release(tmp_path):
     )
     assert features["fingerprint"] == encoder.fingerprint == run["features"]["fingerprint"]
     XGBoostBaseline.load(out, feature_fingerprint=encoder.fingerprint)  # loads, or raises
+
+
+def test_the_r18_retrain_runs_end_to_end_on_a_mini_release(tmp_path):
+    """--asked-channel --augment: one masked copy per train patient, split by patient, the new
+    fingerprint, validate at full evidence only, the empty-row probe, and a bundle the ranker
+    opens with the asked channel."""
+    from src.ml.ranker import ModelRanker, open_ranker
+
+    raw, interim = write_mini_release(tmp_path)
+    for split in ("train", "validate"):
+        built = _run(
+            str(BUILDER), "--split", split, "--raw-dir", str(raw), "--out-dir", str(interim)
+        )
+        assert built.returncode == 0, built.stderr
+    out = tmp_path / "out"
+    trained = _run(
+        str(TRAINER),
+        *("--interim", str(interim), "--raw-dir", str(raw), "--out", str(out)),
+        *("--max-rounds", "30", "--early-stopping", "5", "--resamples", "50"),
+        "--asked-channel",
+        "--augment",
+    )
+    assert trained.returncode == 0, trained.stdout + trained.stderr
+
+    run = json.loads((out / "run.json").read_text(encoding="utf-8"))
+    assert run["variant"] == {"asked_channel": True, "augment": {"low": 0.1, "high": 0.9}}
+    assert run["rows"]["train_patients"] == 13 * 40 and run["rows"]["train"] == 2 * 13 * 40
+    assert run["rows"]["train_fit"] + run["rows"]["train_holdout"] == 2 * 13 * 40
+    assert run["rows"]["validate"] == 13 * 15, "validate is scored at full evidence only"
+    asked = EvidenceEncoder.from_release(
+        raw / "release_evidences.json",
+        interim / "ddxplus_chestpain_conditions.json",
+        asked_channel=True,
+    )
+    assert run["features"]["fingerprint"] == asked.fingerprint
+
+    metrics = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["variant"] == "′+aug"
+    assert metrics["models"]["b1_xgboost"]["model"] == "B1 XGBoost′+aug"
+    assert {a["sex"] for a in metrics["empty_row"]["b1_xgboost"]} == {"M", "F"}
+
+    ranker = open_ranker(
+        model_dir=out,
+        evidences_path=raw / "release_evidences.json",
+        conditions_path=interim / "ddxplus_chestpain_conditions.json",
+    )
+    assert isinstance(ranker, ModelRanker) and ranker.encoder.asked_channel
+
+
+def test_the_asked_channel_alone_is_refused(tmp_path):
+    """Constant at full evidence, so a model would learn nothing from it."""
+    result = _run(str(TRAINER), "--asked-channel", "--interim", str(tmp_path))
+    assert result.returncode == 2 and "--augment" in result.stderr
 
 
 def test_the_training_job_explains_a_missing_parquet(tmp_path):

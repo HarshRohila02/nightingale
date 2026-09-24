@@ -20,7 +20,12 @@ fibrillation for 76% of patients there, and with probability 1.000 when given no
 because the encoder gives a default "no" answer no column and AF is the condition whose DDXPlus
 patients answer fewest questions. Every hand-authored case is short — the golden cases carry 5 to 13
 tokens — so that is the regime this ranker actually runs in. ``backend="xgboost"`` stays available
-for experiments; it must not be the configured default until the encoder has an "asked" channel.
+for experiments; it must not be the configured default until a model trained with the encoder's
+"asked" channel on masked copies of patients (``+aug``) has shown it no longer does this.
+
+A model records the fingerprint of the features it was trained on. :func:`open_ranker` builds the
+encoder both ways, without and with the "asked" channel, and uses the one whose fingerprint the
+model names; a model that names neither is refused.
 
 Reference: docs/02-architecture.md §7 (degradation), docs/03-data-management.md §2.2 (features),
 docs/08-experiment-log.md EXP-017.
@@ -104,7 +109,8 @@ class ModelRanker:
     Args:
         model: Anything with ``labels`` and ``predict_proba`` — a B1 baseline, or the deep ranker.
         encoder: The :class:`~src.ml.features.EvidenceEncoder` the model was trained with. Its
-            fingerprint is checked when the model is loaded, not here.
+            fingerprint is checked when the model is loaded, not here. With the "asked" channel,
+            the case's questions are passed on and the denials it settles reach the model.
         backend: The name this was opened as, for reporting.
         include_narrower: Passed to :func:`~src.ml.case_tokens.tokens_for_case` (decision A-8).
 
@@ -158,20 +164,24 @@ class ModelRanker:
         }
 
 
-def _load_encoder(evidences_path: Path, conditions_path: Path) -> EvidenceEncoder | str:
+def _load_encoders(evidences_path: Path, conditions_path: Path) -> dict[str, EvidenceEncoder] | str:
+    """{fingerprint: encoder}, without and with the "asked" channel, or why there is none."""
     missing = [str(p) for p in (evidences_path, conditions_path) if not p.exists()]
     if missing:
         return f"the release files are not on this machine: {', '.join(missing)}"
     try:
-        return EvidenceEncoder.from_release(evidences_path, conditions_path)
+        encoders = [
+            EvidenceEncoder.from_release(evidences_path, conditions_path, asked_channel=asked)
+            for asked in (False, True)
+        ]
     except (OSError, ValueError, KeyError) as exc:
         return f"the release files cannot be read: {exc}"
+    return {encoder.fingerprint: encoder for encoder in encoders}
 
 
-def _load_model(
-    backend: str, model_dir: Path, fingerprint: str, stem: str | None
-) -> ProbabilityModel | str:
-    """The trained model, or a sentence saying why there is none."""
+def _load_model(backend: str, model_dir: Path, stem: str | None) -> ProbabilityModel | str:
+    """The trained model, or a sentence saying why there is none. Its fingerprint is the
+    caller's to check."""
     from src.ml.baselines import LogisticBaseline, XGBoostBaseline
 
     try:
@@ -179,18 +189,12 @@ def _load_model(
             path = model_dir / (stem or LOGREG_FILE)
             if not path.exists():
                 return f"no trained model at {path}"
-            return LogisticBaseline.from_json(
-                json.loads(path.read_text(encoding="utf-8")), feature_fingerprint=fingerprint
-            )
+            return LogisticBaseline.from_json(json.loads(path.read_text(encoding="utf-8")))
         path = model_dir / f"{stem or XGBOOST_STEM}.meta.json"
         if not path.exists():
             return f"no trained model at {path}"
-        return XGBoostBaseline.load(
-            model_dir, stem or XGBOOST_STEM, feature_fingerprint=fingerprint
-        )
-    except ValueError as exc:  # a fingerprint mismatch says "re-encode or retrain"
-        return str(exc)
-    except (OSError, KeyError, ImportError) as exc:
+        return XGBoostBaseline.load(model_dir, stem or XGBOOST_STEM)
+    except (OSError, KeyError, ValueError, ImportError) as exc:
         return f"the model at {model_dir} cannot be loaded: {exc}"
 
 
@@ -229,15 +233,25 @@ def open_ranker(
     if backend == "none":
         return DegradedRanker("the ml backend is switched off in the configuration")
 
-    encoder = _load_encoder(Path(evidences_path), Path(conditions_path))
-    if isinstance(encoder, str):
-        logger.warning("ranking without a model: %s", encoder)
-        return DegradedRanker(encoder)
+    encoders = _load_encoders(Path(evidences_path), Path(conditions_path))
+    if isinstance(encoders, str):
+        logger.warning("ranking without a model: %s", encoders)
+        return DegradedRanker(encoders)
 
-    model = _load_model(backend, Path(model_dir), encoder.fingerprint, stem)
+    model = _load_model(backend, Path(model_dir), stem)
     if isinstance(model, str):
         logger.warning("ranking without a model: %s", model)
         return DegradedRanker(model)
+    fingerprint = getattr(model, "feature_fingerprint", None)
+    encoder = encoders.get(fingerprint) if fingerprint else None
+    if encoder is None:
+        reason = (
+            f"the model was trained on features {fingerprint}, but these release "
+            f"files give {' or '.join(encoders)} (without or with the asked channel); "
+            "re-encode or retrain"
+        )
+        logger.warning("ranking without a model: %s", reason)
+        return DegradedRanker(reason)
 
     logger.info("ranker: %s from %s, %d features", backend, model_dir, len(encoder.feature_names))
     return ModelRanker(model, encoder, backend=backend, include_narrower=include_narrower)

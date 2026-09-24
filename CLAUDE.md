@@ -138,12 +138,19 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   unfinished interview are the same thing, and AF is the condition whose DDXPlus patients answer
   fewest questions. At 25% evidence XGBoost's must-not-miss recall@3 is 0.935, below the 0.95
   target. **So the pipeline's real ranker is logistic regression, and every hand-authored case is
-  short.** Never quote an XGBoost number on partial or hand-written input.
+  short.** Never quote an XGBoost number on partial or hand-written input. **The encoder now has the "asked" channel** (`asked_channel=True`, 691
+  columns, fingerprint `ddd14019c66eff10`; off, it is still `3a0d5a5e01d7f427`), stored as
+  `E_nn=unasked`. At full evidence every question counts as asked, so the channel only teaches a
+  model trained on masked copies (`+aug`, `src/ml/evidence_masks.py`); never derive "asked" from
+  DDXPlus's listed default answers, which leak the label. No model with the channel is trained yet
+  (EXP-018 waits for the owner to say where).
 - **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by
-  default (open decision **A-8**, without which sudden onset and exertional pain vanish), records
-  denials without encoding them, and keeps every dropped finding with a reason. It has **no ground
+  default (open decision **A-8**, without which sudden onset and exertional pain vanish), and keeps
+  every dropped finding with a reason. A denial is never a token: it marks its question asked
+  (`CaseTokens.asked`) only when it answers a whole yes/no question, and only a model with the
+  "asked" channel can see that. It has **no ground
   truth** (R-17): the tests round-trip each concept back through `concepts_from_evidences`.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
