@@ -69,9 +69,14 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   real graph scores it, and get a DDXPlus patient's concepts with `concepts_from_evidences()`. Every
   new `SYM:*` / `RF:*` id needs a crosswalk entry, and a test enforces it;
   `canonical_concept_id()` decides which graph node it lives on.
-- **The red-flag rules over-fire on DDXPlus** (EXP-014, R-15). 59% of validate patients get a flag,
-  and the aortic-dissection rule flags 50%, because back radiation alone fires it. The pipeline
-  sorts flagged candidates first, so a golden case with a flag cannot detect a ranking regression:
+- **The red-flag rules over-fired on DDXPlus** (EXP-014, R-15); 2d fixed the worst of it
+  (EXP-008). Every rule follows a published pattern (ADD-RS, Wells, Braunwald), back radiation no
+  longer fires the dissection rule (50% → 8% of patients), and every must-not-miss condition has a
+  rule. **Measure alarm fatigue as the share of patients *without* a must-not-miss condition who
+  get a flag (25%)**, never as the share of all patients: half of DDXPlus's patients have one. In
+  DDXPlus "tearing" pain belongs to pneumothorax and Boerhaave too. Red-flag sensitivity is 0.823,
+  under the 0.95 target, because DDXPlus often omits the defining finding; do not loosen a rule to
+  chase it. `scripts/check_red_flags.py` re-measures. The pipeline sorts flagged candidates first, so a golden case with a flag cannot detect a ranking regression:
   test the ranking with red flags off too (`tests/test_ranker.py`). Under the old overlap score
   GC-001's MI ranked fifth by graph score; under 2a's every golden case ranks first (EXP-005).
 - **The KG knows questions, not answers** (`docs/02` §5.1). DDXPlus's edges are question-level;

@@ -63,6 +63,114 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-008 — Red-flag rules on DDXPlus validate: sensitivity, precision and the false-alarm burden (2d) (validation split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-25 |
+| Author | P3 (run by Claude) |
+| Config / ablation | The red-flag layer alone: `src/reasoning/red_flags.py` on each patient's concepts (`concepts_from_evidences`); no ranker, no graph |
+| Split used | validation |
+| Git commit | `0c09dd4` (the rules before 2d) and the 2d rules, committed with this entry |
+| MLflow run | — (rules only; nothing is trained) |
+| Seed | 42 (bootstrap) |
+
+**Question:** EXP-014 found the red-flag rules over-firing (R-15): 59% of validate patients got a
+flag, and the aortic-dissection rule flagged 50% of them because back radiation alone fired it.
+Three must-not-miss conditions had no rule, so docs/05's red-flag sensitivity (amendment 2) counted
+them as missed. Can the rules follow published clinical patterns, cover every must-not-miss
+condition, and fire less where they should not?
+
+**Setup:** `scripts/check_red_flags.py`, run on the rules as they stood at `0c09dd4` and after 2d.
+The 2d rules (the module docstring gives each one's source):
+
+* **Aortic dissection** after the ADD-RS: chest, back or abdominal pain with a highly specific
+  sign (tearing pain, pulse deficit, inter-arm pressure difference), or with findings from two of
+  its three categories (predisposing condition, pain features, examination). Back radiation is in
+  none of them.
+* **Pulmonary embolism**: pleuritic pain or breathlessness *and* a Wells risk a history can record
+  (unilateral leg swelling or calf pain, immobilisation, recent surgery, previous DVT). Before, the
+  risk factor alone fired it, although its reason named the symptom.
+* **New:** unstable angina (a crescendo pattern, or chest pain at rest with an ischaemic character),
+  myocarditis (chest pain after a viral illness with breathlessness or palpitations), acute
+  pulmonary edema (breathlessness with orthopnoea, paroxysmal nocturnal dyspnoea or known heart
+  failure). Three crosswalk concepts were added for them: `SYM:rest_pain` (`E_14`),
+  `SYM:crescendo_pattern` (`E_13`), `SYM:paroxysmal_nocturnal_dyspnoea` (`E_67`).
+* MI, pneumothorax and Boerhaave are unchanged.
+
+The rules were written from those patterns. Validate was consulted twice before they were fixed,
+and it is said here: DDXPlus lists "tearing" (`déchirante`, `E_54_@_V_71`) for 76% of pneumothorax
+and 76% of Boerhaave patients, and "chest pain even at rest" (`E_14`) for 56% of pneumothorax
+patients, so neither was allowed to define a rule alone for a condition it does not belong to
+(rest pain needs an ischaemic character; tearing still fires the dissection rule, as the ADD-RS and
+docs/04 §3 say it should). No threshold was fitted to validate.
+
+**Results** (33,963 validate patients, 16,943 of them with a must-not-miss condition; 95% bootstrap
+intervals):
+
+| Measure | Before 2d | After 2d |
+|---|---|---|
+| Rules; must-not-miss conditions without one | 5; 3 | 10; **0** |
+| **Red-flag sensitivity** (docs/05 amendment 2, target ≥ 0.95) | 0.449 [0.441, 0.456] | **0.823** [0.818, 0.829] |
+| Red-flag precision, strict (A-7 open) | 0.230 [0.226, 0.234] | **0.512** [0.508, 0.516] |
+| Any flag, all patients | 59% | 58% |
+| **Any flag, patients without a must-not-miss condition** (the false-alarm burden) | 31% | **25%** |
+| … stable angina / pericarditis / AF, PSVT, GERD, panic | 98% / 98% / 0% | 95% / 65% / 0% |
+
+| Rule | Own patients flagged, before → after | Everyone else, before → after |
+|---|---|---|
+| Aortic dissection | no DDXPlus patients | **50% → 8%** (all of it Boerhaave and pneumothorax: "tearing") |
+| NSTEMI / STEMI | 0.907 | 24% (unstable angina, stable angina, pulmonary edema) |
+| Unstable angina | — → **0.892** [0.880, 0.903] | 0% |
+| Pulmonary embolism | 0.785 → **0.922** [0.913, 0.930] | 0% → 2% (pulmonary edema patients reporting calf pain, 502 of 599, or one swollen leg) |
+| Spontaneous pneumothorax | 0.325 [0.301, 0.348] | 3% |
+| Myocarditis | — → **0.641** [0.617, 0.665] | 6% (pericarditis, 62% of its patients) |
+| Acute pulmonary edema | — → **0.958** [0.949, 0.966] | 0% |
+| Boerhaave | 0.748 [0.730, 0.767] | 0% |
+
+**A-5, the sudden-onset cut-off** (`E_59` ≥ k), which on DDXPlus changes only the pneumothorax rule:
+≥ 8 (the working value) reaches 32% of pneumothorax patients and 3% of everyone else; ≥ 7, 44% and
+4%; ≥ 6, 54% and 5%.
+
+**Safety layer v1** (`src/reasoning/safety.py`, called last by the pipeline): through the real
+graph and the template explainer, 3,000 validate patients (a random sample) needed no repair — no
+treatment language, the disclaimer intact, flags first.
+
+**Interpretation:**
+
+1. **R-15's main cause is gone.** The dissection rule flags 8% of patients instead of 50%, and the
+   8% is DDXPlus's vocabulary, not back radiation: "tearing" is how DDXPlus describes pneumothorax
+   and oesophageal-rupture pain, and both are must-not-miss emergencies themselves. A rule on
+   tearing pain cannot tell them apart from a history alone, and the ADD-RS says it should not try.
+2. **The share of patients flagged is the wrong alarm-fatigue measure on DDXPlus.** Half of validate
+   patients have a must-not-miss condition, so a perfect rule set flags half of them. The burden on
+   everyone else fell from 31% to 25%, and almost all of what remains is the MI rule on stable angina
+   (95%): exertional pressure-type pain radiating to the arm is the ischaemic pattern, and at
+   presentation nothing in a history separates stable from unstable disease; the rule's advice is an
+   ECG and a troponin. Whether that flag is "appropriate" is A-7, the team's.
+3. **Sensitivity rose from 0.449 to 0.823 but misses the 0.95 target**, and three conditions are the
+   reason: pneumothorax 0.33, myocarditis 0.64, Boerhaave 0.75. Each is capped by DDXPlus's own
+   sampling. DDXPlus draws each finding independently, so 20% of Boerhaave patients never report the
+   vomiting, 29% of myocarditis patients the viral illness, and the onset speed of pneumothorax is
+   drawn uniformly over a range (EXP-014). Chasing the target would mean rules that fire without the
+   defining finding, which is fitting the generator, not medicine. The ranker and the graph are the
+   other layer for these patients: the target is judged on the whole system (must-not-miss
+   recall@3), not on the rules alone.
+4. **A-5:** lowering the cut-off to ≥ 6 would lift the pneumothorax rule to 54% for two points of
+   false alarms. The recommendation is to keep ≥ 8: "sudden" means within seconds to minutes, and
+   the gain comes from how DDXPlus draws its onset values. The team decides.
+5. **Circularity (R-12).** DDXPlus generated these patients from the definitions the crosswalk
+   reads, so every rate here is an upper bound on what the rules do with real histories, and the
+   dissection rule has no patients to be sensitive to. The golden cases remain the clinical check:
+   GC-001 raises MI, GC-002 PE and pneumothorax, GC-003 dissection, GC-004 nothing.
+
+**Next action:** the team: A-5 (keep ≥ 8, recommended) and A-7 (which flags are appropriate for which
+true conditions; EXP-008's candidates are the MI flag on stable angina, the myocarditis flag on
+pericarditis, and the dissection flag on pneumothorax and Boerhaave). Then 2c scores the whole
+system's must-not-miss recall with these rules on.
+
+---
+
 ### EXP-005 — B2, the graph alone: replacing the overlap score (2a) (validate split)
 
 | Field | Value |
@@ -880,7 +988,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
 | EXP-006 | A0 fusion, weight sweep | 2 | Fusion weights (validation only) |
 | EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |
-| EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning |
+| EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only | 3 | H3 |
 | EXP-010 | B4 text-RAG + LLM | 3 | H3 |
 | EXP-011 | Retrieval quality sweep | 3 | Chunking/embedding choice |

@@ -5,7 +5,7 @@
 > are in §4 and they are mandatory. If this file and the repository disagree, stop and reconcile
 > (§4.1) before doing any new work.
 
-**Last updated:** 2026-09-24 · by Claude (R-18's "asked" channel built, and its retrain job ready for the owner to place; earlier today 🎯 W3 reached, 2a ✅ and the amendment 3 proposal) · **Last verified commit:** `4583e91`
+**Last updated:** 2026-09-25 · by Claude (2d ✅: the red-flag rules and safety layer v1, EXP-008; the owner's EXP-018 Colab run is back and is evaluated next) · **Last verified commit:** `4583e91`
 
 ---
 
@@ -15,14 +15,19 @@
 |---|---|
 | **Completed phase** | Phase 0 — Preparation & Documentation ✅ *(environment items carried over to 1.0 — see §5)* |
 | **Current phase** | **Phase 1 — Data & Knowledge Foundations** |
-| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1a — Data** ✅ 2026-09-20 (validate parquet + EXP-013 on the laptop; the train split built on Colab inside the B0/B1 job; EXP-002 confirmed on the train counts) · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1c — Baseline ML ranker** ✅ 2026-09-23 (feature encoding ✅; B0 and B1 trained and scored ✅, EXP-003/004; `ConditionRanker` ✅ — the case → token inversion, then the model behind the pipeline, with the golden cases re-checked without their red flags) · **2a — KG scoring** *(Phase 2, pulled forward)* ✅ 2026-09-24 (naive-Bayes over the crosswalk-closed graph; every golden case first by graph score alone, EXP-005) |
-| **Next action** | **The owner:** send the team `docs/proposals/05-amendment-3.md` — it settles D-10, records D-11, and asks nine questions (its §7); **nobody scores any model under either mask rule until the team picks one.** **The owner:** run the R-18 retrain on Colab (EXP-018, `notebooks/colab_b1_asked.ipynb` at `4583e91`, `docs/11` §4.2), then unzip it into `models/`. **Claude, unblocked:** 2d, the red-flag rules (R-15); 1e, the FastAPI endpoints. **The team (gate 1, before anything deep is trained):** approve amendment 3, which settles D-10 · **D-11** · **A-8** and the clinical review of the 17 representative answers · **A-9**, how the "asked" channel treats unlisted questions under a mask. **The user:** GC-005; whether the bundle moves to `models/b0_b1/`. |
-| **Blocked on** | The R-18 retrain (EXP-018) ← the owner's Colab run; its reduced-evidence scores ← amendment 3 · how the fusion is evaluated (2c) ← **D-10**, the team · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
+| **Current sub-phase** | **1.0 — Environment bring-up** ✅ 2026-09-19 · **1a — Data** ✅ 2026-09-20 (validate parquet + EXP-013 on the laptop; the train split built on Colab inside the B0/B1 job; EXP-002 confirmed on the train counts) · **1b — KG** ✅ 2026-09-19 (DDXPlus + hand-authored aortic dissection + BODHI-S, NetworkX and Neo4j stores, crosswalk) · **1c — Baseline ML ranker** ✅ 2026-09-23 (feature encoding ✅; B0 and B1 trained and scored ✅, EXP-003/004; `ConditionRanker` ✅ — the case → token inversion, then the model behind the pipeline, with the golden cases re-checked without their red flags) · **2a — KG scoring** *(Phase 2, pulled forward)* ✅ 2026-09-24 (naive-Bayes over the crosswalk-closed graph; every golden case first by graph score alone, EXP-005) · **2d — red flags + safety v1** *(pulled forward)* ✅ 2026-09-25 (every must-not-miss condition has a rule; red-flag sensitivity 0.449 → 0.823; the dissection rule's false alarms 50% → 8%, EXP-008) |
+| **Next action** | **The owner:** send the team `docs/proposals/05-amendment-3.md` — it settles D-10, records D-11, and asks nine questions (its §7); **nobody scores any model under either mask rule until the team picks one.** **Claude, now:** evaluate EXP-018 (the owner's Colab bundles are in `models/b1_aug/` and `models/b1_asked_aug/`, 2026-09-25). **Then, unblocked:** 1e, the FastAPI endpoints. **The team (gate 1, before anything deep is trained):** approve amendment 3, which settles D-10 · **D-11** · **A-8** and the clinical review of the 17 representative answers · **A-9**, how the "asked" channel treats unlisted questions under a mask · **A-5**, re-checked by EXP-008 (keep ≥ 8, recommended) · **A-7**, which flags are appropriate for which true conditions (EXP-008 names the candidates). **The user:** GC-005; whether the bundle moves to `models/b0_b1/`. |
+| **Blocked on** | EXP-018's reduced-evidence scores ← amendment 3 · how the fusion is evaluated (2c) ← **D-10**, the team · Phase 3 LLM ← D-5 (deferred) · university GPU access (external, R-14). **Every training or tuning run, and any job over ~5 min, waits for the user to say where** (D-7) |
 | **Schedule** | Week 1 of 8–10 · ahead of plan · 🎯 **W3 walking skeleton reached 2026-09-24** (target 2026-10-07): `scripts/demo.py` ranks a hand-authored case with the real model and the real graph end to end, and explains it with the graph's matches; `scripts/check_crosswalk.py` and the tests run all four golden cases on both. Phase 1 still has 1d and 1e to go |
-| **Health** | 598 tests (407 + 191 for the asked channel: 139 of them mask tests, most parametrised). Locally 589 pass and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1` (with it all 9 passed against Aura on 2026-09-19 and again on 2026-09-24) · **CI green on GitHub at `4583e91`**: 561 passed, 37 skipped (CI has no `data/` or `models/`) · the Colab-trained B0/B1 models reproduce their validate metrics to within 3 × 10⁻¹² |
+| **Health** | 667 tests (598 + 3 crosswalk entries + 66 for 2d's rules and safety layer). Locally 658 pass and the 9 live Neo4j tests skip unless `NEO4J_TEST_DOTENV=1` (with it all 9 passed against Aura on 2026-09-19 and again on 2026-09-24) · **CI green on GitHub at `4583e91`**: 561 passed, 37 skipped (CI has no `data/` or `models/`) · the Colab-trained B0/B1 models reproduce their validate metrics to within 3 × 10⁻¹² |
 
-**Handoff note for the next session:** **R-18's "asked" channel is built (2026-09-24), and the
-retrain waits for the owner to say where (EXP-018).** `EvidenceEncoder(asked_channel=True)`
+**Handoff note for the next session:** **2d is done (2026-09-25, EXP-008).** Every must-not-miss
+condition has a red-flag rule after a published pattern (ADD-RS, Wells, Braunwald); back
+radiation no longer fires the dissection rule; red-flag sensitivity is 0.823 (target 0.95, capped
+by DDXPlus omitting defining findings: do not loosen rules to chase it); measure alarm fatigue on
+patients *without* a must-not-miss condition (25%). `safety_check()` runs last in the pipeline.
+**R-18's "asked" channel is built (2026-09-24); the owner's Colab retrain (EXP-018) came back on
+2026-09-25.** `EvidenceEncoder(asked_channel=True)`
 adds `E_nn=unasked` columns (fingerprint `ddd14019c66eff10`; off, still `3a0d5a5e01d7f427`);
 `src/ml/evidence_masks.py` holds the proposal's question rule (its digest reproduces) and draws
 which unlisted questions count as asked (**A-9**, for the team); a hand-authored case's
@@ -182,7 +187,7 @@ changes — update this table when they do.
 |---|---|---|---|
 | 0 — Preparation & documentation | 1 | 2026-09-23 | ✅ 2026-09-17 · env items → 1.0 |
 | 1 — Data & knowledge foundations | 2–3 | 2026-10-07 | 🔄 1.0 ✅ · 1a ✅ · 1b ✅ · 1c ✅ · 1d, 1e to go |
-| 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | 🔄 2a ✅ (pulled forward) |
+| 2 — Reasoning, fusion & prototype | 4–5 | 2026-10-21 | 🔄 2a ✅ · 2d ✅ (pulled forward) |
 | 3 — Evidence & explanation | 6–7 | 2026-11-04 | ⬜ |
 | 4 — Evaluation, ablations & write-up | 8–9 | 2026-11-18 | ⬜ |
 | Buffer | 10 | 2026-11-25 | ⬜ |
@@ -348,7 +353,19 @@ ranker with **real** KG-matched supporting findings, end to end · CI green. *(W
   fixed — `4583e91`
 - **2b** · P2 — Calibration (Platt vs isotonic) + SHAP · EXP-007. B1's raw scores already have ECE 0.0001 on validate (EXP-004), so calibration matters mainly for fused and reduced-evidence scores (D-10)
 - **2c** · P4 — Fusion layer, ✓/?/✗ analysis, weight sweep on validation only · EXP-006. **Decide D-10 first** (R-16): on full-evidence DDXPlus, B1 leaves no room on top-3 or must-not-miss recall. **Also decide (EXP-005 point 7):** how a knowledge-graph-only condition is fused — with red flags off, dissection's ML score is 0, so after min-max its fused score is at most the graph weight and GC-003 ranks it 3rd although the graph ranks it 1st; and whether log-likelihood graph scores should be rescaled by min-max at all, since one extreme score sets everyone's floor. **The amendment-3 proposal for D-10 is drafted and verified** (`docs/proposals/05-amendment-3.md`, 2026-09-24) — `51169f5`
-- **2d** · P3 — Red-flag rules on real concepts + safety layer v1 · EXP-008. Three
+- **2d** · P3 — Red-flag rules on real concepts + safety layer v1 · EXP-008.
+  ✅ **2026-09-25.** Rules after published patterns: dissection after the ADD-RS (back radiation
+  no longer fires it: 50% → 8% of patients, the rest DDXPlus's "tearing" on pneumothorax and
+  Boerhaave), PE needs its symptom *and* a Wells risk (before, the risk factor alone fired it),
+  and new rules for unstable angina, myocarditis and acute pulmonary edema, with three crosswalk
+  concepts (`SYM:rest_pain`, `SYM:crescendo_pattern`, `SYM:paroxysmal_nocturnal_dyspnoea`). A rule
+  can require one finding per group or findings from k groups. Red-flag sensitivity 0.449 →
+  **0.823** [0.818, 0.829], under the 0.95 target (pneumothorax 0.33, myocarditis 0.64, Boerhaave
+  0.75, each capped by DDXPlus's sampling); strict precision 0.230 → 0.512; flags on patients
+  without a must-not-miss condition 31% → 25%. A-5 re-checked (keep ≥ 8, for the team).
+  `src/reasoning/safety.py`: `safety_check()` runs last and enforces FR-6.2, 6.4 and 6.5;
+  3,000 validate patients needed no repair. `scripts/check_red_flags.py`; 66 tests — → pending
+  *(The task as first written, kept for the record:)* Three
   must-not-miss conditions have **no rule yet**: unstable angina, myocarditis, acute pulmonary edema.
   **R-15 (EXP-014):** the aortic-dissection rule flags 50% of validate patients, because back
   radiation alone fires it. The MI rule flags 24% of non-MI patients, mostly unstable angina, which
@@ -432,6 +449,7 @@ Re-verify this table whenever the environment changes, and date it.
 
 | Date | Who | What happened | Commits |
 |---|---|---|---|
+| 2026-09-25 | the user + Claude | **2d ✅ (EXP-008): the red-flag rules and safety layer v1.** The user chose Colab for EXP-018 and asked for 2d meanwhile. Every rule now follows a published pattern and every must-not-miss condition has one. Designing them turned up two DDXPlus traps, disclosed in EXP-008: "tearing" pain is listed for 76% of pneumothorax and Boerhaave patients, and rest pain for 56% of pneumothorax patients. Two corrections of framing: the share of all patients flagged barely moved (59% → 58%) and was never the right measure, since half of DDXPlus's patients have a must-not-miss condition; on the others the burden fell 31% → 25%. And the PE rule had never checked the symptom its own reason named. Found while writing the entry: the PE flags on pulmonary-edema patients come mostly from calf pain, not one-sided swelling as first written; corrected before commit. The owner's EXP-018 bundles arrived during the work | → pending |
 | 2026-09-25 | the user | **EXP-018 goes to Colab** (D-7): the owner runs `notebooks/colab_b1_asked.ipynb` at `4583e91`. Claude starts 2d meanwhile | — |
 | 2026-09-24 | the user + Claude | **R-18's "asked" channel, built; its retrain ready for the owner to place (EXP-018).** The user asked for the channel and said Aura was running again: Claude checked it (`load_neo4j.py --check`: current, identical on the golden cases; the 9 live tests pass; the demo is served by Aura) and recorded it. The design turned on two findings. At full evidence every DDXPlus question counts as asked, so the channel is constant there and only a model trained on masked copies learns from it; and "asked" must not be read from the default answers DDXPlus lists, which depend on the condition (a label leak). So the masks moved into `src/ml/evidence_masks.py` (the proposal's rule unchanged, its digest reproduced), with the unlisted questions drawn at the same share (A-9, for the team). The retrain trains B1 +aug and B1′+aug on Colab or wherever the owner says; masked validate scores still wait for amendment 3. Also fixed: a two-class `LogisticBaseline` returned probability 1 everywhere (only the toy test used two classes) | `4583e91` |
 | 2026-09-24 | the user + Claude | **🎯 W3 walking skeleton reached: the real graph behind `scripts/demo.py`.** The user asked for item 1 of the report. `--graph` (default `graph.backend`) through a new `open_graph_from_config()`; the case expanded through the crosswalk; Aura opened read-only. Running it found a real bug: an unresolvable Aura host raised a bare `ValueError` from the driver and crashed the demo instead of falling back (fixed in `connect()`, with a test that needs no network). **Self-correction before commit:** a first version relabelled each matched DDXPlus question as the recorded finding that answered it, which would have claimed "pressure-type pain supports GERD" when the graph only links GERD to the question (docs/02 §5.2); reverted, and the demo now shows the question with its answer beside it. The template explainer now names five unrecorded findings and counts the rest. With no graph at all the demo stops and says how to build one, so the README's no-data quickstart now uses `--graph stub`. Golden cases hold on the real components with red flags on and off, so 1e's re-verification item is ticked | `26a00ad` |

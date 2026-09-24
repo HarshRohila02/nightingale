@@ -89,7 +89,7 @@ def _derived(case: PatientCase) -> dict[str, str]:
 
 
 def _concepts_in_use() -> set[str]:
-    used = {c for rule in RULES for c in rule.any_of | rule.all_of}
+    used = {c for rule in RULES for c in rule.concepts}
     used |= {c for concepts in STUB_SYMPTOM_MAP.values() for c in concepts}
     used |= {fact.concept for fact in HAND_AUTHORED_FACTS}
     for table in (BODHI_SYMPTOMS, BODHI_RISK_FACTORS):

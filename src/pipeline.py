@@ -27,6 +27,7 @@ from src.contracts import (
     PatientCase,
 )
 from src.reasoning.red_flags import evaluate_red_flags
+from src.reasoning.safety import safety_check
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class DiagnosisPipeline:
         self._attach_evidence(case, candidates, degraded)
         explanation = self._explain(case, candidates, degraded)
 
-        return DiagnosisResult(
+        result = DiagnosisResult(
             case_id=case.case_id,
             candidates=candidates,
             red_flags=[
@@ -148,6 +149,9 @@ class DiagnosisPipeline:
             explanation=explanation,
             degraded_components=degraded,
         )
+        # The last step, whatever produced the result: the disclaimer, flags first, and no
+        # treatment advice (FR-6.2, FR-6.4, FR-6.5; src/reasoning/safety.py).
+        return safety_check(result, case)
 
     # -- internals --------------------------------------------------------- #
 

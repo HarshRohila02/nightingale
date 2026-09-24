@@ -381,8 +381,8 @@ reached (§7).
 
 ### 5.2 Crosswalk card: hand-authored concepts ↔ DDXPlus evidence · *built 2026-09-18*
 
-`CROSSWALK` in `src/medical_kg/crosswalk.py` has one entry for each of the **64 hand-authored
-concepts** the codebase uses: every `SYM:*` / `RF:*` id in the red-flag rules, the golden cases,
+`CROSSWALK` in `src/medical_kg/crosswalk.py` has one entry for each of the **67 hand-authored
+concepts** the codebase uses (64 until 2d added three for the new red-flag rules on 2026-09-25): every `SYM:*` / `RF:*` id in the red-flag rules, the golden cases,
 `STUB_SYMPTOM_MAP`, the hand-authored graph facts and the BODHI-S mapping. A test fails if one is
 missing. (It had 33 on 2026-09-18. On 2026-09-19, 14 aortic-dissection markers and 17 concepts
 for BODHI-S were added.) Each entry names the DDXPlus answers that express
@@ -475,6 +475,12 @@ signals plus agreement features) is a Phase 3 stretch.
 **Red flags bypass fusion entirely.** A red-flagged condition is surfaced in `DiagnosisResult.red_flags`
 regardless of its rank.
 
+*2026-09-25 (2d, EXP-008).* Every must-not-miss condition has a rule, each after a published
+pattern (docs/04 §3), and a rule can now require one finding from each of several groups, or
+findings from a minimum number of groups, as the ADD-RS counts categories. The pipeline's last step
+is `safety_check()` (`src/reasoning/safety.py`), which enforces FR-6.2, FR-6.4 and FR-6.5 on every
+result and repairs rather than fails.
+
 ---
 
 ## 7. Failure and degradation matrix
@@ -556,7 +562,7 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | A-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
 | A-3 | Embedding model for retrieval | Phase 3 | P3 |
 | A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |
-| A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | **Accepted 2026-09-19** by the team as the working value; 2d re-checks it with EXP-008 | P3 |
+| A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | **Accepted 2026-09-19** by the team as the working value. **Re-checked 2026-09-25 (EXP-008):** on DDXPlus it changes only the pneumothorax rule, which reaches 32% / 44% / 54% of pneumothorax patients at ≥ 8 / 7 / 6 for 3% / 4% / 5% of everyone else. Recommendation: keep ≥ 8, since the gain comes from how DDXPlus draws its onset values; the team decides | P3 |
 | A-6 | The weight of each likelihood band (`LIKELIHOOD_WEIGHT` in `src/medical_kg/loader.py`): rare 0.03, low 0.12, medium 0.35, high 0.65, very high 0.9, the middle of the bands under 5%, 5–19%, 20–49%, 50–79% and 80% or more. BODHI-S publishes no numeric bands; DDXPlus edges keep 1.0 (§5.1) | **Accepted 2026-09-19** by the team as the working weights; 2a re-checks them with EXP-005 | P1 |
 | A-8 | Whether the concept → DDXPlus-token inversion (`src/ml/case_tokens.py`) may use `Match.NARROWER` entries. `expand_case` excludes them soundly: a patient with the concept need not give that answer. But a strict inversion drops `SYM:sudden_onset`, `SYM:exertional` and `SYM:relieved_by_rest` entirely, and those are the discriminators for embolism, pneumothorax, dissection and the anginas — a golden case then reaches the model with nothing to separate them. Set to admit them (`include_narrower: true`), with every token so derived recorded in `CaseTokens.narrower`. The same class of judgment as A-5. **Also for the team: a clinical review of the 17 entries in `REPRESENTATIVE` / `ORDINAL_REPRESENTATIVE`** — which single DDXPlus answer stands for each concept (R-17) | 1c, now | P2 |
 | A-9 | How the encoder's "asked" channel treats the questions a patient did **not** list, when a mask shortens their history (`src/ml/evidence_masks.py`). The amendment-3 proposal leaves this "to the encoder". **Set to:** they are asked at the same share as the listed ones, from a second permutation drawn after the first (so the proposal's tokens and digest are untouched), and an unlisted follow-up counts as asked only when its parent was. At full evidence every question is asked, because DDXPlus's unlisted questions mean "no"; "asked" is never read from listed default answers, which would leak the label. The alternative, counting only the kept listed questions as asked, would leak the label: DDXPlus lists a default answer (`E_204` "did not travel") only for conditions whose definition includes the question, so which questions were asked would depend on the condition. Under the rule as set, a question counts as asked with a chance close to the share whatever the condition (not exactly: the initial evidence is always kept, and the counts are rounded). The alternative would also leave almost no denial in a masked patient. **Also:** training copies (`+aug`) keep a share drawn per patient from [0.1, 0.9], a spread rather than the evaluation levels | With amendment 3 (D-10) | P2 |

@@ -268,8 +268,8 @@ reported beside it.
 
 ---
 
-### 🔴 R-15 — Red-flag rules fire so often that a flag stops meaning anything
-**L 5 · I 3 · Score 15 · Owner P3 · Status: OPEN** · *found by EXP-014, 2026-09-18*
+### 🟠 R-15 — Red-flag rules fire so often that a flag stops meaning anything
+**L 4 · I 3 · Score 12 · Owner P3 · Status: OPEN, partly mitigated 2026-09-25 (EXP-008)** · ~~L 5 · Score 15~~ · *found by EXP-014, 2026-09-18*
 
 The crosswalk let the red-flag rules run on DDXPlus patients for the first time. **59% of validate
 patients get at least one flag.** The aortic-dissection rule fires on **50% of all patients**,
@@ -281,9 +281,14 @@ first, so over-firing reorders the differential, and must-not-miss recall@3 coul
 the ranking deserves.
 
 *Mitigation:*
-1. **2d (EXP-008)** tightens the rules and re-measures them on validate with
-   `scripts/check_crosswalk.py`. The aortic-dissection rule should need more than back radiation,
-   for example tearing pain with it; the ADD-RS score weighs pain features the same way.
+1. ~~**2d (EXP-008)** tightens the rules and re-measures them on validate with
+   `scripts/check_crosswalk.py`.~~ **Done 2026-09-25 (EXP-008, `scripts/check_red_flags.py`).**
+   The dissection rule follows the ADD-RS and back radiation no longer fires it: it flags 8% of
+   patients, not 50%, all of them pneumothorax or Boerhaave patients whose pain DDXPlus calls
+   "tearing". The false-alarm burden, the share of patients *without* a must-not-miss condition
+   who get any flag, fell from 31% to 25%; almost all of the rest is the MI rule on stable angina,
+   an ischaemic pattern (A-7 decides whether that counts as appropriate). The likelihood drops to
+   4; the risk stays open until A-7 is settled and the rates are seen on non-DDXPlus cases.
 2. Report red-flag rates per condition (own patients versus everyone else) next to must-not-miss
    recall, so a gain that comes from over-flagging is visible.
 3. Treat the DDXPlus rates as an upper bound: DDXPlus records several radiation sites per patient,
@@ -437,6 +442,7 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
 | 1 | 2026-09-24 | **R-12 updated** (EXP-005, 2a): the naive-Bayes score lifts the graph's circular top-1 on validate to 0.923 and its Precision@3 to 0.756, near B1's 0.764, so any KG figure on DDXPlus is now even less informative about skill. The overlap score's three defects — the angina inversion, GC-001's infarction, BODHI-S punishing MI — are fixed. Other scores unchanged | — |
+| 1 | 2026-09-25 | **R-15 re-scored 15 → 12** (EXP-008, 2d): the dissection rule's false alarms fall from 50% to 8% of validate patients, the burden on patients without a must-not-miss condition from 31% to 25% | — |
 | 1 | 2026-09-24 | R-18: the "asked" channel, the masks and the retrain job are built; the retrain waits for the owner to say where (D-7). Score unchanged until a retrained model is scored | — |
 | 1 | 2026-09-23 | **R-18 opened** (found by EXP-017, while smoke-testing the new ranker seam): B1's two models are 0.001 apart on full evidence and 0.38-0.59 top-1 apart once half the history is missing, because the encoder cannot tell a denied question from an unasked one. XGBoost falls below the 0.95 must-not-miss target at 25% evidence. **R-17 opened** with `src/ml/case_tokens.py`: the concept -> token inversion has no ground truth. R-16 unchanged: at 100% evidence every EXP-004 figure reproduces exactly | — |
 | 1 | 2026-09-20 | **R-16 opened** (found by EXP-004): B1 reaches the ceiling of DDXPlus's top-3 and must-not-miss recall@3 (both 1.000), which raises decision D-10. **R-03 confirmed** on the real train counts (rarest 10,162, 2.70×; EXP-003). R-09 cannot be tested on full-evidence DDXPlus (see R-16). R-14: the first cloud job, B0/B1, ran on a Colab T4 in about a minute. Other scores unchanged | — |

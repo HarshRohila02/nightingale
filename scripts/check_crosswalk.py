@@ -6,8 +6,9 @@
 2. Concept prevalence on the validate parquet: the share of each condition's patients who have
    each concept. A sanity check of the mapping: chest pain should be common wherever DDXPlus
    puts pain in the chest.
-3. The red-flag rules on the validate patients, a preview of EXP-008 (task 2d): for each rule,
-   the share of its own condition's patients it flags, and of everyone else (false alarms).
+3. The red-flag rules on the validate patients: for each rule, the share of its own
+   condition's patients it flags, and of everyone else (false alarms). EXP-008's fuller
+   measurement, with docs/05's metrics, is scripts/check_red_flags.py.
 4. The golden cases on the real knowledge graph (DDXPlus, hand-authored and, when present,
    BODHI-S): each case expanded through the crosswalk and run through the pipeline with the
    NetworkX store in place of the stub.

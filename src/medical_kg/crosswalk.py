@@ -295,6 +295,11 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
            note="E_218 also requires relief by rest"),
     _entry("SYM:relieved_by_rest", "Relieved by rest", Match.NARROWER, "E_218",
            note="E_218 also requires worsening with exertion"),
+    _entry("SYM:rest_pain", "Chest pain at rest", Match.EXACT, "E_14",
+           note="'Avez-vous des douleurs au thorax même au repos?'"),
+    _entry("SYM:crescendo_pattern", "Worsening (crescendo) pattern", Match.CLOSE, "E_13",
+           note="'symptômes ... pires depuis environ 2 semaines et ... de moins en moins d'effort "
+           "les provoquent': worse over about two weeks, brought on by less and less effort"),
     _entry("SYM:post_prandial", "Post-prandial", Match.CLOSE, "E_215",
            note="'symptômes qui sont pires après les repas'"),
     _entry("SYM:worse_lying_flat", "Worse lying flat", Match.CLOSE, "E_217",
@@ -317,6 +322,9 @@ CROSSWALK: tuple[CrosswalkEntry, ...] = (
            note="'essoufflé ou ... de la difficulté à respirer de façon importante'"),
     _entry("SYM:orthopnoea", "Orthopnoea", Match.BROADER, "E_217",
            note="E_217 covers any symptom worse lying down; orthopnoea is breathlessness"),
+    _entry("SYM:paroxysmal_nocturnal_dyspnoea", "Paroxysmal nocturnal dyspnoea", Match.CLOSE,
+           "E_67", note="'crises de suffocation qui vous réveille la nuit': attacks of choking or "
+           "breathlessness that wake the patient"),
     _entry("SYM:frothy_sputum", "Frothy sputum", Match.NONE,
            note="DDXPlus asks about coloured or abundant sputum (E_77) and blood (E_45), not "
            "frothy sputum"),

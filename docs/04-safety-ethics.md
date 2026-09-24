@@ -62,16 +62,25 @@ Consequences for the design:
 
 ### Must-not-miss conditions
 
-| Condition | Red-flag pattern | In training data |
+| Condition | Red-flag pattern (as built in 2d, `src/reasoning/red_flags.py`) | In training data |
 |---|---|---|
-| Possible NSTEMI/STEMI | Crushing/pressure pain, exertional, radiates jaw/arm, diaphoresis, risk factors | ✅ |
-| Unstable angina | Ischaemic pattern at rest or worsening | ✅ |
-| Pulmonary embolism | Pleuritic pain + breathlessness + unilateral leg swelling / immobilisation | ✅ |
+| Possible NSTEMI/STEMI | Chest pain with two of: exertional, pressure character, radiation to jaw/arm, diaphoresis | ✅ |
+| Unstable angina | A crescendo pattern, or chest pain at rest with an ischaemic character | ✅ |
+| Pulmonary embolism | Pleuritic pain or breathlessness **and** a Wells risk: unilateral leg swelling or calf pain, immobilisation, recent surgery, previous DVT | ✅ |
 | Spontaneous pneumothorax | Sudden pleuritic pain + breathlessness | ✅ |
-| Myocarditis | Post-viral chest pain + breathlessness | ✅ |
-| Acute pulmonary edema | Severe breathlessness, orthopnoea | ✅ |
-| Boerhaave | Severe pain after forceful vomiting | ✅ |
-| **Aortic dissection** | **Tearing pain radiating to back; inter-arm BP difference** | ❌ **KG rule only** |
+| Myocarditis | Chest pain after a viral illness, with breathlessness or palpitations | ✅ |
+| Acute pulmonary edema | Breathlessness with orthopnoea, paroxysmal nocturnal dyspnoea or known heart failure | ✅ |
+| Boerhaave | Chest pain after forceful vomiting | ✅ |
+| **Aortic dissection** | **Pain with tearing character, a pulse deficit or an inter-arm BP difference; or findings from two ADD-RS categories** | ❌ **KG rule only** |
+
+Each pattern follows a published one (ADD-RS for dissection, Wells for PE, Braunwald for unstable
+angina) rather than any single suggestive finding: a flag on half of all patients teaches users to
+ignore flags (R-15). EXP-008 measures them on DDXPlus validate.
+
+**The safety layer v1** (`src/reasoning/safety.py`) checks every result last: the disclaimer is the
+text in §2, every flagged candidate is listed before every unflagged one and named in the red flags
+(FR-6.2), and no sentence recommends a treatment, names a drug or gives a dose (FR-6.5). A sentence
+that does is removed and recorded in the explanation's unsupported claims.
 
 Aortic dissection is the clearest demonstration of why the knowledge graph exists: the ML model
 cannot represent it at all, and the rule layer covers the gap.
