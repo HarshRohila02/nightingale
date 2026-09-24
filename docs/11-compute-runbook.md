@@ -228,6 +228,11 @@ split plus one masked copy of every patient: **B1 +aug** (the original features)
 Claude. Validate is scored at full evidence only, and each bundle records what each model answers
 to a patient with no findings. No patient rows are in the zip.
 
+**Done 2026-09-25.** The owner ran the notebook at `4583e91` on a Colab T4; each variant took about
+3½ minutes after the download. Unzipped, the bundles sit in `models/nightingale_b1_asked/b1_aug/` and
+`.../b1_asked_aug/` (a folder named after the zip, as for 4.1). The laptop reloads all four models
+and reproduces every validate score to within 5 × 10⁻¹². Results: EXP-018 in `docs/08`.
+
 ---
 
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)

@@ -147,8 +147,11 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   columns, fingerprint `ddd14019c66eff10`; off, it is still `3a0d5a5e01d7f427`), stored as
   `E_nn=unasked`. At full evidence every question counts as asked, so the channel only teaches a
   model trained on masked copies (`+aug`, `src/ml/evidence_masks.py`); never derive "asked" from
-  DDXPlus's listed default answers, which leak the label. No model with the channel is trained yet
-  (EXP-018 waits for the owner to say where).
+  DDXPlus's listed default answers, which leak the label. **EXP-018 (2026-09-25):** B1 retrained with masked
+  copies, with and without the channel (`models/nightingale_b1_asked/`), no longer answers AF to
+  short input, and the masked copies do that alone; the channel's own value needs masked validate
+  (amendment 3). The retrained models are **overconfident on short input** (GC-001: unstable angina
+  0.98–1.00): never show those scores as probabilities. The configured ranker is still B1-LR.
 - **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by

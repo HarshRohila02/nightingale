@@ -63,6 +63,97 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-018 — B1 retrained for R-18: masked copies, with and without the "asked" channel (validation split, full evidence only)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-25 (trained on Colab by the owner; checked on the laptop by Claude) |
+| Author | P2 (run by the owner and Claude) |
+| Config / ablation | B1-LR and B1-XGB, retrained as **+aug** (the B1 features, fingerprint `3a0d5a5e01d7f427`) and **′+aug** (with the "asked" channel, `ddd14019c66eff10`) |
+| Split used | train (with one masked copy of each of its 255,900 patients) → validation, **full evidence only** |
+| Git commit | `4583e91` (the job; run.json records no uncommitted changes) |
+| MLflow run | — (the bundles are `models/nightingale_b1_asked/b1_aug/` and `.../b1_asked_aug/`, gitignored) |
+| Seed | 42 |
+
+**Question:** EXP-017 found B1 XGBoost answering atrial fibrillation to short input, with probability
+1.000 to a patient with no findings, because the encoder could not tell an unasked question from a
+denial (R-18). Do masked training copies (+aug) remove that, what does the "asked" channel (′) add,
+and what does either cost at full evidence? **The decisive comparison, masked validate patients at
+50% and 25%, is not in this entry:** it waits for the team to approve a mask rule (amendment 3).
+
+**Setup:** `scripts/train_baselines.py --augment` and `--asked-channel --augment` on a Colab T4
+(`notebooks/colab_b1_asked.ipynb`; Python 3.13, NumPy 2.1, scikit-learn 1.6, XGBoost 2.1.4). Each
+train patient contributes its full record and one copy keeping a share drawn uniformly from
+[0.1, 0.9] of its questions (`src/ml/evidence_masks.py`); the XGBoost holdout is split by patient.
+The job took about 3½ minutes per variant after the download. On the laptop, all four models reload
+and reproduce every validate metric to within 5 × 10⁻¹². Then two checks that need no mask: a patient
+with no findings at all, and the four golden cases (5–13 tokens each after the inversion, R-17).
+
+**Results, full-evidence validate** (95% bootstrap intervals; top-3 and must-not-miss recall@3 are
+1.000 for every model, as for B1):
+
+| Model | Top-1 | Precision@3 | Recall@5 |
+|---|---|---|---|
+| B1-LR (EXP-004) | 0.9983 [0.9978, 0.9987] | 0.7291 [0.7265, 0.7317] | 0.5533 [0.5508, 0.5556] |
+| B1-LR+aug | 0.9982 [0.9977, 0.9986] | 0.7411 [0.7383, 0.7439] | 0.5555 [0.5531, 0.5577] |
+| B1-LR′+aug | 0.9983 [0.9978, 0.9987] | 0.7163 [0.7138, 0.7191] | 0.5444 [0.5421, 0.5465] |
+| B1-XGB (EXP-004) | 0.9985 [0.9980, 0.9989] | 0.7639 [0.7613, 0.7667] | 0.5694 [0.5668, 0.5718] |
+| B1-XGB+aug | 0.9984 [0.9980, 0.9988] | 0.7340 [0.7313, 0.7369] | 0.5520 [0.5498, 0.5541] |
+| B1-XGB′+aug | 0.9985 [0.9980, 0.9989] | 0.7441 [0.7413, 0.7470] | 0.5679 [0.5657, 0.5701] |
+
+**A patient with no findings** (age 50; either sex gives the same answer):
+
+| Model | Top answer, probability |
+|---|---|
+| B1-XGB (EXP-017) | atrial fibrillation, **1.000** |
+| B1-LR+aug / B1-XGB+aug | PSVT, 0.43 / 0.28 |
+| B1-LR′+aug / B1-XGB′+aug | PSVT, 0.23 / pericarditis, 0.22 |
+
+**The golden cases, ML ranker alone** (probability of the top answer; the expected condition's rank):
+
+| Case (expected) | B1-LR | B1-XGB | LR+aug | XGB+aug | LR′+aug | XGB′+aug |
+|---|---|---|---|---|---|---|
+| GC-001 (MI) | UA 0.89; MI 4th | **AF 1.000**; MI 4th | UA 0.99; 4th | UA 0.98; 4th | UA 1.00; 3rd | UA 0.99; 3rd |
+| GC-002 (PE) | PE 0.61 | **AF 0.99**; PE 2nd | PE 1.00 | PE 1.00 | PE 1.00 | PE 1.00 |
+| GC-003 (dissection, not in DDXPlus) | pericarditis 0.54 | **AF 1.00** | Boerhaave 0.84 | stable angina 0.70 | UA 0.65 | UA 0.53 |
+| GC-004 (GERD) | GERD 0.62 | **AF 0.91**; GERD 2nd | GERD 1.00 | GERD 1.00 | GERD 1.00 | GERD 1.00 |
+
+Fused with the graph, red flags off: every model puts PE and GERD first and MI second; dissection is
+3rd with B1 and the +aug models and **4th with both ′+aug models** (the golden case asks for the top
+5).
+
+**Interpretation:**
+
+1. **R-18's failure is gone from every retrained model.** Original XGBoost answered atrial
+   fibrillation to all four golden cases; no retrained model answers it to any. **The masked copies
+   do that on their own**: without the channel, a short row is no longer a rare row, so it no longer
+   predicts the condition whose patients answer fewest questions.
+2. **At full evidence the retraining costs nothing on top-1**, and moves Precision@3 and Recall@5 by
+   up to 0.03 in both directions, with no consistent sign across the two models. DDXPlus's full
+   records leave nothing to gain (R-16).
+3. **What the channel adds cannot be seen yet.** On the no-findings patient it makes both models
+   less sure (0.22–0.23, against 0.28–0.43), which is the intended direction. On the golden cases
+   it changes little: MI moves from 4th to 3rd in the ML ranking, and GC-004's two encoded denials
+   leave GERD where it already was. The comparison that decides it, masked validate patients with
+   and without the channel, waits for amendment 3 and A-9.
+4. **A new concern: the retrained models are overconfident on short input.** Given GC-001's
+   classic history, every retrained model puts unstable angina at 0.98–1.00 and MI near 0, though a
+   history cannot separate them (only the troponin can); the original LR said 0.89. On 5–13
+   findings these are not probabilities, and they must never be shown as such (docs/04 F-2;
+   `calibrated_probability` stays empty until 2b). It is a reason for 2b to calibrate on short
+   input, not only at full evidence.
+5. **The dissection case slips from 3rd to 4th under the channel models**, because they spread
+   their probability differently and a knowledge-graph-only condition can never outrank one the
+   ML ranker scores (EXP-005 point 7). It is 2c's question, now with a second example.
+6. **The configured ranker stays B1-LR.** Nothing here shows a retrained model is better where it
+   matters; masked validate will. The retrained bundles are ready for that comparison.
+
+**Next action:** the team: amendment 3 (the mask rule) and A-9; then score all six models on masked
+validate at 50% and 25%, which is when the channel either earns its place or does not. 2b: calibrate
+on short input too. 2c: how a knowledge-graph-only condition is fused.
+
+---
+
 ### EXP-008 — Red-flag rules on DDXPlus validate: sensitivity, precision and the false-alarm burden (2d) (validation split)
 
 | Field | Value |
@@ -998,4 +1089,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
 | EXP-016 | BODHI-S enrichment: coverage and effect *(unplanned, run 2026-09-19)* | 1 | 2a: a score that does not punish enriched conditions |
 | EXP-017 | B1 under a partial history *(unplanned, run 2026-09-23)* | 1 | R-18: the models separate once the history is incomplete; evidence for D-10 (b) |
-| EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Job ready 2026-09-24* (`notebooks/colab_b1_asked.ipynb`); **on Colab**, the owner's choice of 2026-09-25 (D-7), at `4583e91`. Validate at full evidence and the no-findings probe now; the reduced levels only after amendment 3 is approved |
+| EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are overconfident on short input. The reduced levels wait for amendment 3 |

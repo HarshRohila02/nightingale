@@ -80,8 +80,8 @@ a limitation in [05-evaluation-protocol.md](05-evaluation-protocol.md) §8.
 
 ---
 
-### 🔴 R-18 — B1's answer depends on how much was asked, not only on what was answered
-**L 5 · I 4 · Score 20 · Owner P2 · Status: OPEN — opened 2026-09-23 from EXP-017**
+### 🟠 R-18 — B1's answer depends on how much was asked, not only on what was answered
+**L 3 · I 4 · Score 12 · Owner P2 · Status: OPEN, partly mitigated 2026-09-25 (EXP-018)** · ~~L 5 · Score 20~~ · *opened 2026-09-23 from EXP-017*
 
 Measured on validate, with the models unchanged from EXP-004. Keeping each patient's initial
 evidence plus a share of the rest:
@@ -125,7 +125,14 @@ deployed one. A clinician using the prototype has a partial history by definitio
    start, never at 100% alone.
 4. It is the strongest argument for **D-10** option (b): the headline protocol cannot see this.
 
-*Trigger for review:* the retrained models come back (EXP-018), or D-10 is decided.
+5. **EXP-018 (2026-09-25):** the retrained models no longer answer atrial fibrillation to any
+   golden case, or to a patient with no findings, and full evidence is unchanged. The masked copies
+   do that on their own; what the channel adds needs masked validate, which waits for amendment 3.
+   A new side of the same risk: the retrained models are overconfident on short input (GC-001:
+   unstable angina 0.98–1.00, MI near 0), so their scores on short input are not probabilities
+   (2b). The configured ranker stays B1-LR until masked validate is scored. Likelihood 5 → 3.
+
+*Trigger for review:* amendment 3 is approved and the six models are scored on masked validate.
 
 ---
 
@@ -442,6 +449,7 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
 | 1 | 2026-09-24 | **R-12 updated** (EXP-005, 2a): the naive-Bayes score lifts the graph's circular top-1 on validate to 0.923 and its Precision@3 to 0.756, near B1's 0.764, so any KG figure on DDXPlus is now even less informative about skill. The overlap score's three defects — the angina inversion, GC-001's infarction, BODHI-S punishing MI — are fixed. Other scores unchanged | — |
+| 1 | 2026-09-25 | **R-18 re-scored 20 → 12** (EXP-018): the retrained models no longer answer atrial fibrillation to short input; the masked copies do it alone; they are overconfident on short input | — |
 | 1 | 2026-09-25 | **R-15 re-scored 15 → 12** (EXP-008, 2d): the dissection rule's false alarms fall from 50% to 8% of validate patients, the burden on patients without a must-not-miss condition from 31% to 25% | — |
 | 1 | 2026-09-24 | R-18: the "asked" channel, the masks and the retrain job are built; the retrain waits for the owner to say where (D-7). Score unchanged until a retrained model is scored | — |
 | 1 | 2026-09-23 | **R-18 opened** (found by EXP-017, while smoke-testing the new ranker seam): B1's two models are 0.001 apart on full evidence and 0.38-0.59 top-1 apart once half the history is missing, because the encoder cannot tell a denied question from an unasked one. XGBoost falls below the 0.95 must-not-miss target at 25% evidence. **R-17 opened** with `src/ml/case_tokens.py`: the concept -> token inversion has no ground truth. R-16 unchanged: at 100% evidence every EXP-004 figure reproduces exactly | — |
