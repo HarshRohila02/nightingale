@@ -215,9 +215,9 @@ Colab ran Python 3.13, NumPy 2.1 and scikit-learn 1.6; the laptop has Python 3.1
 scikit-learn 1.9. The models are plain JSON, and the laptop reloads them and reproduces every
 validate score to within 3 × 10⁻¹². Results: EXP-003 and EXP-004 in `docs/08`.
 
-### 4.2 The R-18 retrain (EXP-018) · *ready 2026-09-24 · waits for the owner to say where*
+### 4.2 The R-18 retrain (EXP-018) · *ready 2026-09-24 · Colab, the owner's choice of 2026-09-25*
 
-Where it runs is the owner's call (D-7); Colab is suggested, like 4.1. The notebook is
+The owner chose Colab (D-7), as for 4.1, with `COMMIT = "4583e91"`. The notebook is
 `notebooks/colab_b1_asked.ipynb`, and the steps are 4.1's with that notebook: open
 <https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b1_asked.ipynb>,
 set `COMMIT`, **Runtime → Run all**. It takes about 25–35 minutes, most of it the same download and
