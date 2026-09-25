@@ -13,13 +13,14 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | 02 | [Architecture & Interface Contracts](02-architecture.md) | How the pieces fit; **the data schemas everyone must honour** | P1 + P2 |
 | 03 | [Data Management & Licensing](03-data-management.md) | Which datasets, under what licence, stored how; the chest-pain parquet's dataset card (§2.1) | P2 |
 | 04 | [Ethics, Safety & Clinical Risk](04-safety-ethics.md) | What the system must never do; failure modes | P3 |
-| 05 | [Evaluation Protocol](05-evaluation-protocol.md) | How we measure success — **locked before modelling** | P4 |
+| 05 | [Evaluation Protocol](05-evaluation-protocol.md) | How we measure success — **locked before modelling**; v1.3 adds the reduced-evidence levels (amendment 3, 2026-09-25) | P4 |
 | 06 | [Engineering Conventions](06-engineering-conventions.md) | Branching, style, testing, definition of done | P4 |
 | 07 | [Risk Register](07-risk-register.md) | What could go wrong and who is watching it | P1 |
 | 08 | [Experiment Log](08-experiment-log.md) | Running record of every run | P2 |
 | 10 | [Spike R-01: Crosswalk](10-spike-r01-crosswalk.md) | Measured result that set the knowledge-graph strategy | P1 |
 | 11 | [Compute Runbook](11-compute-runbook.md) | Where each job runs; the owner's laptop-GPU steps; cloud jobs; AuraDB setup | Owner + P4 |
-| — | [Proposal: `docs/05` amendment 3](proposals/05-amendment-3.md) | Reduced evidence (D-10) and the deep ranker (D-11): **for the team to approve**; `docs/05` is unchanged until it does | All four |
+| — | [Proposal: `docs/05` amendment 3](proposals/05-amendment-3.md) | Reduced evidence (D-10) and the deep ranker (D-11): **approved 2026-09-25** and applied to `docs/05` v1.3; kept as the record of the proposal | All four |
+| — | [Proposal: amendment 3 errata](proposals/05-amendment-3-errata.md) | Contradictions an independent review found inside amendment 3's approved wording, with exact corrections: **for the team to approve** (E-1) | All four |
 
 ## Reading paths
 

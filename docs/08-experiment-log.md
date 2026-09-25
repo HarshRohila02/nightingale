@@ -63,6 +63,35 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-019 — Every system at 100%, 50% and 25% evidence: amendment 3's masks (validation split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-25 |
+| Author | P4 (run by Claude) |
+| Config / ablation | B0; B1-LR, B1-XGB (EXP-004); B1-LR+aug, B1-XGB+aug, B1-LR′+aug, B1-XGB′+aug (EXP-018); B2 (EXP-005); the red-flag layer (EXP-008) |
+| Split used | validation, at 100%, 50% and 25% of each patient's evidence (`docs/05` §3.7) |
+| Git commit | the masks are recorded in the commit that adds this entry, **before** any system is scored on them; the scores follow in the next commit |
+| MLflow run | — (scoring only; nothing is trained) |
+| Seed | 42 (masks and bootstrap) |
+
+**The masks, recorded before anything was scored on them** (`docs/05` §3.7, amendment 3, approved
+2026-09-25). Drawn by `src/ml/evidence_masks.py` under the question rule, with NumPy 1.26.4, by
+`scripts/evaluate_reduced_evidence.py --digest-only`:
+
+| | Value |
+|---|---|
+| Mask digest (§3.7's definition) | **`e99a7a8fbf792675`**, the digest the proposal predicted from the masks alone |
+| Asked-set digest (decision A-9: the same lines with the questions asked, in code order, in place of the kept tokens) | **`af3a357f6454838a`** |
+| Realised size, 100% | 21.90 tokens, 15.43 questions per patient |
+| Realised size, 50% | 11.87 tokens, 8.61 questions; 42.57 of the 84 questions asked |
+| Realised size, 25% | 6.71 tokens, 5.10 questions; 21.99 of the 84 questions asked |
+
+The scoring script refuses to run unless both digests reproduce. **Results:** to follow in the next
+commit. Nothing had been scored on these masks when this entry was written.
+
+---
+
 ### EXP-018 — B1 retrained for R-18: masked copies, with and without the "asked" channel (validation split, full evidence only)
 
 | Field | Value |

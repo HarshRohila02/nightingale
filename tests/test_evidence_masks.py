@@ -278,3 +278,28 @@ def test_the_channel_with_masked_copies_tells_unasked_from_denied():
     denied, unfinished = p_b(after, asked, None), p_b(after, asked, ["E_1"])
     assert denied > 0.9
     assert unfinished < 0.75, f"an unfinished interview is not a denial: P(B) = {unfinished:.2f}"
+
+
+@pytest.mark.skipif(
+    not (REAL_PARQUET.exists() and REAL_CONDITIONS.exists()), reason="data/ is not committed (CI)"
+)
+def test_the_exp019_script_reproduces_both_recorded_digests():
+    """EXP-019 recorded the mask digest and the asked-set digest before anything was scored;
+    the script refuses to score unless they reproduce."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "evaluate_reduced_evidence.py"),
+            "--digest-only",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=300,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "e99a7a8fbf792675" in result.stdout and "af3a357f6454838a" in result.stdout

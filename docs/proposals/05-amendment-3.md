@@ -1,7 +1,15 @@
 # `docs/05` amendment 3: reduced evidence and the deep ranker (proposal for the team)
 
 **Drafted:** 2026-09-23, by Claude for the owner to send · **Revised:** 2026-09-24, after the
-numbers were verified (§8) · **Status:** proposal only. `docs/05` has not been changed. **Approval:** all four team members (`docs/05` §9) · **Settles:** D-10, option (b).
+numbers were verified (§8) · **Status:** ✅ **approved by the team on 2026-09-25 and applied to
+`docs/05` (v1.3).** This file is kept as the record of what was proposed; `docs/05` is the text in
+force. It was applied as written, with the dates filled in and one passage added to §9's
+justification: what was scored between this proposal and its approval (EXP-008, EXP-018). §7's
+decisions 2, 3, 5 and 9 are settled, because the approved text encodes their recommended answers;
+decision 4 is settled for A0 only (the text does not fix H6's arm). Decisions 6 (tuning parity) and
+8 (team vignettes) and decision A-9 are **not** in the text and stay open; 7 (XGBoost's missing
+seeds) is a training run for the owner to place. Independent review of the applied text found
+contradictions inside the approved wording itself: `docs/proposals/05-amendment-3-errata.md`. **Approval:** all four team members (`docs/05` §9) · **Settles:** D-10, option (b).
 **Records:** D-11 · **Sources:** EXP-003, EXP-004 and EXP-017 (`docs/08`), R-16 and R-18
 (`docs/07`), `PROGRESS.md` §3, and Gate 1 of the deep-ranker plan
 

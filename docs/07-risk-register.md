@@ -166,7 +166,7 @@ ranks wrongly for a reason traced to a chosen answer.
 ---
 
 ### 🔴 R-16 — B1 reaches the ceiling on DDXPlus, so the headline comparisons cannot separate the systems
-**L 5 · I 4 · Score 20 · Owner P4 · Status: OPEN — opened 2026-09-20 from EXP-004; decision D-10 pending**
+**L 5 · I 4 · Score 20 · Owner P4 · Status: OPEN — opened 2026-09-20 from EXP-004; D-10 decided 2026-09-25 (`docs/05` amendment 3: the reduced-evidence levels)**
 
 On validate, ML-only B1 (XGBoost) ranks the true condition first for **99.85%** of patients and in
 the top 3 for **all** of them. Its must-not-miss recall@3 is **1.000** and its MRR 0.9992. The cause
@@ -449,6 +449,7 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-19 | **R-12, R-13 and R-15 recoloured 🔴.** Each scores 15, which the key calls critical, and the team kept the key. The key now also says that closed, resolved and mitigated risks show 🟢, as R-01 and R-10 already did. R-13: D-8 decided (docs/05 amendment 1). R-15: red-flag sensitivity is now measured against the true condition (docs/05 amendment 2) | the team, relayed by the owner |
 | 1 | 2026-09-19 | R-06: the Neo4j store is built, with the automatic fallback to NetworkX; the graph is on AuraDB. Score unchanged | — |
 | 1 | 2026-09-24 | **R-12 updated** (EXP-005, 2a): the naive-Bayes score lifts the graph's circular top-1 on validate to 0.923 and its Precision@3 to 0.756, near B1's 0.764, so any KG figure on DDXPlus is now even less informative about skill. The overlap score's three defects — the angina inversion, GC-001's infarction, BODHI-S punishing MI — are fixed. Other scores unchanged | — |
+| 1 | 2026-09-25 | **R-16: D-10 decided** — the team approved `docs/05` amendment 3 (option (b)): every system is also scored at 50% and 25% of each patient's evidence, where B1 no longer saturates. Score unchanged until the reduced-evidence results are in (EXP-019) | the team, relayed by the owner |
 | 1 | 2026-09-25 | **R-18 re-scored 20 → 12** (EXP-018): the retrained models no longer answer atrial fibrillation to short input; the masked copies do it alone; they are overconfident on short input | — |
 | 1 | 2026-09-25 | **R-15 re-scored 15 → 12** (EXP-008, 2d): the dissection rule's false alarms fall from 50% to 8% of validate patients, the burden on patients without a must-not-miss condition from 31% to 25% | — |
 | 1 | 2026-09-24 | R-18: the "asked" channel, the masks and the retrain job are built; the retrain waits for the owner to say where (D-7). Score unchanged until a retrained model is scored | — |

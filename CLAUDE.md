@@ -49,6 +49,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - Never remove or weaken the disclaimer; never add treatment or drug recommendations.
 - `src/contracts.py` changes need all four team members — flag them rather than just making them.
 - `docs/05-evaluation-protocol.md` is **frozen** — change it only through its amendment log.
+  **Amendment 3 (v1.3, 2026-09-25)** scores every system at 100%, 50% and 25% evidence with the
+  masks of §3.7 (digest `e99a7a8fbf792675`, recorded in EXP-019 before scoring): never draw
+  evaluation masks any other way, and report every figure with its evidence level and model
+  label (§8 rule 8). B1 is B1-XGB **and** B1-LR; a claim against B1 must hold against both.
 - Golden clinical cases (`tests/fixtures/golden_cases.yaml`) must stay green. If one fails, fix the
   component, not the expectation.
 
@@ -133,7 +137,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   ranks 99.85% of validate patients' true condition first and all of them in the top 3, with
   must-not-miss recall@3 1.000, because DDXPlus draws each patient's evidence only from their
   condition's list (for 91.7% of patients no other condition fits). So on full-evidence DDXPlus the
-  fusion cannot beat B1 on top-3 or must-not-miss recall (H1, H2): **R-16, open decision D-10.**
+  fusion cannot beat B1 on top-3 or must-not-miss recall (H1, H2): **R-16; D-10 decided 2026-09-25
+  by amendment 3** (the reduced-evidence levels, where B1 no longer saturates).
   Precision@3 and Recall@5 still separate systems. B1's only errors put unstable angina (or MI)
   below stable angina, the graph's blind spot too.
 - **B1's two models agree on full evidence and disagree completely without it** (EXP-017,
