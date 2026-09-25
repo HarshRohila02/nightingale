@@ -233,6 +233,23 @@ to a patient with no findings. No patient rows are in the zip.
 `.../b1_asked_aug/` (a folder named after the zip, as for 4.1). The laptop reloads all four models
 and reproduces every validate score to within 5 × 10⁻¹². Results: EXP-018 in `docs/08`.
 
+### 4.3 XGBoost's seeds 43–46 (EXP-020) · *ready 2026-09-25 · Colab, the owner's choice of 2026-09-25*
+
+`docs/05` §6 (amendment 3) binds every retrained XGBoost to seeds 42–46; only seed 42 exists for
+each XGBoost arm. The notebook is `notebooks/colab_b1_seeds.ipynb`, and the steps are 4.1's with
+that notebook: open
+<https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b1_seeds.ipynb>,
+set `COMMIT` to the commit Claude names, **Runtime → Run all**, and keep the tab open. It takes
+about **50–60 minutes**: some 20 for the download and decoding, then about 8 per seed (from 4.1's and
+4.2's timings on a T4). It runs `scripts/train_baselines.py` 13 times: seeds 43–46 of **B1-XGB**,
+**B1-XGB+aug** and **B1-XGB′+aug**, and seed 42 of B1-XGB again as a check that must reproduce
+EXP-004. Each run also refits B0 and logistic regression (the `+aug` logistic regressions vary with
+the seed; they are kept for the errata's item 5 and used for nothing yet). A dropped session can
+be re-run: finished runs are skipped. Your browser downloads **`nightingale_b1_seeds.zip`**; unzip
+it into `models/nightingale_b1_seeds/`, then tell Claude. The seed-42 models stay the ones used;
+the laptop scores every seed at 100%, 50% and 25% on the recorded masks (scoring only). No patient
+rows are in the zip.
+
 ---
 
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)

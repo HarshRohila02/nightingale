@@ -25,9 +25,13 @@ encodes which questions were asked (src/ml/features.py). The channel is constant
 so it is only tried with ``--augment``: the two runs above give B1 +aug and B1′+aug, whose
 comparison separates what the channel does from what the masked copies do. The XGBoost holdout is
 split by patient, so no patient's copy is on the other side. **Validate is scored at full evidence
-only**: scoring masked validate patients waits for the team to approve a mask rule (docs/05
-amendment 3, proposed). Each bundle also records what every model answers to a patient with no
-findings at all, where B1 XGBoost said atrial fibrillation with probability 1.000.
+only here**; ``scripts/evaluate_reduced_evidence.py`` scores the 50% and 25% levels on the masks
+docs/05 §3.7 fixes (EXP-019). Each bundle also records what every model answers to a patient with
+no findings at all, where B1 XGBoost said atrial fibrillation with probability 1.000.
+
+**Seeds** (docs/05 §6): ``--seed`` sets XGBoost's subsampling, the early-stopping holdout and the
+masked copies. notebooks/colab_b1_seeds.ipynb trains seeds 43–46 of every XGBoost arm; the
+seed-42 model stays the one used.
 """
 
 from __future__ import annotations
@@ -279,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
                     "closed-world: 13 conditions only (R-13)",
                     "synthetic DDXPlus patients",
                     "raw scores, not calibrated probabilities",
-                    "full evidence only: masked validate patients wait for docs/05 amendment 3",
+                    "full evidence only here: scripts/evaluate_reduced_evidence.py scores 50% and 25%",
                 ],
                 "variant": suffix,
                 "models": reports,
