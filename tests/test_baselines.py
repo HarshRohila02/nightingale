@@ -29,6 +29,7 @@ from src.ml.baselines import (
     rankings,
 )
 from src.ml.features import EvidenceEncoder
+from tests.sklearn_guard import needs_sklearn
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BUILDER = REPO_ROOT / "scripts" / "build_ddxplus_chestpain.py"
@@ -82,6 +83,7 @@ def test_b0_ranks_every_patient_by_training_prevalence():
     assert PrevalencePrior.from_json(json.loads(json.dumps(b0.to_json()))) == b0
 
 
+@needs_sklearn
 def test_the_logistic_baseline_learns_and_survives_its_json():
     X, y = toy_data()
     model = LogisticBaseline.fit(X, y, feature_fingerprint="toy")
@@ -95,6 +97,7 @@ def test_the_logistic_baseline_learns_and_survives_its_json():
     assert np.allclose(reloaded.predict_proba(sparse.csr_matrix(X)), probabilities)
 
 
+@needs_sklearn
 def test_the_logistic_baseline_matches_scikit_learn():
     """The JSON model is the same function scikit-learn fitted, without scikit-learn."""
     from sklearn.linear_model import LogisticRegression
@@ -107,6 +110,7 @@ def test_the_logistic_baseline_matches_scikit_learn():
     assert np.allclose(ours.predict_proba(X), theirs.predict_proba(scaler.transform(X)), atol=1e-8)
 
 
+@needs_sklearn
 def test_a_two_class_logistic_baseline_matches_scikit_learn():
     """scikit-learn keeps one coefficient row for two classes; a softmax over it alone would give
     every row probability 1 (found 2026-09-24; the 13-class models were never affected)."""
@@ -146,6 +150,7 @@ def test_xgboost_answers_the_same_for_dense_and_sparse_input():
     assert np.array_equal(model.predict_proba(X[:1]), model.predict_proba(X)[:1])
 
 
+@needs_sklearn
 def test_a_model_refuses_another_feature_set(tmp_path):
     X, y = toy_data(rows_per_class=10)
     data = LogisticBaseline.fit(X, y, feature_fingerprint="toy").to_json()
@@ -156,6 +161,7 @@ def test_a_model_refuses_another_feature_set(tmp_path):
         XGBoostBaseline.load(tmp_path, feature_fingerprint="other")
 
 
+@needs_sklearn
 def test_every_class_must_have_training_rows():
     X, y = toy_data(rows_per_class=5)
     keep = y != 4
@@ -259,6 +265,7 @@ def _run(*command: str) -> subprocess.CompletedProcess:
     )
 
 
+@needs_sklearn
 def test_the_training_job_runs_end_to_end_on_a_mini_release(tmp_path):
     raw, interim = write_mini_release(tmp_path)
     for split in ("train", "validate"):
@@ -317,6 +324,7 @@ def test_the_training_job_runs_end_to_end_on_a_mini_release(tmp_path):
     XGBoostBaseline.load(out, feature_fingerprint=encoder.fingerprint)  # loads, or raises
 
 
+@needs_sklearn
 def test_the_r18_retrain_runs_end_to_end_on_a_mini_release(tmp_path):
     """--asked-channel --augment: one masked copy per train patient, split by patient, the new
     fingerprint, validate at full evidence only, the empty-row probe, and a bundle the ranker
@@ -370,6 +378,7 @@ def test_the_asked_channel_alone_is_refused(tmp_path):
     assert result.returncode == 2 and "--augment" in result.stderr
 
 
+@needs_sklearn
 def test_the_training_job_explains_a_missing_parquet(tmp_path):
     result = _run(str(TRAINER), "--interim", str(tmp_path), "--raw-dir", str(tmp_path))
     assert result.returncode != 0

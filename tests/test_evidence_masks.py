@@ -26,6 +26,7 @@ from src.ml.evidence_masks import (
     mask_frame,
 )
 from src.ml.features import EvidenceEncoder, evidence_codes_in_scope
+from tests.sklearn_guard import needs_sklearn
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REAL_CONDITIONS = REPO_ROOT / "data" / "interim" / "ddxplus_chestpain_conditions.json"
@@ -262,6 +263,7 @@ def p_b(model: LogisticBaseline, encoder: EvidenceEncoder, asked: list[str] | No
     return float(model.predict_proba(row)[0][1])
 
 
+@needs_sklearn
 def test_the_channel_with_masked_copies_tells_unasked_from_denied():
     """Without the channel, "E_1, nothing else asked" and "E_1, E_2 and E_3 denied" are one row,
     and the model is sure it is B. With the channel and masked copies, only the denial says B;
