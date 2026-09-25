@@ -112,8 +112,9 @@ def render(result: DiagnosisResult, top_k: int = 5, case: PatientCase | None = N
 
     out += ["", "  " + "-" * (width - 4), "  DIFFERENTIAL (ranked)", "  " + "-" * (width - 4)]
     out += [
-        "   score: ml and kg fused; ml: the model's probability; kg: the graph's score",
-        f"   (a log-likelihood on the real graph, at most 0); {WARN} red-flagged ones come first",
+        "   score: ml and kg fused; ml: the model's raw score, not a calibrated probability;",
+        "   kg: the graph's score (a log-likelihood on the real graph, at most 0);",
+        f"   {WARN} red-flagged ones come first",
         "",
     ]
     for i, candidate in enumerate(result.candidates[:top_k], start=1):

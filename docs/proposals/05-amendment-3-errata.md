@@ -51,8 +51,16 @@ they should be settled before any fusion (2c) or deep-model result exists.
 
 ---
 
-## 4. The §9 row, if approved
+## 4. A question EXP-019 raises (after its results, and said so)
+
+| # | Where | The question | Options |
+|---|---|---|---|
+| 17 | §1 H1-R, H2-R; §7 reduced-evidence rows; §4 labels | **Which B1 do the reduced-evidence claims compare against?** §4's labels make B1-XGB and B1-LR the EXP-004 models, trained on full-evidence rows, while A0's ML component is trained on masked copies (`+aug`). EXP-019 shows the choice decides the result: at 25% the plain B1 has lots of room (B1-XGB top-3 0.906, must-not-miss recall@3 0.877), while the `+aug` B1 variants reach 0.997–0.998 on top-3 and 0.996–0.998 on must-not-miss recall@3. By §4's own rule, comparing a `+aug` A0 with a plain B1 "mixes a change of model with a change of … data". | (a) Keep the text: compare with the plain B1, and report the `+aug` comparison beside it, labelled as mixing. (b) **Also require H1-R, H2-R and the reduced-evidence Target to hold against the B1 variants trained like A0's component (`+aug`, and ′ for primed systems)**. This is recommended: it is the harder test and the fair one. Either way, the choice is made after EXP-019 and must be disclosed. |
+
+---
+
+## 5. The §9 row, if approved
 
 ```markdown
-| 2026-09-__ | **Amendment 3a (errata to amendment 3): §§ header, 1, 3.7, 4, 5, 6 as listed in docs/proposals/05-amendment-3-errata.md.** Corrections of contradictions and gaps found in amendment 3's approved wording, and the B2 description; no metric, level, mask or threshold changes | Found by an independent review of the applied text on 2026-09-25, the day amendment 3 was approved, before any fusion or deep-model result existed. When the errata were approved, EXP-019 had scored B0, B1 and B2 at the three levels (descriptive, §9 amendment 3) | The team, 2026-09-__ (relayed by the owner) |
+| 2026-09-__ | **Amendment 3a (errata to amendment 3): §§ header, 1, 3.7, 4, 5, 6 and, by item 17, 7, as listed in docs/proposals/05-amendment-3-errata.md.** Corrections of contradictions and gaps found in amendment 3's approved wording, and the B2 description; no metric, level, mask or threshold changes | Found by an independent review of the applied text on 2026-09-25, the day amendment 3 was approved, before any fusion or deep-model result existed. When the errata were approved, EXP-019 had scored B0, B1 and B2 at the three levels (descriptive, §9 amendment 3) | The team, 2026-09-__ (relayed by the owner) |
 ```

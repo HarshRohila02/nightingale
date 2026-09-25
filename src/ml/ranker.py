@@ -21,7 +21,9 @@ because the encoder gives a default "no" answer no column and AF is the conditio
 patients answer fewest questions. Every hand-authored case is short — the golden cases carry 5 to 13
 tokens — so that is the regime this ranker actually runs in. ``backend="xgboost"`` stays available
 for experiments; it must not be the configured default until a model trained with the encoder's
-"asked" channel on masked copies of patients (``+aug``) has shown it no longer does this.
+"asked" channel on masked copies of patients (``+aug``) has shown it no longer does this. EXP-018
+and EXP-019 have since shown that for every ``+aug`` model, and the configured ranker is now
+B1-LR′+aug (``configs/config.yaml``); :data:`DEFAULT_MODEL_DIR` is still the original B1.
 
 A model records the fingerprint of the features it was trained on. :func:`open_ranker` builds the
 encoder both ways, without and with the "asked" channel, and uses the one whose fingerprint the
@@ -211,7 +213,8 @@ def open_ranker(
 
     Args:
         backend: ``ml.backend`` in configs/config.yaml, one of :data:`BACKENDS`. ``logreg`` is the
-            default and the only one fit for short input (R-18); ``xgboost`` is for experiments;
+            default; of the original B1 models only it is fit for short input (R-18), while every
+            ``+aug`` model is (EXP-019); ``xgboost`` is for experiments;
             ``none`` asks for the degraded ranker, which is how a knowledge-graph-only ablation is
             configured.
         model_dir: The trained bundle. Gitignored, so it is absent in CI.

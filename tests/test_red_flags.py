@@ -17,7 +17,7 @@ import yaml
 
 from src.conditions import CONDITIONS
 from src.contracts import Finding, PatientCase
-from src.reasoning.red_flags import RULES, RedFlagRule, evaluate_red_flags
+from src.reasoning.red_flags import APPROPRIATE, RULES, RedFlagRule, evaluate_red_flags
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = yaml.safe_load(
@@ -190,6 +190,42 @@ class TestAcutePulmonaryEdema:
 def test_the_golden_cases_raise_exactly_these_flags(case_id, expected):
     golden = next(c for c in GOLDEN if c["id"] == case_id)
     assert set(evaluate_red_flags(PatientCase(**golden["case"]))) == expected
+
+
+# --------------------------------------------------------------------------- #
+# Decision A-7: which flags are appropriate for which true conditions
+# --------------------------------------------------------------------------- #
+
+
+def test_every_flag_has_an_appropriateness_entry_that_includes_itself():
+    assert set(APPROPRIATE) == {rule.condition_id for rule in RULES}
+    assert all(flag in allowed for flag, allowed in APPROPRIATE.items())
+    known = {c.id for c in CONDITIONS}
+    assert all(allowed <= known for allowed in APPROPRIATE.values())
+
+
+@pytest.mark.parametrize(
+    ("flag", "true_condition", "appropriate"),
+    [
+        # The pairs EXP-008 saw fire, with the panel's verdicts (docs/04 §3).
+        ("COND:nstemi_stemi", "COND:unstable_angina", True),
+        ("COND:nstemi_stemi", "COND:stable_angina", True),
+        ("COND:nstemi_stemi", "COND:acute_pulmonary_edema", True),
+        ("COND:myocarditis", "COND:pericarditis", True),
+        ("COND:aortic_dissection", "COND:boerhaave", False),
+        ("COND:aortic_dissection", "COND:spontaneous_pneumothorax", False),
+        ("COND:pulmonary_embolism", "COND:acute_pulmonary_edema", False),
+        ("COND:spontaneous_pneumothorax", "COND:pulmonary_embolism", False),
+        ("COND:spontaneous_pneumothorax", "COND:pericarditis", False),
+    ],
+)
+def test_a7_verdicts_on_the_pairs_that_fire(flag, true_condition, appropriate):
+    assert (true_condition in APPROPRIATE[flag]) is appropriate
+
+
+def test_a7_counts_24_cross_condition_pairs():
+    """The panel's majority: 13 unanimous and 11 two-to-one (docs/04 §3)."""
+    assert sum(len(allowed) - 1 for allowed in APPROPRIATE.values()) == 24
 
 
 # --------------------------------------------------------------------------- #

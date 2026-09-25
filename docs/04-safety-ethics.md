@@ -77,6 +77,36 @@ Each pattern follows a published one (ADD-RS for dissection, Wells for PE, Braun
 angina) rather than any single suggestive finding: a flag on half of all patients teaches users to
 ignore flags (R-15). EXP-008 measures them on DDXPlus validate.
 
+**Which flags count as appropriate (decision A-7, 2026-09-25).** Red-flag precision (`docs/05`
+§3.2, reported, not targeted) needs to know when a flag on another condition is still right. The
+definition was fixed first: a flag for F on a patient whose final diagnosis is T is appropriate when
+T lies on F's urgent diagnostic pathway (the work-up that excludes F also establishes or excludes
+T), or F and T overlap as one disease process, and not merely because T is serious, typical of the
+findings, or visible on a broad test. Three independent judges (an emergency physician's pathway, a
+cardiologist's guidance, an alarm-fatigue sceptic) judged all 104 flag/condition pairs (8 flags × 13
+other conditions); two votes of three make a pair appropriate. Each judge worked separately, was told
+not to read any results, and read only `src/reasoning/red_flags.py` and `src/conditions.py`. **The
+panel was not fully blind to how often flags fire**, though: the project notes loaded into every
+session (`CLAUDE.md`, `PROGRESS.md`) and that module's docstring state several rates (the dissection
+rule's 50% → 8%, the MI rule on 24% of patients without MI), and `PROGRESS.md` already called the MI
+flag on unstable angina appropriate. The owner delegated the decision to
+Claude, who adopted the panel's majority unchanged (`APPROPRIATE` in `src/reasoning/red_flags.py`):
+
+| Flag | Also appropriate for (votes of 3) | Single yes, not adopted |
+|---|---|---|
+| nstemi stemi | unstable angina (3), stable angina (3), pericarditis (3), myocarditis (3), acute pulmonary edema (3), atrial fibrillation (2), psvt (2) | — |
+| unstable angina | nstemi stemi (3), stable angina (3), pericarditis (3), myocarditis (3), acute pulmonary edema (2), atrial fibrillation (2), psvt (2) | — |
+| myocarditis | nstemi stemi (3), unstable angina (3), pericarditis (3), acute pulmonary edema (2), atrial fibrillation (2), psvt (2) | — |
+| acute pulmonary edema | nstemi stemi (3), unstable angina (2), myocarditis (2), atrial fibrillation (2) | psvt (1) |
+| pulmonary embolism | its own condition only | — |
+| spontaneous pneumothorax | its own condition only | boerhaave (1) |
+| boerhaave | its own condition only | spontaneous pneumothorax (1) |
+| aortic dissection | its own condition only | — |
+
+The ischaemic flags share the ECG-and-troponin pathway with the cardiac conditions; the flags for
+dissection, embolism, pneumothorax and Boerhaave are appropriate for their own condition only, so
+DDXPlus's "tearing" pain on pneumothorax and Boerhaave still counts against the dissection rule.
+
 **The safety layer v1** (`src/reasoning/safety.py`) checks every result last: the disclaimer is the
 text in §2, every flagged candidate is listed before every unflagged one and named in the red flags
 (FR-6.2), and no sentence recommends a treatment, names a drug or gives a dose (FR-6.5). A sentence

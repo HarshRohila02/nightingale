@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 
 from src.contracts import PatientCase
 
-__all__ = ["RedFlagRule", "RULES", "evaluate_red_flags"]
+__all__ = ["APPROPRIATE", "RedFlagRule", "RULES", "evaluate_red_flags"]
 
 
 @dataclass(frozen=True)
@@ -228,3 +228,62 @@ def evaluate_red_flags(case: PatientCase) -> dict[str, str]:
             # most specific reason to the most general.
             fired.setdefault(rule.condition_id, rule.reason)
     return fired
+
+
+# --- Decision A-7: when a flag is clinically appropriate ------------------------------------ #
+_ISCHAEMIC_PATHWAY = frozenset(
+    {
+        "COND:nstemi_stemi",
+        "COND:unstable_angina",
+        "COND:stable_angina",
+        "COND:pericarditis",
+        "COND:myocarditis",
+        "COND:acute_pulmonary_edema",
+        "COND:atrial_fibrillation",
+        "COND:psvt",
+    }
+)
+APPROPRIATE: dict[str, frozenset[str]] = {
+    "COND:aortic_dissection": frozenset({"COND:aortic_dissection"}),
+    "COND:nstemi_stemi": _ISCHAEMIC_PATHWAY,
+    "COND:unstable_angina": _ISCHAEMIC_PATHWAY,
+    "COND:pulmonary_embolism": frozenset({"COND:pulmonary_embolism"}),
+    "COND:spontaneous_pneumothorax": frozenset({"COND:spontaneous_pneumothorax"}),
+    "COND:myocarditis": frozenset(
+        {
+            "COND:myocarditis",
+            "COND:nstemi_stemi",
+            "COND:unstable_angina",
+            "COND:pericarditis",
+            "COND:acute_pulmonary_edema",
+            "COND:atrial_fibrillation",
+            "COND:psvt",
+        }
+    ),
+    "COND:acute_pulmonary_edema": frozenset(
+        {
+            "COND:acute_pulmonary_edema",
+            "COND:nstemi_stemi",
+            "COND:unstable_angina",
+            "COND:myocarditis",
+            "COND:atrial_fibrillation",
+        }
+    ),
+    "COND:boerhaave": frozenset({"COND:boerhaave"}),
+}
+"""Flagged condition -> the true conditions for which the flag is clinically appropriate (A-7).
+
+For red-flag precision (``docs/05`` §3.2: reported, not targeted), passed to
+:func:`~src.eval.metrics.red_flag_precision` as ``appropriate``. Decided 2026-09-25 by Claude, to
+whom the owner delegated A-7, on this definition, fixed before judging: a flag for F on a patient
+whose final diagnosis is T is appropriate when a competent emergency clinician would judge the
+alarm right in hindsight, because T lies on F's urgent diagnostic pathway (the work-up that
+excludes F also establishes or excludes T) or F and T overlap as one disease process; not merely
+because T is serious, typical of the findings, or visible on a broad test. Three independent
+judges (emergency pathway, cardiology guidance, an alarm-fatigue sceptic) judged all 104
+flag/condition pairs, told not to read any results (not fully blind to them: the project notes
+state some firing rates, ``docs/04`` §3), and a pair is appropriate when two of three said so. Every flag is appropriate for its own condition. The ischaemic flags (MI, unstable
+angina) share the ECG-and-troponin pathway with the eight cardiac conditions above; the flags for
+aortic dissection, embolism, pneumothorax and Boerhaave are appropriate for their own condition
+only. ``docs/04`` §3 gives each pair's vote.
+"""

@@ -80,7 +80,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   get a flag (25%)**, never as the share of all patients: half of DDXPlus's patients have one. In
   DDXPlus "tearing" pain belongs to pneumothorax and Boerhaave too. Red-flag sensitivity is 0.823,
   under the 0.95 target, because DDXPlus often omits the defining finding; do not loosen a rule to
-  chase it. `scripts/check_red_flags.py` re-measures. The pipeline sorts flagged candidates first, so a golden case with a flag cannot detect a ranking regression:
+  chase it. **At reduced evidence the rules collapse** (0.327 at 50%, 0.135 at 25%, EXP-019): most
+  rules need two or three findings together, and a 25% history keeps about 28% of them. `scripts/check_red_flags.py` re-measures. The pipeline sorts flagged candidates first, so a golden case with a flag cannot detect a ranking regression:
   test the ranking with red flags off too (`tests/test_ranker.py`). Under the old overlap score
   GC-001's MI ranked fifth by graph score; under 2a's every golden case ranks first (EXP-005).
 - **The KG knows questions, not answers** (`docs/02` §5.1). DDXPlus's edges are question-level;
@@ -129,8 +130,9 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   Recall@5 with the full D (ceiling 0.434) is always reported beside it.
 - **Score every system with `src/eval/metrics.py`**, which implements `docs/05` §3.1–§3.3 and
   §6 as amended, with a 95% bootstrap interval for every ratio metric (1,000 resamples,
-  seed 42). Never report a figure without its interval. Red-flag precision counts a flag as
-  appropriate only when it names the true condition, until the team settles A-7.
+  seed 42). Never report a figure without its interval. Red-flag precision uses A-7's mapping
+  (`APPROPRIATE` in `src/reasoning/red_flags.py`, settled 2026-09-25 by a three-judge panel's majority); report the
+  strict version beside it.
 - **Red-flag sensitivity counts a must-not-miss condition's own patients** that its flag reaches
   (`docs/05` amendment 2). Report the rule's rate on everyone else beside it (R-15).
 - **B1 is near-perfect on DDXPlus, and that is the data, not skill or leakage** (EXP-004). XGBoost
@@ -155,8 +157,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   DDXPlus's listed default answers, which leak the label. **EXP-018 (2026-09-25):** B1 retrained with masked
   copies, with and without the channel (`models/nightingale_b1_asked/`), no longer answers AF to
   short input, and the masked copies do that alone; the channel's own value needs masked validate
-  (amendment 3). The retrained models are **overconfident on short input** (GC-001: unstable angina
-  0.98–1.00): never show those scores as probabilities. The configured ranker is still B1-LR.
+  (amendment 3). **EXP-019 (the approved masks):** at 25% the original B1 misses the safety targets
+  (must-not-miss recall@3 0.877 XGB, 0.925 LR) and every `+aug` model meets them (≥ 0.996); the
+  channel adds a small significant gain. **The configured ranker is now B1-LR′+aug**
+  (`models/nightingale_b1_asked/b1_asked_aug`). The retrained models are calibrated against DDXPlus
+  on masked validate (ECE ≤ 0.011) but **near-certain on hand-written cases where a history cannot
+  decide** (GC-001: unstable angina 0.98–1.00): never show a raw score as a probability.
 - **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by

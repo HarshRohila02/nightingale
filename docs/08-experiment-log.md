@@ -71,7 +71,7 @@
 | Author | P4 (run by Claude) |
 | Config / ablation | B0; B1-LR, B1-XGB (EXP-004); B1-LR+aug, B1-XGB+aug, B1-LR′+aug, B1-XGB′+aug (EXP-018); B2 (EXP-005); the red-flag layer (EXP-008) |
 | Split used | validation, at 100%, 50% and 25% of each patient's evidence (`docs/05` §3.7) |
-| Git commit | the masks are recorded in the commit that adds this entry, **before** any system is scored on them; the scores follow in the next commit |
+| Git commit | `0f47d67` recorded the masks, **before** any system was scored on them; the scores are committed with this part of the entry |
 | MLflow run | — (scoring only; nothing is trained) |
 | Seed | 42 (masks and bootstrap) |
 
@@ -87,8 +87,194 @@
 | Realised size, 50% | 11.87 tokens, 8.61 questions; 42.57 of the 84 questions asked |
 | Realised size, 25% | 6.71 tokens, 5.10 questions; 21.99 of the 84 questions asked |
 
-The scoring script refuses to run unless both digests reproduce. **Results:** to follow in the next
-commit. Nothing had been scored on these masks when this entry was written.
+The scoring script refuses to run unless both digests reproduce. Nothing had been scored on these
+masks when this part of the entry was committed (`0f47d67`).
+
+**Results** (33,963 validate patients; 95% bootstrap intervals; every figure names its level
+and model label, `docs/05` §8 rule 8; the amendment-3 disclosure is `docs/05` §9; **B2 is circular
+on DDXPlus, R-12**; the system is closed-world, R-13; DDXPlus is synthetic). Nothing was trained;
+the run takes 129–137 s on the laptop (`scripts/evaluate_reduced_evidence.py`, which writes
+`data/interim/exp019_reduced_evidence.json`; an independent re-run reproduced it byte for byte). The
+100% column reproduces EXP-003, EXP-004, EXP-005 and EXP-018 exactly. **Order of events:** git alone
+cannot show that nothing was scored before `0f47d67` (the result file is overwritten by every run);
+the session's transcript shows the first scoring run starting 9 s after that commit, with only a
+digest check and an unmasked B2 run before it.
+
+| top-1 accuracy | 100% | 50% | 25% |
+|---|---|---|---|
+| B0 | 0.110 [0.106, 0.113] | 0.110 [0.106, 0.113] | 0.110 [0.106, 0.113] |
+| B1-LR | 0.998 [0.998, 0.999] | 0.947 [0.944, 0.949] | 0.766 [0.761, 0.770] |
+| B1-XGB | 0.998 [0.998, 0.999] | 0.578 [0.573, 0.583] | 0.245 [0.240, 0.250] |
+| B1-LR+aug | 0.998 [0.998, 0.999] | 0.982 [0.981, 0.984] | 0.931 [0.928, 0.934] |
+| B1-XGB+aug | 0.998 [0.998, 0.999] | 0.983 [0.982, 0.985] | 0.933 [0.931, 0.936] |
+| B1-LR′+aug | 0.998 [0.998, 0.999] | 0.986 [0.984, 0.987] | 0.946 [0.944, 0.948] |
+| B1-XGB′+aug | 0.998 [0.998, 0.999] | 0.987 [0.985, 0.988] | 0.948 [0.946, 0.950] |
+| B2 | 0.923 [0.921, 0.926] | 0.867 [0.863, 0.870] | 0.769 [0.764, 0.773] |
+
+| top-3 accuracy | 100% | 50% | 25% |
+|---|---|---|---|
+| B0 | 0.306 [0.301, 0.311] | 0.306 [0.301, 0.311] | 0.306 [0.301, 0.311] |
+| B1-LR | 1.000 [1.000, 1.000] | 0.997 [0.996, 0.997] | 0.945 [0.943, 0.947] |
+| B1-XGB | 1.000 [1.000, 1.000] | 0.991 [0.990, 0.992] | 0.906 [0.903, 0.909] |
+| B1-LR+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.997 [0.996, 0.997] |
+| B1-XGB+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.997 [0.997, 0.998] |
+| B1-LR′+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.998 [0.997, 0.998] |
+| B1-XGB′+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.998 [0.998, 0.999] |
+| B2 | 1.000 [0.999, 1.000] | 0.985 [0.984, 0.986] | 0.937 [0.935, 0.940] |
+
+| MRR | 100% | 50% | 25% |
+|---|---|---|---|
+| B0 | 0.292 [0.289, 0.295] | 0.292 [0.289, 0.295] | 0.292 [0.289, 0.295] |
+| B1-LR | 0.999 [0.999, 0.999] | 0.971 [0.970, 0.972] | 0.858 [0.855, 0.861] |
+| B1-XGB | 0.999 [0.999, 0.999] | 0.782 [0.779, 0.784] | 0.578 [0.575, 0.581] |
+| B1-LR+aug | 0.999 [0.999, 0.999] | 0.991 [0.990, 0.992] | 0.963 [0.961, 0.964] |
+| B1-XGB+aug | 0.999 [0.999, 0.999] | 0.992 [0.991, 0.992] | 0.964 [0.963, 0.966] |
+| B1-LR′+aug | 0.999 [0.999, 0.999] | 0.993 [0.992, 0.993] | 0.971 [0.970, 0.972] |
+| B1-XGB′+aug | 0.999 [0.999, 0.999] | 0.993 [0.993, 0.994] | 0.973 [0.971, 0.974] |
+| B2 | 0.961 [0.960, 0.963] | 0.924 [0.922, 0.926] | 0.854 [0.851, 0.857] |
+
+| must-not-miss recall@3 | 100% | 50% | 25% |
+|---|---|---|---|
+| B0 | 0.220 [0.214, 0.226] | 0.220 [0.214, 0.226] | 0.220 [0.214, 0.226] |
+| B1-LR | 1.000 [1.000, 1.000] | 0.994 [0.993, 0.995] | 0.925 [0.921, 0.929] |
+| B1-XGB | 1.000 [1.000, 1.000] | 0.987 [0.985, 0.988] | 0.877 [0.872, 0.882] |
+| B1-LR+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.996 [0.995, 0.997] |
+| B1-XGB+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.997 [0.996, 0.998] |
+| B1-LR′+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.997 [0.997, 0.998] |
+| B1-XGB′+aug | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.998 [0.997, 0.998] |
+| B2 | 1.000 [1.000, 1.000] | 0.985 [0.983, 0.987] | 0.935 [0.931, 0.939] |
+
+| dangerous false-negative rate | 100% | 50% | 25% |
+|---|---|---|---|
+| B0 | 0.606 [0.599, 0.614] | 0.606 [0.599, 0.614] | 0.606 [0.599, 0.614] |
+| B1-LR | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.001] | 0.024 [0.021, 0.026] |
+| B1-XGB | 0.000 [0.000, 0.000] | 0.004 [0.003, 0.005] | 0.059 [0.056, 0.062] |
+| B1-LR+aug | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.001 [0.000, 0.001] |
+| B1-XGB+aug | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.001 [0.000, 0.001] |
+| B1-LR′+aug | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.001] |
+| B1-XGB′+aug | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
+| B2 | 0.000 [0.000, 0.000] | 0.007 [0.006, 0.008] | 0.039 [0.036, 0.042] |
+
+| Precision@3 | 100% | 50% | 25% |
+|---|---|---|---|
+| B1-LR | 0.729 [0.726, 0.732] | 0.703 [0.700, 0.706] | 0.684 [0.682, 0.687] |
+| B1-XGB | 0.764 [0.761, 0.767] | 0.725 [0.722, 0.728] | 0.703 [0.700, 0.706] |
+| B1-LR+aug | 0.741 [0.738, 0.744] | 0.724 [0.722, 0.727] | 0.711 [0.708, 0.713] |
+| B1-XGB+aug | 0.734 [0.731, 0.737] | 0.730 [0.727, 0.732] | 0.718 [0.715, 0.721] |
+| B1-LR′+aug | 0.716 [0.714, 0.719] | 0.715 [0.712, 0.717] | 0.708 [0.705, 0.711] |
+| B1-XGB′+aug | 0.744 [0.741, 0.747] | 0.726 [0.723, 0.729] | 0.718 [0.715, 0.721] |
+| B2 | 0.756 [0.753, 0.759] | 0.747 [0.744, 0.750] | 0.733 [0.730, 0.736] |
+
+| Recall@5 | 100% | 50% | 25% |
+|---|---|---|---|
+| B1-LR | 0.553 [0.551, 0.556] | 0.539 [0.536, 0.541] | 0.527 [0.525, 0.530] |
+| B1-XGB | 0.569 [0.567, 0.572] | 0.549 [0.547, 0.551] | 0.525 [0.522, 0.527] |
+| B1-LR+aug | 0.556 [0.553, 0.558] | 0.546 [0.543, 0.548] | 0.536 [0.533, 0.538] |
+| B1-XGB+aug | 0.552 [0.550, 0.554] | 0.551 [0.548, 0.553] | 0.544 [0.542, 0.546] |
+| B1-LR′+aug | 0.544 [0.542, 0.547] | 0.537 [0.535, 0.539] | 0.533 [0.531, 0.535] |
+| B1-XGB′+aug | 0.568 [0.566, 0.570] | 0.553 [0.551, 0.556] | 0.547 [0.545, 0.549] |
+| B2 | 0.570 [0.568, 0.572] | 0.562 [0.560, 0.564] | 0.556 [0.554, 0.559] |
+
+| ECE of raw scores (10 bins) | 100% | 50% | 25% |
+|---|---|---|---|
+| B1-LR | 0.001 | 0.005 | 0.035 |
+| B1-XGB | 0.000 | 0.310 | 0.665 |
+| B1-LR+aug | 0.001 | 0.003 | 0.010 |
+| B1-XGB+aug | 0.000 | 0.004 | 0.006 |
+| B1-LR′+aug | 0.000 | 0.002 | 0.011 |
+| B1-XGB′+aug | 0.000 | 0.003 | 0.006 |
+
+**Paired comparisons** (McNemar on top-3, `docs/05` §6 as amended; at 100% every pair is 0 / 0):
+
+| Level | A vs B (the change isolated) | Top-3, A only / B only, p | Must-not-miss patients only |
+|---|---|---|---|
+| 50% | B1-XGB vs B1-LR (model) | 89 / 279, p = 6.7e-23 | 73 / 197, p = 7.1e-14 |
+| 50% | B1-XGB+aug vs B1-LR+aug (model) | 3 / 0, p = 0.25 | 3 / 0, p = 0.25 |
+| 50% | B1-XGB′+aug vs B1-LR′+aug (model) | 0 / 0, p = 1 | 0 / 0, p = 1 |
+| 50% | B1-LR+aug vs B1-LR (masked copies) | 118 / 4, p = 1.4e-24 | 98 / 3, p = 8.5e-21 |
+| 50% | B1-XGB+aug vs B1-XGB (masked copies) | 308 / 1, p = 7.2e-68 | 222 / 0, p = 9e-50 |
+| 50% | B1-LR′+aug vs B1-LR+aug (asked channel) | 4 / 0, p = 0.12 | 3 / 0, p = 0.25 |
+| 50% | B1-XGB′+aug vs B1-XGB+aug (asked channel) | 1 / 0, p = 1 | 0 / 0, p = 1 |
+| 25% | B1-XGB vs B1-LR (model) | 845 / 2162, p = 2.9e-127 | 547 / 1363, p = 1.3e-77 |
+| 25% | B1-XGB+aug vs B1-LR+aug (model) | 49 / 25, p = 0.0075 | 35 / 11, p = 0.0007 |
+| 25% | B1-XGB′+aug vs B1-LR′+aug (model) | 44 / 27, p = 0.058 | 23 / 18, p = 0.53 |
+| 25% | B1-LR+aug vs B1-LR (masked copies) | 1811 / 47, p < 1e-300 | 1226 / 28, p = 1.8e-250 |
+| 25% | B1-XGB+aug vs B1-XGB (masked copies) | 3138 / 33, p < 1e-300 | 2046 / 8, p < 1e-300 |
+| 25% | B1-LR′+aug vs B1-LR+aug (asked channel) | 79 / 42, p = 0.0011 | 50 / 22, p = 0.0015 |
+| 25% | B1-XGB′+aug vs B1-XGB+aug (asked channel) | 52 / 22, p = 0.00075 | 27 / 18, p = 0.23 |
+
+| Red-flag layer | 100% | 50% | 25% |
+|---|---|---|---|
+| Sensitivity (amendment 2, target ≥ 0.95) | 0.823 [0.818, 0.829] | 0.327 [0.320, 0.334] | 0.135 [0.130, 0.140] |
+| Precision (A-7) | 0.848 [0.845, 0.852] | 0.890 [0.884, 0.896] | 0.931 [0.922, 0.941] |
+| Precision (strict) | 0.512 [0.508, 0.516] | 0.650 [0.640, 0.659] | 0.822 [0.808, 0.836] |
+| Patients without a must-not-miss condition flagged | 0.246 [0.240, 0.253] | 0.050 [0.046, 0.053] | 0.007 [0.006, 0.008] |
+
+**Interpretation:**
+
+1. **Under the approved rule, the original B1 fails the safety targets at 25% of the history.**
+   B1-XGB's top-1 falls to 0.245, its must-not-miss recall@3 to 0.877 and its dangerous
+   false-negative rate rises to 0.059, against targets of ≥ 0.95 and ≤ 0.02; its raw scores are
+   badly calibrated there (ECE 0.665). B1-LR degrades less but still misses both targets
+   (0.925, 0.024). **The mask rule matters here.** Under EXP-017's token rule B1-LR met the
+   must-not-miss target at 25% (0.974), and B1-XGB reached 0.935; under the approved question rule
+   they reach 0.925 and 0.877, although the question rule keeps slightly more evidence (6.71 tokens
+   against 6.21). The proposal (§3) predicted only that the figures would differ, and expected the
+   question rule to be the gentler one; dropping whole questions hurts more than dropping tokens.
+   The rule was fixed and recorded before scoring (`0f47d67`); EXP-017 stays a diagnostic.
+2. **Masked training copies repair almost all of it.** Every `+aug` model keeps top-3 ≥ 0.997 and
+   must-not-miss recall@3 ≥ 0.996 at 25%, with a dangerous false-negative rate ≤ 0.001 and ECE ≤
+   0.011 (B1-LR+aug's 0.9967 and 0.9958 round to those bounds). Against its unaugmented self, at
+   25% each `+aug` model gets top-3 right where the plain model fails for 1,811 patients (LR) and
+   3,138 (XGB), and the reverse for 47 and 33.
+3. **The "asked" channel adds a small, significant gain at 25%** on top of the masked copies:
+   top-1 0.931 → 0.946 (LR) and 0.933 → 0.948 (XGB), top-3 better for 79 patients against 42
+   (LR, p = 0.001) and 52 against 22 (XGB, p = 0.0007); on must-not-miss patients alone the gain is
+   significant for LR (50 / 22, p = 0.0015) but not for XGB (27 / 18, p = 0.23). At 50% it makes no
+   significant difference. The ′ models' reduced-evidence input depends on decision A-9, still
+   open; the asked-set digest is recorded above, so a change re-runs cleanly.
+4. **Once both are trained on masked copies, LR and XGBoost are close.** At 25% the top-3 disagreement
+   falls from 845 / 2,162 patients (plain) to 49 / 25 (`+aug`, XGBoost slightly better, p = 0.0075)
+   and 44 / 27 (′+aug, p = 0.058). Most of EXP-017's gap came from the training rows, not
+   the model family; a small XGBoost edge remains.
+5. **R-16 returns at the reduced levels for the augmented B1.** At 25% the `+aug` variants already
+   reach top-3 0.997–0.998 and must-not-miss recall@3 0.996–0.998, so a fusion or deep model has
+   almost no room above them on those two metrics; top-1 (0.93–0.95), MRR (0.96–0.97), Precision@3
+   and Recall@5 still leave room. Against the unaugmented B1, the room at 25% is large. **Which B1
+   H1-R and the reduced-evidence Target compare against therefore decides them**; the question is
+   in the errata proposal, raised after these results and said so.
+6. **The red-flag layer collapses at reduced evidence.** Its sensitivity falls from 0.823 to 0.327
+   at 50% and 0.135 at 25%. At 25% the masks keep about 28% of a patient's questions beyond the
+   initial one, and most rules need two or three findings together, so the combination rules fall
+   furthest (MI 0.907 → 0.025, myocarditis 0.641 → 0.014, pneumothorax 0.325 → 0.009). The one rule
+   that can fire on a single finding (acute pulmonary edema, on paroxysmal nocturnal dyspnoea)
+   keeps the most (0.958 → 0.319), with PE next (0.922 → 0.282). Its precision rises as it fires
+   less (A-7: 0.848 → 0.931). On DDXPlus at
+   reduced evidence, must-not-miss safety is carried by the ranker, not by the rules, which bears
+   directly on H2-R ("fusion + red flags > ML-only").
+7. **EXP-018's interpretation 4, narrowed.** EXP-018 called the retrained models "overconfident
+   on short input". On masked validate patients at 25% their raw scores are calibrated (ECE
+   0.006–0.011): on DDXPlus a short history often does settle the condition, and the models say so
+   correctly. That is calibration against DDXPlus's own generator, so it cannot test EXP-018's point,
+   which was about real histories: GC-001's classic presentation gets unstable angina 0.98–1.00
+   though only a troponin can separate it from MI. The evidence for that concern is one
+   hand-written case, whose input passes through the concept → token inversion (R-17). Both hold:
+   calibrated on DDXPlus, and near-certain on hand-written input where certainty is not warranted.
+8. **B2 (circular)** degrades between the two: at 25% top-1 0.769 and must-not-miss recall@3
+   0.935, below the target. It has the best Precision@3 of any system at 50% and 25% and the best
+   Recall@5 at every level (at 100% B1-XGB's Precision@3 is higher, 0.764 against 0.756, and its
+   Recall@5 is 0.001 lower).
+9. **The configured ranker changes** from B1-LR to **B1-LR′+aug** (`configs/config.yaml`): every
+   hand-written case is a partial history, B1-LR misses both safety targets at 25% and B1-LR′+aug
+   meets them, and it is the kind of model that sees a case's denials. The four golden cases hold
+   with it, with red flags on and off. Two costs, stated: at 100% its Precision@3 is lower than the
+   old B1-LR's (0.716 against 0.729); and B1-XGB′+aug is a little better on top-3 at 25% (44 / 27,
+   p = 0.058) and on Precision@3 and Recall@5 at every level, so 2c may revisit the family. Its
+   training copies used the A-9 rule, so A-9 now governs the configured ranker too.
+
+**Next action:** the team: the errata (E-1), including which B1 the reduced-evidence claims compare
+against; A-9. 2c: fuse with the configured ranker, knowing the red flags add little at reduced
+evidence. The owner: place the training run for XGBoost's seeds 43–46 (§6).
 
 ---
 
@@ -165,7 +351,7 @@ Fused with the graph, red flags off: every model puts PE and GERD first and MI s
    it changes little: MI moves from 4th to 3rd in the ML ranking, and GC-004's two encoded denials
    leave GERD where it already was. The comparison that decides it, masked validate patients with
    and without the channel, waits for amendment 3 and A-9.
-4. **A new concern: the retrained models are overconfident on short input.** Given GC-001's
+4. ~~**A new concern: the retrained models are overconfident on short input.**~~ *Narrowed by EXP-019 (its interpretation 7): on masked validate patients at 25% their raw scores are calibrated against DDXPlus (ECE ≤ 0.011); the concern stands for hand-written input, on GC-001's evidence.* Given GC-001's
    classic history, every retrained model puts unstable angina at 0.98–1.00 and MI near 0, though a
    history cannot separate them (only the troponin can); the original LR said 0.89. On 5–13
    findings these are not probabilities, and they must never be shown as such (docs/04 F-2;
@@ -283,6 +469,12 @@ treatment language, the disclaimer intact, flags first.
    reads, so every rate here is an upper bound on what the rules do with real histories, and the
    dissection rule has no patients to be sensitive to. The golden cases remain the clinical check:
    GC-001 raises MI, GC-002 PE and pneumothorax, GC-003 dissection, GC-004 nothing.
+
+**Addendum, 2026-09-25: A-7 settled.** With A-7's mapping (`APPROPRIATE` in `src/reasoning/red_flags.py`,
+`docs/04` §3), red-flag precision is **0.848** [0.845, 0.852] (strict 0.512 [0.508, 0.516]). A-7
+was settled after this entry, by a three-judge panel told not to read any results; it was not fully
+blind to them, since the project notes every session loads state some firing rates (`docs/04` §3).
+A-5 was decided the same day: ≥ 8 stays.
 
 **Next action:** the team: A-5 (keep ≥ 8, recommended) and A-7 (which flags are appropriate for which
 true conditions; EXP-008's candidates are the MI flag on stable angina, the myocarditis flag on
@@ -1118,4 +1310,5 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
 | EXP-016 | BODHI-S enrichment: coverage and effect *(unplanned, run 2026-09-19)* | 1 | 2a: a score that does not punish enriched conditions |
 | EXP-017 | B1 under a partial history *(unplanned, run 2026-09-23)* | 1 | R-18: the models separate once the history is incomplete; evidence for D-10 (b) |
-| EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are overconfident on short input. The reduced levels wait for amendment 3 |
+| EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are ~~overconfident on short input~~ near-certain on hand-written input (narrowed by EXP-019). The reduced levels wait for amendment 3 |
+| EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |

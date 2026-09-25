@@ -10,8 +10,9 @@ Each validate patient's evidence becomes hand-authored concepts through the cros
    who get any flag. Half of validate patients have a must-not-miss condition, so the share of
    all patients flagged cannot show alarm fatigue: a perfect rule set would flag half of them.
 3. docs/05 red-flag sensitivity (amendment 2), overall and per condition, and red-flag precision
-   as ``src/eval/metrics.py`` defines it until A-7 is settled (a flag is appropriate only when it
-   names the true condition). Each with its 95% bootstrap interval.
+   under decision A-7 (``APPROPRIATE`` in src/reasoning/red_flags.py), with the strict version (a
+   flag is appropriate only when it names the true condition) beside it. Each with its 95%
+   bootstrap interval.
 4. Open decision A-5: the pneumothorax rule's reach with the sudden-onset cut-off (``E_59``) at 6,
    7 and 8, the only rule the cut-off changes on DDXPlus.
 
@@ -46,7 +47,7 @@ from src.eval.metrics import (  # noqa: E402
     red_flag_sensitivity,
 )
 from src.medical_kg.crosswalk import concepts_from_evidences  # noqa: E402
-from src.reasoning.red_flags import RULES, evaluate_red_flags  # noqa: E402
+from src.reasoning.red_flags import APPROPRIATE, RULES, evaluate_red_flags  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INTERIM = REPO_ROOT / "data" / "interim"
@@ -153,6 +154,7 @@ def main(argv: list[str] | None = None) -> int:
         "rates": red_flag_rates(records),
         "false_alarm_burden": burden,
         "red_flag_sensitivity": sensitivity,
+        "red_flag_precision": _metric(red_flag_precision(outcomes, APPROPRIATE)),
         "red_flag_precision_strict": _metric(red_flag_precision(outcomes)),
         "a5_pneumothorax_by_onset_cutoff": onset_cutoffs(frame),
     }
@@ -176,11 +178,12 @@ def main(argv: list[str] | None = None) -> int:
     for key, m in sensitivity.items():
         name = "overall" if key == "overall" else BY_ID[key].label
         print(f"  {name:<26} {m['value']:.3f} [{m['ci'][0]:.3f}, {m['ci'][1]:.3f}]")
-    p = summary["red_flag_precision_strict"]
-    print(
-        f"Red-flag precision, strict (A-7 open): {p['value']:.3f} "
-        f"[{p['ci'][0]:.3f}, {p['ci'][1]:.3f}] over {p['cases']:,} patients with a flag"
-    )
+    for key, name in (("red_flag_precision", "A-7"), ("red_flag_precision_strict", "strict")):
+        p = summary[key]
+        print(
+            f"Red-flag precision, {name}: {p['value']:.3f} "
+            f"[{p['ci'][0]:.3f}, {p['ci'][1]:.3f}] over {p['cases']:,} patients with a flag"
+        )
     print("\nA-5: the pneumothorax rule by sudden-onset cut-off (E_59 >= k):")
     for cutoff, row in summary["a5_pneumothorax_by_onset_cutoff"].items():
         print(

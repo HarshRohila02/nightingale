@@ -51,11 +51,13 @@ from src.ddxplus import (
 )  # noqa: E402
 from src.eval.metrics import (  # noqa: E402
     CaseOutcome,
+    Ratio,
     bootstrap_ratio,
     evaluate,
     mcnemar,
     outcome_from_record,
     ranking_from_scores,
+    red_flag_precision,
     red_flag_sensitivity,
 )
 from src.eval.reports import score, top3_hits  # noqa: E402
@@ -64,7 +66,7 @@ from src.ml.baselines import PrevalencePrior  # noqa: E402
 from src.ml.evidence_masks import LEVELS, mask_frame  # noqa: E402
 from src.ml.features import evidence_codes_in_scope  # noqa: E402
 from src.ml.ranker import ModelRanker, open_ranker  # noqa: E402
-from src.reasoning.red_flags import evaluate_red_flags  # noqa: E402
+from src.reasoning.red_flags import APPROPRIATE, evaluate_red_flags  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOKEN_DIGEST = "e99a7a8fbf792675"
@@ -208,10 +210,21 @@ def red_flag_layer(frame: pd.DataFrame) -> dict[str, Any]:
         if r.cases:
             per[condition] = round(r.value, 4)
     benign = [o for o in outcomes if o.true_condition not in critical]
+    burden = Ratio(np.array([float(bool(o.flagged)) for o in benign]), np.ones(len(benign)))
+    burden_low, burden_high = bootstrap_ratio(burden)
+    precision = {}
+    for key, appropriate in (("precision", APPROPRIATE), ("precision_strict", None)):
+        r = red_flag_precision(outcomes, appropriate)
+        lo, hi = bootstrap_ratio(r)
+        precision[key] = {"value": round(r.value, 4), "ci": [round(lo, 4), round(hi, 4)]}
     return {
+        **precision,
         "sensitivity": {"value": round(ratio.value, 4), "ci": [round(low, 4), round(high, 4)]},
         "sensitivity_by_condition": per,
-        "other_patients_flagged": round(sum(bool(o.flagged) for o in benign) / len(benign), 4),
+        "other_patients_flagged": {
+            "value": round(burden.value, 4),
+            "ci": [round(burden_low, 4), round(burden_high, 4)],
+        },
     }
 
 
