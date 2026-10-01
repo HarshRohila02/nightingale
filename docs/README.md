@@ -19,6 +19,7 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | 08 | [Experiment Log](08-experiment-log.md) | Running record of every run | P2 |
 | 10 | [Spike R-01: Crosswalk](10-spike-r01-crosswalk.md) | Measured result that set the knowledge-graph strategy | P1 |
 | 11 | [Compute Runbook](11-compute-runbook.md) | Where each job runs; the owner's laptop-GPU steps; cloud jobs; AuraDB setup | Owner + P4 |
+| 12 | [Project Overview](12-project-overview.md) | A readable summary as of 2026-10-02: what is done, the techniques and the subjects they come from, a flowchart to the final result, and the time left. `PROGRESS.md` stays the source of truth | All |
 | — | [Proposal: `docs/05` amendment 3](proposals/05-amendment-3.md) | Reduced evidence (D-10) and the deep ranker (D-11): **approved 2026-09-25** and applied to `docs/05` v1.3; kept as the record of the proposal | All four |
 | — | [Proposal: amendment 3 errata](proposals/05-amendment-3-errata.md) | Contradictions an independent review found inside amendment 3's approved wording, with exact corrections: **approved 2026-10-02** and applied to `docs/05` v1.4 as amendment 3a; kept as the record | All four |
 | — | [Proposal: amendment 3a follow-ups](proposals/05-amendment-3b-errata.md) | What the verifiers of amendment 3a found: the `+aug` comparators are perfect or within four misses at 50%, so, as approved, the reduced-evidence claims cannot be met (needs an answer before the fusion sweep), and ten gaps left in the text: **for the team** (E-2) | All four |
