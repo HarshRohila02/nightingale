@@ -67,7 +67,7 @@
 
 | Field | Value |
 |---|---|
-| Date | 2026-09-25 (design); 2026-09-30 (rule revised after an independent review, still before the sweep); 2026-10-01 (three statements corrected and one rule added after a second review, still before the sweep) |
+| Date | 2026-09-25 (design); 2026-09-30 (rule revised after an independent review, still before the sweep); 2026-10-01 (three statements corrected and one rule added after a second review, still before the sweep); 2026-10-02 (E-1 settled as `docs/05` amendment 3a; MRR's paired test added, as its item 4 requires; still before the sweep) |
 | Author | P4 (run by Claude) |
 | Config / ablation | The graph (B2) fused with each `+aug` B1 variant, seed 42: **B2 ⊕ B1-LR+aug** and **B2 ⊕ B1-XGB+aug** (unprimed), **B2 ⊕ B1-LR′+aug** (the configured pipeline) and **B2 ⊕ B1-XGB′+aug** (primed, judged separately, `docs/05` §4, §7). A7-style systems without RAG, the LLM or the patient KG: the protocol's A0 needs B1-DL+aug, which does not exist yet. Reported descriptively |
 | Split used | validation, at 100%, 50% and 25% of each patient's evidence, on EXP-019's masks (both digests must reproduce; the realised sizes are EXP-019's) |
@@ -98,7 +98,7 @@ graph's posterior (uniform prior); at α = 0 the floor is not applied. Three cho
    reads as dissection put it 1st at every weight (min-max: 2nd–4th); cases with pain going to the
    back or hypertension (ADD-RS 0), such as a hypertensive 58-year-old man with sharp pain going to
    the back, put it 2nd–3rd, above where the graph alone ranks it. Whether that is wanted is a
-   clinical question for the team (A-2). The rule's MRR and must-not-miss constraint
+   clinical question for the team (A-2; the team kept the setting on 2026-10-02 without answering it separately, so it stays open). The rule's MRR and must-not-miss constraint
    cannot see dissection at 2nd or 3rd when the true condition is 1st; Precision@3 can, so it is
    recorded at every α.
 2. **The model floor ε = 0.01**, not tuned: no model probability below 1% is taken at face value, so
@@ -157,7 +157,8 @@ applies to the unrounded values the script computes:
 - **Seeds:** α is chosen on the seed-42 components only, since the seed-42 model is the one used
   (§6). When EXP-020's seeds 43–46 return, each is fused at its arm's seed-42 α, never re-swept, and
   reported as mean ± std beside the seed-42 figures at every level; the same for the `+aug`
-  logistic regressions' seeds if errata item 5 is approved. A seed's own optimum may be reported as
+  logistic regressions' seeds ~~if errata item 5 is approved~~ (item 5, approved 2026-10-02 in
+  amendment 3a). A seed's own optimum may be reported as
   a check on α's stability, and is never used.
 - **Recorded at every α,** not only the chosen one: Precision@3, how often dissection enters the top
   3, and how many must-not-miss patients dissection alone pushes out of it.
@@ -168,13 +169,20 @@ applies to the unrounded values the script computes:
   reliability table of the fused probabilities, which red flags reorder but do not change. The
   red-flag layer's own sensitivity and precision do not depend on α; they are EXP-019's. McNemar
   on top-3 (all patients, and must-not-miss patients) for fused against the ML component alone,
-  fused against B2, and fused plus red flags against the ML component alone. (*Narrowed
-  2026-10-01* from "every §3 metric", which the script did not compute.)
+  fused against B2, and fused plus red flags against the ML component alone, each with the paired
+  bootstrap of the per-case difference in reciprocal rank beside it (`docs/05` §6, amendment 3a
+  item 4; *added 2026-10-02*, before the sweep). (*Narrowed 2026-10-01* from "every §3 metric",
+  which the script did not compute.)
 
-**What this cannot decide.** No H1-R or H2-R verdict: A0 does not exist yet, and which B1 the
-reduced-evidence claims compare against is the team's question (errata item 17). **Which α A7 uses**
-(its own component's, chosen by this rule, or A0's) is not this entry's to decide: it goes to the
-team as errata item 18. The ′ systems' 50% and 25% inputs depend on open decision A-9; a change to
+**What this cannot decide.** No H1-R or H2-R verdict: A0 does not exist yet. ~~Which B1 the
+reduced-evidence claims compare against is the team's question (errata item 17).~~ *Settled
+2026-10-02 (amendment 3a, item 17 (b)):* they must hold against the plain B1 variants **and** the
+`+aug` ones these components are, so the comparisons of fused against its `+aug` component count.
+~~**Which α A7 uses** (its own component's, chosen by this rule, or A0's) is not this entry's to
+decide: it goes to the team as errata item 18.~~ *Settled the same day (item 18):* each fused
+configuration takes the α chosen for its own component, with A7 at A0's α reported beside it, as
+this rule already does. The ′ systems' 50% and 25% inputs depend on decision A-9 (the current setting, kept by the team
+2026-10-02); a change to
 it means a re-sweep. α is chosen on these patients, so the fused figures will be optimistic until
 the test split is opened (Phase 4). Every figure is on DDXPlus, which is synthetic and where the
 graph is circular (R-12); the system is closed-world (R-13).
@@ -184,12 +192,18 @@ any sweep): GC-003's aortic dissection ranks **1st** (under min-max it was 3rd, 
 channel models); GC-001's MI 2nd, behind unstable angina (the retrained models give it 0.98–1.00,
 B1-LR 0.89); GC-002's embolism and GC-004's GERD 1st. The same with B1-LR and B1-LR′+aug.
 
-**Status: the sweep waits for two things.** (1) **The team's decision on E-1**, at least items 2–4,
-6, 17 and 18: the errata proposal and PROGRESS's E-1 row put E-1 before any fusion result, and this
-sweep's McNemar tests of fused against its `+aug` component are the comparison item 17 decides.
-(2) **The owner's choice of where it runs** (D-7): tuning on project data, nothing trained, about
-3–5 minutes on the laptop's CPU. These fused results will not exist until both are settled, unless
-the team or the owner says to run it first, which would then be recorded here.
+**Status: the sweep waits for two things.** (1) ~~**The team's
+decision on E-1**, at least items 2–4, 6, 17 and 18: the errata proposal and PROGRESS's E-1 row put
+E-1 before any fusion result, and this sweep's McNemar tests of fused against its `+aug` component
+are the comparison item 17 decides.~~ **Settled 2026-10-02:** the team approved the errata, all 18
+items with item 17 (b), as `docs/05` amendment 3a (v1.4), before any fused ranking of a DDXPlus
+patient was scored. *(2026-10-02, later:)* **the team's answer to E-2's first item**
+(`docs/proposals/05-amendment-3b-errata.md`): applying amendment 3a found that, as approved, the
+reduced-evidence claims cannot be met, and which level they are judged at must be settled before any
+fused result on DDXPlus is known. (2) **The owner's choice of where it runs** (D-7): tuning on project
+data, nothing trained, about 3–5 minutes on the laptop's CPU. These fused results will not exist
+until both are settled, unless the team or the owner says to run it first, which would then be
+recorded here.
 
 **Results:** to follow.
 
@@ -363,8 +377,8 @@ digest check and an unmasked B2 run before it.
    top-1 0.931 → 0.946 (LR) and 0.933 → 0.948 (XGB), top-3 better for 79 patients against 42
    (LR, p = 0.001) and 52 against 22 (XGB, p = 0.0007); on must-not-miss patients alone the gain is
    significant for LR (50 / 22, p = 0.0015) but not for XGB (27 / 18, p = 0.23). At 50% it makes no
-   significant difference. The ′ models' reduced-evidence input depends on decision A-9, still
-   open; the asked-set digest is recorded above, so a change re-runs cleanly.
+   significant difference. The ′ models' reduced-evidence input depends on decision A-9, ~~still
+   open~~ *decided 2026-10-02 (the current setting)*; the asked-set digest is recorded above, so a change re-runs cleanly.
 4. **Once both are trained on masked copies, LR and XGBoost are close.** At 25% the top-3 disagreement
    falls from 845 / 2,162 patients (plain) to 49 / 25 (`+aug`, XGBoost slightly better, p = 0.0075)
    and 44 / 27 (′+aug, p = 0.058). Most of EXP-017's gap came from the training rows, not
@@ -406,7 +420,9 @@ digest check and an unmasked B2 run before it.
 
 **Next action:** the team: the errata (E-1), including which B1 the reduced-evidence claims compare
 against; A-9. 2c: fuse with the configured ranker, knowing the red flags add little at reduced
-evidence. The owner: place the training run for XGBoost's seeds 43–46 (§6).
+evidence. The owner: place the training run for XGBoost's seeds 43–46 (§6). *2026-10-02: the team
+settled E-1 (`docs/05` amendment 3a; item 17 (b): the reduced-evidence claims must also hold
+against the `+aug` B1 variants) and A-9 (the current setting).*
 
 ---
 
@@ -1430,7 +1446,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Run 2026-09-19 on Colab by the owner; logged* |
 | EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
-| EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; waits for E-1 and D-7)* | 2 | The graph's weight α (validation only), one for every level |
+| EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; ~~waits for E-1 and D-7~~ E-1 settled 2026-10-02 (amendment 3a); waits for E-2's first item, then D-7)* | 2 | The graph's weight α (validation only), one for every level |
 | EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only | 3 | H3 |
@@ -1444,4 +1460,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-017 | B1 under a partial history *(unplanned, run 2026-09-23)* | 1 | R-18: the models separate once the history is incomplete; evidence for D-10 (b) |
 | EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are ~~overconfident on short input~~ near-certain on hand-written input (narrowed by EXP-019). The reduced levels wait for amendment 3 |
 | EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |
-| EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug *(amendment 3 §6; Colab, the owner's choice)* | 2 | How much each XGBoost figure, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used |
+| EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used |

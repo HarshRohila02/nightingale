@@ -20,8 +20,8 @@ patient has it. A kept question keeps every token; a dropped one loses every tok
 ``scripts/check_mask_rules.py`` reproduces the proposal's figures and digest from this code.
 
 **The rule for the questions a patient did not list**, which the proposal leaves to the encoder,
-is decided here (open decision A-9, docs/02 §9). In DDXPlus an unlisted question means "no", so at
-full evidence every question was asked. Under a mask, the unlisted questions are asked at the same
+is decided here (decision A-9, kept by the team 2026-10-02; docs/02 §9). In DDXPlus an unlisted
+question means "no", so at full evidence every question was asked. Under a mask, the unlisted questions are asked at the same
 share: a second permutation, drawn from the same generator after the first, so the listed tokens
 and the proposal's digest do not depend on it, and the levels nest here too. An unlisted follow-up
 counts as asked only when its parent was: nobody asks where the pain is without asking about pain.

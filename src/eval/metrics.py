@@ -14,7 +14,8 @@ and probabilities. The functions follow the frozen protocol and its 2026-09-19 a
 * **§3.3 calibration:** expected calibration error over 10 bins, the Brier score, and the
   reliability table behind a reliability diagram.
 * **§6 statistics:** a 95% bootstrap confidence interval for every metric (1,000 resamples of the
-  cases, seed 42), and McNemar's test for paired top-3 correctness.
+  cases, seed 42), McNemar's test for paired top-3 correctness, and a paired bootstrap of the
+  per-case difference for MRR (amendment 3a).
 
 Most metrics are a ratio of per-case sums. Top-3 accuracy is the number of hits over the number
 of cases; must-not-miss recall counts only the must-not-miss cases. :class:`Ratio` holds those
@@ -47,6 +48,7 @@ __all__ = [
     "f1_by_condition",
     "mcnemar",
     "outcome_from_record",
+    "paired_bootstrap_difference",
     "ranking_from_scores",
     "reliability_table",
 ]
@@ -437,6 +439,50 @@ def mcnemar(correct_a: Sequence[bool], correct_b: Sequence[bool]) -> dict[str, f
         "statistic": statistic,
         "p_value": math.erfc(math.sqrt(statistic / 2)),
         "method": "chi-square, continuity-corrected",
+    }
+
+
+def paired_bootstrap_difference(
+    values_a: Sequence[float],
+    values_b: Sequence[float],
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    seed: int = DEFAULT_SEED,
+    level: float = DEFAULT_LEVEL,
+) -> dict[str, float | bool | int | str | None]:
+    """The paired test for MRR (docs/05 §6, amendment 3a): bootstrap the per-case difference.
+
+    Args:
+        values_a: Per case, system A's value, e.g. its reciprocal rank
+            (``reciprocal_rank(cases).numerator``).
+        values_b: System B's, for the same cases in the same order.
+
+    Returns:
+        The mean ``difference`` (A − B), its percentile interval ``ci_low`` / ``ci_high`` from
+        resampling the cases, ``excludes_zero`` when that interval excludes 0 (what §6 calls a
+        pass), ``better``, the system the interval favours (``"a"``, ``"b"`` or None), and
+        ``cases``. A pass says nothing about direction: a claim that A beats B needs
+        ``better == "a"`` too.
+
+    Raises:
+        ValueError: for different or no case counts, or values that are not finite.
+    """
+    if len(values_a) != len(values_b):
+        raise ValueError("a paired test needs the same cases for both systems")
+    if not len(values_a):
+        raise ValueError("a paired test needs at least one case")
+    differences = np.asarray(values_a, dtype=float) - np.asarray(values_b, dtype=float)
+    if not np.all(np.isfinite(differences)):
+        raise ValueError("a paired test needs finite values (a NaN would drop resamples)")
+    ratio = Ratio(differences, np.ones_like(differences))
+    low, high = bootstrap_ratio(ratio, resamples=resamples, seed=seed, level=level)
+    return {
+        "difference": ratio.value,
+        "ci_low": low,
+        "ci_high": high,
+        "excludes_zero": bool(low > 0 or high < 0),
+        "better": "a" if low > 0 else "b" if high < 0 else None,
+        "cases": ratio.cases,
     }
 
 

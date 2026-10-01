@@ -22,9 +22,11 @@ validation patient and before any fused ranking on validation was scored:
    however strongly the graph supported it (EXP-005 point 7). **What this implies** (found in
    review, 2026-09-30): P(dissection) is the same at every α, and α moves its *rank* only through
    how sharply the 13 are pooled. Dissection enters the top 3 whenever P_kg(dissection) exceeds the
-   fused probability of the pool's third condition. With a near-certain model that happens for findings that score 0 on the ADD-RS,
-   such as pain going to the back or hypertension, so the fusion can rank dissection above where
-   the graph alone does. Whether that is wanted is a clinical question for the team (A-2).
+   fused probability of the pool's third condition. With a near-certain model that happens for
+   findings that score 0 on the ADD-RS, such as pain going to the back or hypertension, so the
+   fusion can rank dissection above where the graph alone does. Whether that is wanted is a
+   clinical question for the team (A-2). The team kept the setting on 2026-10-02 without
+   answering it separately, so it stays open.
 2. **No model probability below ε = 0.01 is taken at face value.** A pool multiplies, so one
    expert's near-zero vetoes a condition whatever the other says. At α = 0.5 the graph must then
    prefer a condition about 100 times over a near-certain model's answer to put it first. GC-001

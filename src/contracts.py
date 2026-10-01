@@ -18,6 +18,9 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+# The default below comes from the fusion, so changing LOG_FLOOR there changes this contract too.
+from src.fusion.pool import LOG_FLOOR
+
 __all__ = [
     "DISCLAIMER",
     "Assertion",
@@ -190,7 +193,11 @@ class Candidate(BaseModel):
     label: str
     ml_score: float = 0.0
     kg_score: float = 0.0
-    fused_score: float = 0.0
+    fused_score: float = Field(
+        default=LOG_FLOOR,
+        description="A log-probability, at most 0 (src/fusion/pool.py); not calibrated. Until the "
+        "pipeline fuses it, the lowest score there is, so an unfused candidate sorts last.",
+    )
     calibrated_probability: float | None = Field(
         default=None,
         description="None until calibration is applied. Never display a raw score as a probability.",
@@ -250,7 +257,13 @@ class ConditionRanker(Protocol):
     """src/ml — scores conditions from patient features."""
 
     def score(self, case: PatientCase) -> dict[str, float]:
-        """Return {condition_id: raw_score}. Scores need not be normalised."""
+        """Return {condition_id: probability} over the conditions the ranker was trained on.
+
+        The scores must be finite and non-negative, with a positive, finite sum. The fusion
+        divides them by their sum (src/fusion/pool.py), so they need not sum to exactly 1, but
+        logits will not do: the pipeline treats any other scores as a failed ranker (``ml``
+        degraded, docs/02 §7).
+        """
         ...
 
 

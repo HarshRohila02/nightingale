@@ -2,11 +2,14 @@
 
     python scripts/sweep_fusion.py
 
-**This is tuning on project data, so it runs only where the owner says (D-7), and only after the
-team has settled the errata to amendment 3 (E-1)**, whose item 17 is decided by exactly the
-comparisons this reports. Nothing is trained. It reuses EXP-019's masks
-(``scripts/evaluate_reduced_evidence.py``) and refuses to run unless both recorded digests
-reproduce. It writes ``data/interim/exp006_fusion.json``.
+**This is tuning on project data, so it runs only where the owner says (D-7), and only after
+the team answers E-2's first item** (which level the reduced-evidence claims are judged at). The
+team settled the errata to amendment 3 (E-1) on 2026-10-02, as `docs/05` amendment 3a. By its item
+17 (b) the reduced-evidence claims must also hold against the `+aug` B1 variants, the very
+components this fuses and compares with; by its item 4, MRR has a paired test beside McNemar's.
+Nothing is trained. It reuses EXP-019's masks (``scripts/evaluate_reduced_evidence.py``) and
+refuses to run unless both recorded digests reproduce. It writes
+``data/interim/exp006_fusion.json``.
 
 The rule that picks the weight was recorded in ``docs/08`` (EXP-006) before this ever ran. It
 applies to the unrounded values this script computes:
@@ -77,6 +80,7 @@ from src.eval.metrics import (  # noqa: E402
     f1_by_condition,
     mcnemar,
     outcome_from_record,
+    paired_bootstrap_difference,
     reliability_table,
 )
 from src.fusion import ML_FLOOR, fuse_arrays  # noqa: E402
@@ -149,8 +153,11 @@ def orders(scores: np.ndarray, flagged: np.ndarray | None = None) -> np.ndarray:
 
 
 def true_ranks(order: np.ndarray, truth: np.ndarray) -> np.ndarray:
-    """1-based rank of each patient's true condition."""
-    return np.argmax(order == truth[:, None], axis=1) + 1
+    """1-based rank of each patient's true condition, which every order must contain."""
+    found = order == truth[:, None]
+    if not found.any(axis=1).all():
+        raise ValueError("a true condition is missing from its order, so it has no rank")
+    return np.argmax(found, axis=1) + 1
 
 
 def point_metrics(ranks: np.ndarray, critical: np.ndarray) -> dict[str, float]:
@@ -395,12 +402,13 @@ def main(argv: list[str] | None = None) -> int:
             fused = fuse_arrays(ml[(label, level)], graph[level], MODEL_COLUMNS, 1 - alpha, alpha)
             with_flags = orders(fused, flags[level])
             alone = orders(fused)
-            hits = {
-                "fused": (true_ranks(alone, truth[level]) <= 3).tolist(),
-                "fused + red flags": (true_ranks(with_flags, truth[level]) <= 3).tolist(),
-                "ML alone": (true_ranks(orders(ml[(label, level)]), truth[level]) <= 3).tolist(),
-                "B2": (true_ranks(orders(graph[level]), truth[level]) <= 3).tolist(),
+            ranks = {
+                "fused": true_ranks(alone, truth[level]),
+                "fused + red flags": true_ranks(with_flags, truth[level]),
+                "ML alone": true_ranks(orders(ml[(label, level)]), truth[level]),
+                "B2": true_ranks(orders(graph[level]), truth[level]),
             }
+            hits = {name: (r <= 3).tolist() for name, r in ranks.items()}
             serious = critical_rows[level].tolist()
             tests = {}
             for a, b in (
@@ -413,6 +421,8 @@ def main(argv: list[str] | None = None) -> int:
                     "top3_must_not_miss": mcnemar(
                         [hits[a][i] for i in serious], [hits[b][i] for i in serious]
                     ),
+                    # docs/05 §6, amendment 3a (errata item 4): MRR's own paired test.
+                    "mrr": paired_bootstrap_difference(1.0 / ranks[a], 1.0 / ranks[b]),
                 }
             # Red flags reorder but change no probability, so the calibration is the fused
             # ranking's; the flag layer's own sensitivity and precision do not depend on α
@@ -431,7 +441,7 @@ def main(argv: list[str] | None = None) -> int:
                     "f1": f1_by_condition(flag_cases),
                 },
                 **dissection_effects(alone, truth[level], critical[level], in_d[level]),
-                "mcnemar": tests,
+                "paired_tests": tests,
             }
         say(f"{label}: scored at α = {alpha} with intervals")
 

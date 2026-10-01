@@ -25,7 +25,7 @@ guard it: every token records the concept it came from, every finding that yield
 in :attr:`CaseTokens.dropped` with a reason, and the tests round-trip each concept back through
 :func:`~src.medical_kg.crosswalk.concepts_from_evidences`.
 
-**Narrower matches** are admitted by default, as open decision **A-8**.
+**Narrower matches** are admitted by default, as decision **A-8** (the team, 2026-10-02).
 :func:`~src.medical_kg.crosswalk.expand_case` excludes them — a patient with the concept need not
 give that answer — but a strict inversion silently drops ``SYM:sudden_onset``, ``SYM:exertional``
 and ``SYM:relieved_by_rest``, the discriminators for pulmonary embolism, pneumothorax, dissection

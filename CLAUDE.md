@@ -53,6 +53,11 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   masks of §3.7 (digest `e99a7a8fbf792675`, recorded in EXP-019 before scoring): never draw
   evaluation masks any other way, and report every figure with its evidence level and model
   label (§8 rule 8). B1 is B1-XGB **and** B1-LR; a claim against B1 must hold against both.
+  **Amendment 3a (v1.4, 2026-10-02, the errata)**: the reduced-evidence claims (H1-R, H2-R, the
+  reduced Target) must also hold against the `+aug` B1 variants; MRR is compared by a paired
+  bootstrap (`paired_bootstrap_difference`); `+aug` logistic regressions take seeds 42–46; no ML
+  model is tuned beyond early stopping (T-6); a model with the "asked" channel needs both mask
+  digests to reproduce.
 - Golden clinical cases (`tests/fixtures/golden_cases.yaml`) must stay green. If one fails, fix the
   component, not the expectation.
 
@@ -109,8 +114,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   overconfident model cannot veto the graph; a degraded model, or one whose scores are not finite,
   non-negative probabilities, leaves the graph's order exactly. GC-003's dissection is now first
   with red flags off. `fused_score` is a log-probability, not calibrated. The one tuned quantity,
-  the graph's weight α, will come from EXP-006's pre-registered sweep (it waits for E-1 and D-7;
-  until then an untuned 0.5) and lives in `configs/config.yaml`'s `ranking:` block, which the
+  the graph's weight α, will come from EXP-006's pre-registered sweep (it waits for E-2's first item,
+  then D-7; until then an untuned 0.5) and lives in `configs/config.yaml`'s `ranking:` block, which the
   scripts and the golden tests read: never retune it by hand.
 - **BODHI-S is CC-BY-NC: never commit its text.** `src/medical_kg/bodhi_s.py` keys facts by
   BODHI-S's ids, with paraphrased notes, and the KG card prints counts only.
@@ -172,7 +177,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by
-  default (open decision **A-8**, without which sudden onset and exertional pain vanish), and keeps
+  default (decision **A-8**, kept by the team 2026-10-02, without which sudden onset and exertional
+  pain vanish; the clinical review of its 17 answers is still open), and keeps
   every dropped finding with a reason. A denial is never a token: it marks its question asked
   (`CaseTokens.asked`) only when it answers a whole yes/no question, and only a model with the
   "asked" channel can see that. It has **no ground

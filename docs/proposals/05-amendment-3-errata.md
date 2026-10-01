@@ -1,8 +1,25 @@
 # `docs/05` amendment 3: errata (proposal for the team)
 
-**Drafted:** 2026-09-25, by Claude · **Status:** proposal only; `docs/05` v1.3 is in force as
-approved · **Approval:** all four team members, as a §9 entry ("Amendment 3a, errata") · **Decision:**
-E-1 in `PROGRESS.md` §3
+**Drafted:** 2026-09-25, by Claude · **Status:** ✅ **approved by the team on 2026-10-02** (relayed by
+the owner: "go with recommendations"), all 18 items with item 17 option (b), and **applied to
+`docs/05` as amendment 3a (v1.4)**, each changed passage marked *(amendment 3a)* · **Approval:** all
+four team members, as a §9 entry ("Amendment 3a, errata") · **Decision:** E-1, now in `PROGRESS.md` §6
+
+> **How the open choices were applied.** Items 15 and 16 offered two options and no recommendation,
+> so Claude chose, and `docs/05` §9 says so: item 15, the note (no calibration column); item 16, a
+> new A1b (no medical KG, red flags kept) reported beside A1, with H4 still judged on A1 as first
+> written. Item 17 (b) had no drafted wording; the §1 and §7 text implementing it is Claude's. Item
+> 7's replacement text omits "never replaced by the best-scoring seed"; Claude kept that clause,
+> since the item corrects only the "fixed before" claim and the errata change no rule (*corrected
+> 2026-10-02*: this first said the "…" covered it, which misread where the ellipsis stands). Item
+> 11's text assumed T-6 would choose no tuning, which the team did the same day. The team may
+> change any of these by a further §9 entry before a result depends on it.
+>
+> **Found when it was applied:** item 17 (b) and item 6 make the `+aug` B1 models comparators, and
+> at 50% they are perfect or within four misses on validation; the reduced-evidence claims need 50%
+> and 25%, so as approved none can be met. This proposal cited only the 25% figures, though EXP-019
+> had published the 50% ones. It goes back to the team as decision E-2, with
+> ten smaller gaps, in [05-amendment-3b-errata.md](05-amendment-3b-errata.md).
 
 Amendment 3 was approved on 2026-09-25 and applied to `docs/05` exactly as proposed. Four
 independent reviewers then checked the applied text. Two found it faithful to the proposal, and one

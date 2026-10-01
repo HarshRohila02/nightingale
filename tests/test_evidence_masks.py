@@ -102,7 +102,7 @@ def test_a_question_is_kept_whole_and_brings_its_parent(case_id):
 
 
 # --------------------------------------------------------------------------- #
-# The unlisted questions: open decision A-9
+# The unlisted questions: decision A-9 (kept by the team, 2026-10-02)
 # --------------------------------------------------------------------------- #
 
 

@@ -162,8 +162,8 @@ cannot be validated against anything. A wrong one — *forearm* where the discri
   concept back. They also fail if a new crosswalk entry has no chosen answer, or if a chosen answer
   is one the release file does not allow.
 - The two tables (`REPRESENTATIVE`, `ORDINAL_REPRESENTATIVE`) are 17 entries, each with the French
-  meaning in a comment, and are small enough for a clinical review — which is open, for the team.
-- **Open decision A-8:** the inversion admits `Match.NARROWER` entries, which `expand_case` excludes.
+  meaning in a comment, and are small enough for a clinical review — which is open, for the team (still open after A-8 was decided, 2026-10-02).
+- **Decision A-8** (the team kept it, 2026-10-02): the inversion admits `Match.NARROWER` entries, which `expand_case` excludes.
   Without them `SYM:sudden_onset`, `SYM:exertional` and `SYM:relieved_by_rest` produce nothing, and
   those are the discriminators for embolism, pneumothorax, dissection and the anginas. Every token
   derived that way is listed in `CaseTokens.narrower`.

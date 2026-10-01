@@ -24,6 +24,7 @@ from src.eval.metrics import (
     mcnemar,
     must_not_miss_recall_at_3,
     outcome_from_record,
+    paired_bootstrap_difference,
     precision_at_3,
     ranking_from_scores,
     recall_at_5,
@@ -224,6 +225,46 @@ def test_mcnemar_edge_cases():
     assert mcnemar([True, False], [True, False])["p_value"] == 1.0
     with pytest.raises(ValueError):
         mcnemar([True], [True, False])
+
+
+def test_the_paired_mrr_test_bootstraps_the_per_case_difference():
+    """docs/05 §6, amendment 3a: MRR passes when the interval of the mean difference excludes 0."""
+    a = [1.0, 1.0, 0.5, 1.0, 1 / 3] * 40
+    b = [0.5, 1.0, 0.5, 0.5, 1 / 3] * 40
+    result = paired_bootstrap_difference(a, b)
+    assert result["difference"] == pytest.approx((0.5 + 0.5) / 5)
+    assert 0 < result["ci_low"] <= result["difference"] <= result["ci_high"]
+    assert result["excludes_zero"] and result["better"] == "a" and result["cases"] == 200
+    assert paired_bootstrap_difference(a, b) == result, "seed 42: reproducible"
+
+
+def test_a_significantly_worse_system_is_not_the_better_one():
+    """§6 calls an interval that excludes 0 a pass; a claim that A beats B needs the sign too."""
+    a = [0.5, 1.0, 0.5, 0.5, 1 / 3] * 40
+    b = [1.0, 1.0, 0.5, 1.0, 1 / 3] * 40
+    result = paired_bootstrap_difference(a, b)
+    assert result["excludes_zero"] and result["ci_high"] < 0
+    assert result["better"] == "b"
+
+
+def test_the_paired_mrr_test_fails_when_the_systems_agree_on_average():
+    a = [1.0, 0.5] * 50
+    b = [0.5, 1.0] * 50
+    result = paired_bootstrap_difference(a, b)
+    assert result["difference"] == 0.0
+    assert not result["excludes_zero"] and result["better"] is None
+    assert paired_bootstrap_difference([1.0, 0.5], [1.0, 0.5])["excludes_zero"] is False
+    with pytest.raises(ValueError):
+        paired_bootstrap_difference([1.0], [1.0, 0.5])
+    with pytest.raises(ValueError, match="at least one"):
+        paired_bootstrap_difference([], [])
+
+
+@pytest.mark.parametrize("bad", [math.nan, math.inf])
+def test_the_paired_mrr_test_refuses_values_that_are_not_finite(bad):
+    """bootstrap_ratio's nanquantile would drop the resamples holding a NaN, and still 'pass'."""
+    with pytest.raises(ValueError, match="finite"):
+        paired_bootstrap_difference([bad] + [1.0] * 199, [0.5] * 200)
 
 
 # --------------------------------------------------------------------------- #

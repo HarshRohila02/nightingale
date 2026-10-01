@@ -1,6 +1,6 @@
 # 11 — Compute Runbook: where jobs run, laptop GPU tests, cloud jobs
 
-**Version:** 1.4 · 2026-09-20 (§4.1: the B0/B1 job has run; v1.3, §4.1: the B0/B1 Colab job; v1.2, §5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
+**Version:** 1.5 · 2026-10-02 (§4.3: the seeds job, and what amendment 3a's item 5 makes of its logistic regressions; v1.4, §4.1: the B0/B1 job has run; v1.3, §4.1: the B0/B1 Colab job; v1.2, §5: the AuraDB instance exists and holds the graph) · **Set by:** the project owner (decisions D-4, D-6, D-7 and D-9 in
 `PROGRESS.md` §6)
 
 > **The owner's laptop is a development machine, not a compute server.** Heavy work goes to the
@@ -244,7 +244,8 @@ about **50–60 minutes**: some 20 for the download and decoding, then about 8 p
 4.2's timings on a T4). It runs `scripts/train_baselines.py` 13 times: seeds 43–46 of **B1-XGB**,
 **B1-XGB+aug** and **B1-XGB′+aug**, and seed 42 of B1-XGB again as a check that must reproduce
 EXP-004. Each run also refits B0 and logistic regression (the `+aug` logistic regressions vary with
-the seed; they are kept for the errata's item 5 and used for nothing yet). A dropped session can
+the seed; they are kept for the errata's item 5, approved on 2026-10-02 as part of `docs/05`
+amendment 3a, so they are B1-LR+aug's and B1-LR′+aug's seeds 43–46). A dropped session can
 be re-run: finished runs are skipped. Your browser downloads **`nightingale_b1_seeds.zip`**; unzip
 it into `models/nightingale_b1_seeds/`, then tell Claude. The seed-42 models stay the ones used;
 the laptop scores every seed at 100%, 50% and 25% on the recorded masks (scoring only). No patient

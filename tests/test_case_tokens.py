@@ -247,7 +247,7 @@ class TestNarrower:
         assert tokens_for_case(case_with("SYM:sudden_onset")).tokens == ("E_53", "E_59_@_9")
 
     def test_excluding_them_drops_the_discriminators(self):
-        """What the project loses if the team rejects A-8."""
+        """What the project would lose if A-8 were reversed (the team kept it, 2026-10-02)."""
         case = case_with("SYM:sudden_onset", "SYM:exertional", "SYM:relieved_by_rest")
         assert tokens_for_case(case, include_narrower=False).tokens == ()
         assert set(dropped_reasons(case, include_narrower=False).values()) == {

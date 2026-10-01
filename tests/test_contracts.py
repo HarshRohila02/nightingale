@@ -97,6 +97,12 @@ class TestCandidate:
         candidate = Candidate(condition_id="COND:gerd", label="GERD", ml_score=0.87)
         assert candidate.calibrated_probability is None
 
+    def test_an_unfused_candidate_has_the_lowest_score(self):
+        """C-1 (2026-10-02): fused scores are log-probabilities, so 0.0 would be the highest."""
+        from src.fusion import LOG_FLOOR
+
+        assert Candidate(condition_id="COND:gerd", label="GERD").fused_score == LOG_FLOOR
+
 
 class TestDiagnosisResult:
     def test_disclaimer_is_populated_by_default(self):

@@ -214,7 +214,7 @@ unchanged, and with the channel off the encoder is exactly the one the B1 models
 | Patient | `asked` | The `unasked` columns |
 |---|---|---|
 | DDXPlus, full evidence | None: every question asked, since an unlisted question means "no" | All 0, so the row stays sparse |
-| DDXPlus, masked (`src/ml/evidence_masks.py`) | The questions the mask kept, plus unlisted ones drawn at the same share (open decision A-9, `docs/02` §9) | 1 for every other question |
+| DDXPlus, masked (`src/ml/evidence_masks.py`) | The questions the mask kept, plus unlisted ones drawn at the same share (decision A-9, kept by the team 2026-10-02, `docs/02` §9) | 1 for every other question |
 | Hand-authored (`src/ml/case_tokens.py`) | The questions its tokens answer, plus the yes/no questions its denials answer "no" | 1 for every other question |
 
 "Asked" is **never read from the default answers DDXPlus lists** (`E_204_@_V_10`, "did not

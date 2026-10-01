@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.eval.metrics import ranking_from_scores
 
@@ -91,6 +92,12 @@ def test_the_sweep_breaks_ties_like_the_metrics_do():
 def test_true_ranks_are_one_based():
     order = np.array([[2, 0, 1], [0, 1, 2]])
     assert sweep_fusion.true_ranks(order, np.array([0, 2])).tolist() == [2, 3]
+
+
+def test_a_true_condition_missing_from_its_order_is_refused():
+    """argmax of an all-False row is 0, which would score the missing condition as a hit."""
+    with pytest.raises(ValueError, match="missing"):
+        sweep_fusion.true_ranks(np.array([[0, 1]]), np.array([2]))
 
 
 def test_the_model_s_columns_are_the_registry_s_first():
