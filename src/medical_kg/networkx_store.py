@@ -100,7 +100,8 @@ class NetworkXGraphStore:
         cannot; denied findings count against the conditions that expect them; findings the case
         does not mention count for nothing. See :mod:`src.medical_kg.scoring`, which also says
         how the graph is closed under the crosswalk first. The values are log-likelihoods, so they
-        are at most 0 and compare only within one case; the pipeline rescales them before fusion.
+        are at most 0 and compare only within one case; the fusion reads them as a posterior
+        (a softmax over the conditions, ``src/fusion/pool.py``).
         """
         return self._scorer.score(case)
 

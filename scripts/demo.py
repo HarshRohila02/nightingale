@@ -31,11 +31,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _config import (  # noqa: E402
     GRAPH_BACKENDS,
     describe_graph,
+    fusion_weights_from_config,
     load_config,
     open_graph_from_config,
     open_ranker_from_config,
 )
 
+from src.conditions import BY_ID  # noqa: E402
 from src.contracts import DiagnosisResult, PatientCase  # noqa: E402
 from src.medical_kg.crosswalk import DERIVED_SOURCE, expand_case  # noqa: E402
 from src.medical_kg.neo4j_store import GraphUnavailable  # noqa: E402
@@ -112,17 +114,20 @@ def render(result: DiagnosisResult, top_k: int = 5, case: PatientCase | None = N
 
     out += ["", "  " + "-" * (width - 4), "  DIFFERENTIAL (ranked)", "  " + "-" * (width - 4)]
     out += [
-        "   score: ml and kg fused; ml: the model's raw score, not a calibrated probability;",
+        "   score: ml and kg pooled, a log-probability (not calibrated);",
+        "   ml: the model's raw score, not a calibrated probability (— : not trained on it);",
         "   kg: the graph's score (a log-likelihood on the real graph, at most 0);",
         f"   {WARN} red-flagged ones come first",
         "",
     ]
     for i, candidate in enumerate(result.candidates[:top_k], start=1):
         marker = f" {WARN}" if candidate.red_flag else "  "
+        # The model is silent about a condition it was not trained on, not against it (2c).
+        trained = BY_ID[candidate.condition_id].in_training_data
+        ml = f"{candidate.ml_score:.2f}" if trained else "  — "
         out.append(
             f"   {i}.{marker} {candidate.label:<34} "
-            f"score {candidate.fused_score:.3f}  (ml {candidate.ml_score:.2f} / "
-            f"kg {candidate.kg_score:.2f})"
+            f"score {candidate.fused_score:.3f}  (ml {ml} / kg {candidate.kg_score:.2f})"
         )
 
     top = result.candidates[0] if result.candidates else None
@@ -222,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
         graph=graph,
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),
+        **fusion_weights_from_config(config),
     )
     result = pipeline.run(case)
     print(describe(ranker))

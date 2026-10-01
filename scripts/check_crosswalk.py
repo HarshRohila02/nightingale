@@ -29,7 +29,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import yaml  # noqa: E402
-from _config import load_config, open_ranker_from_config  # noqa: E402
+from _config import (  # noqa: E402
+    fusion_weights_from_config,
+    load_config,
+    open_ranker_from_config,
+)
 
 from src.conditions import BY_ID, CONDITIONS  # noqa: E402
 from src.contracts import Finding, PatientCase  # noqa: E402
@@ -113,11 +117,13 @@ def golden_on_real_graph(store: NetworkXGraphStore, ranker: object | None = None
     says nothing about the model.
     """
     labels = dict(store.graph.nodes(data="label"))
+    config = load_config()
     pipeline = DiagnosisPipeline(
-        ranker=ranker if ranker is not None else open_ranker_from_config(load_config()),
+        ranker=ranker if ranker is not None else open_ranker_from_config(config),
         graph=store,
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),
+        **fusion_weights_from_config(config),
     )
     rows = []
     for golden in yaml.safe_load(GOLDEN.read_text(encoding="utf-8"))["cases"]:

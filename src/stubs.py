@@ -128,7 +128,9 @@ class InMemoryGraphStore:
     Implements `GraphStore`. Scoring is plain symptom overlap, normalised by the
     number of symptoms the condition expects, so conditions with long symptom
     lists are not unfairly favoured. Replace with the Neo4j-backed store in
-    src/medical_kg.
+    src/medical_kg. The fusion reads graph scores as log-likelihoods (2c), and an
+    overlap in [0, 1] is a weak one: with a real model and this stub, the graph
+    barely moves the ranking.
     """
 
     def __init__(self, symptom_map: dict[str, tuple[str, ...]] | None = None) -> None:
@@ -203,9 +205,7 @@ class TemplateExplainer:
             return Explanation(text="No candidate conditions were generated.", grounded=True)
 
         top = candidates[0]
-        lines = [
-            f"Top candidate for case {case.case_id}: {top.label} " f"(score {top.fused_score:.2f})."
-        ]
+        lines = [f"Top candidate for case {case.case_id}: {top.label}."]
 
         supporting = top.supporting()
         if supporting:

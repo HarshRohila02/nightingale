@@ -380,8 +380,13 @@ def expected_calibration_error(
 
 
 def brier_score(outcomes: Sequence[CaseOutcome], conditions: Sequence[str] | None = None) -> Ratio:
-    """Multi-class Brier score: the squared error of the probability vector, per case."""
-    labels = list(conditions) if conditions is not None else sorted(trainable_ids())
+    """Multi-class Brier score: the squared error of the probability vector, per case.
+
+    By default over every condition in the registry, aortic dissection included: a model's 13
+    trainable conditions give it 0, so their Brier is unchanged, but a fused score's probability
+    for it counts, and so does a case whose true condition it is (2c, 2026-09-30).
+    """
+    labels = list(conditions) if conditions is not None else [c.id for c in CONDITIONS]
     values = []
     for o in outcomes:
         if o.probabilities is None:

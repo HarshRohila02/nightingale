@@ -166,6 +166,18 @@ def test_brier_score():
     assert brier.value == pytest.approx((0.08 + 0.72) / 2)
 
 
+def test_brier_score_counts_every_registry_condition_by_default():
+    """A fused score gives aortic dissection a probability; the Brier score must see it."""
+    dissection = "COND:aortic_dissection"
+    fused = CaseOutcome("f1", MI, (MI, dissection), probabilities={MI: 0.5, dissection: 0.5})
+    # (0.5 - 1)^2 + 0.5^2 = 0.5; the 13 trainable conditions alone would say 0.25
+    assert brier_score([fused]).value == pytest.approx(0.5)
+    by_name = {m.name: m.value for m in evaluate([fused], resamples=10)}
+    assert by_name["Brier score"] == pytest.approx(0.5)
+    # A model's 13-way output is unchanged by the wider default.
+    assert brier_score(CALIBRATED[:2]).value == pytest.approx((0.08 + 0.72) / 2)
+
+
 def test_calibration_needs_probabilities():
     with pytest.raises(ValueError, match="probabilities"):
         expected_calibration_error(CASES)

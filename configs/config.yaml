@@ -63,7 +63,7 @@ ml:
   # or hand-written input (EXP-017, R-18). The protocol's A0 uses the deep ranker (B1-DL+aug,
   # docs/05 §5) once it exists.
   #
-  # none forces the degraded ranker: flat scores, which normalise to zeros. That is how a
+  # none forces the degraded ranker: flat scores, which abstain in the fusion. That is how a
   # knowledge-graph-only ablation is configured, and what CI and a fresh clone get anyway,
   # since models/ and data/ are gitignored. Results then report degraded_components: ["ml"].
   backend: logreg
@@ -76,7 +76,12 @@ ml:
 
 ranking:
   # Fusion weights are tuned on VALIDATION ONLY and must be reported in the
-  # write-up — they are a result, not a hidden hyperparameter.
+  # write-up — they are a result, not a hidden hyperparameter. Since 2c they weight a
+  # logarithmic opinion pool (src/fusion/pool.py, docs/02 §6), where only their ratio matters:
+  # the graph's share is α = kg_weight / (ml_weight + kg_weight). 0.5 / 0.5, untuned, until
+  # EXP-006's sweep (pre-registered in docs/08) sets ml_weight = 1 − α and kg_weight = α. The
+  # demo, scripts/check_crosswalk.py and the golden-case tests read these two keys
+  # (scripts/_config.py: fusion_weights_from_config); the other keys here are not read yet.
   ml_weight: 0.5
   kg_weight: 0.5
   top_k_display: 5

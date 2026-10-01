@@ -313,8 +313,8 @@ shared-source contribution from its independent ones (R-12, docs/05 §8.7), and
    conditions that explain it and against those that cannot (LEAK 0.01); a denied finding counts
    against the conditions expecting it; a finding the case does not mention counts for nothing.
    DDXPlus's weight 1.0 ("listed, frequency unknown") is capped at 0.9. The scores are
-   log-likelihoods (at most 0, comparable only within a case), which the pipeline rescales before
-   fusion. `NetworkXGraphStore.contributions()` gives each finding's exact part in a score, and
+   log-likelihoods (at most 0, comparable only within a case), which the fusion reads as a
+   posterior (a softmax over the conditions, §6). `NetworkXGraphStore.contributions()` gives each finding's exact part in a score, and
    reasoning paths cite only edges the graph holds, never implied or imputed ones. Personalised
    PageRank, which this card first named, was measured against it and not chosen.
 5. ~~**The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
@@ -464,6 +464,9 @@ agreed on 2026-09-19, as relayed by the owner.
 
 ## 6. Fusion
 
+*The first design, superseded on 2026-09-25 by the logarithmic opinion pool below (2c), and kept
+for the record:*
+
 ```
 fused = w_ml · norm(ml_score) + w_kg · norm(kg_score)
 ```
@@ -474,6 +477,35 @@ signals plus agreement features) is a Phase 3 stretch.
 
 **Red flags bypass fusion entirely.** A red-flagged condition is surfaced in `DiagnosisResult.red_flags`
 regardless of its rank.
+
+*2026-09-25 (2c): the fusion is a logarithmic opinion pool* (`src/fusion/pool.py`), replacing the
+min-max sum above, which capped a condition the model cannot score at the graph's weight, so it
+could never rank first (EXP-005 point 7). Over the 13 conditions the model knows,
+
+```
+log q(c) = (1 − α) · log max(p_ml(c), ε) + α · log P_kg(c)      normalised over the 13
+P(o) = P_kg(o) for a condition the model cannot score (aortic dissection); the 13 share the rest
+at α = 0 the floor is not applied (all the weight on the model)
+```
+
+where `P_kg` is the graph's posterior (a softmax of its log-likelihoods) and
+`α = kg_weight / (ml_weight + kg_weight)`. The floor ε = 0.01 keeps a near-certain model from vetoing
+what the graph supports; it is fixed, not tuned. A degraded model (flat, all zero, or scores that
+are not finite, non-negative probabilities) leaves the graph's order exactly, and a failed graph
+the model's. `fused_score` is a log-probability (at most 0), not calibrated. α is the one quantity
+tuned, on validation, by the rule EXP-006 recorded before the sweep; until the sweep runs it is an
+untuned 0.5. It lives in `configs/config.yaml` (`ranking.ml_weight` = 1 − α, `ranking.kg_weight` =
+α), which the demo, `scripts/check_crosswalk.py` and the golden-case tests read
+(`scripts/_config.py`).
+
+**What choice 1 implies** (found in review, 2026-09-30): P(dissection) is the same at every α, and
+α moves only its rank, through how sharply the 13 are pooled. Dissection enters the top 3 whenever
+its graph posterior exceeds the fused probability of the pool's third condition. With a
+near-certain model that happens for findings that score 0 on the ADD-RS, such as pain going to the
+back or hypertension, so the fusion can rank dissection above where the graph alone does; ordinary
+benign presentations still put it last, and presentations the graph reads as dissection put it
+first. Whether the ADD-RS-0 cases should rank it that high is a clinical question for the team
+(A-2).
 
 *2026-09-25 (2d, EXP-008).* Every must-not-miss condition has a rule, each after a published
 pattern (docs/04 §3), and a rule can now require one finding from each of several groups, or
@@ -499,8 +531,9 @@ problem.
 
 *Built 2026-09-23.* `open_ranker()` (`src/ml/ranker.py`) is the same pattern for the model.
 Without the release files, without a trained model, or with a model whose feature fingerprint
-differs from the encoder's, it returns a `DegradedRanker` whose flat scores `fuse_scores`
-normalises to zeros — so the ranking is the graph's alone, and `degraded_components` says `ml`.
+differs from the encoder's, it returns a `DegradedRanker` whose flat scores abstain in the
+fusion (§6) — so the ranking is exactly the graph's, and `degraded_components` says `ml`. A ranker
+whose scores are negative, NaN or infinite is treated the same way (2c).
 `models/` and `data/` are gitignored, so a fresh clone and CI are degraded by default, which is
 correct. An unknown backend name raises instead, because that is a configuration typo rather than
 a fact about the machine.
@@ -559,7 +592,7 @@ IDs are prefixed `A-` (architecture) to keep them apart from the `D-n` decisions
 | # | Decision | Resolve by | Owner |
 |---|---|---|---|
 | A-1 | KG backbone: BODHI-S vs DDXPlus co-occurrence | ✅ **Resolved 2026-09-17:** DDXPlus `release_conditions.json`, with BODHI-S as enrichment ([10](10-spike-r01-crosswalk.md)) | P1 |
-| A-2 | Fusion weights: fixed vs learned | Phase 2 | P4 |
+| A-2 | Fusion weights: fixed vs learned | Phase 2. **Working setting 2026-09-25 (2c):** a fixed logarithmic opinion pool (§6) with one weight, α, tuned on validation (EXP-006); dissection's share from the graph alone; the model floor ε = 0.01, not tuned. A learned fusion stays a stretch. For the team (P4) to confirm, **with a clinical question** (2026-09-30): the fusion ranks aortic dissection 2nd–3rd for some presentations that score 0 on the ADD-RS but involve back pain or hypertension, above the graph alone (§6). Keep that; or give dissection a fixed model opinion (the constant decides the outcome: 1/14 raises it, 0.01 roughly restores the graph's order but drops GC-003 to 3rd); or give the graph a base-rate prior for dissection; or make its top-3 rate a constraint on the sweep. Golden cases for this wait for the team's expectation | P4 |
 | A-3 | Embedding model for retrieval | Phase 3 | P3 |
 | A-4 | Local LLM model + quantisation | Phase 3. The model choice is `PROGRESS.md` D-5; where it runs is decided per job (D-7, [11](11-compute-runbook.md)) | P3 |
 | A-5 | The cut-off for "sudden onset" on DDXPlus's 0–10 onset-speed scale (`E_59`). Set to ≥ 8 in `src/medical_kg/crosswalk.py` as a judgment call; DDXPlus draws the value uniformly within each condition's range (§5.2) | **Accepted 2026-09-19** by the team as the working value. **Re-checked 2026-09-25 (EXP-008):** on DDXPlus it changes only the pneumothorax rule, which reaches 32% / 44% / 54% of pneumothorax patients at ≥ 8 / 7 / 6 for 3% / 4% / 5% of everyone else. Recommendation: keep ≥ 8, since the gain comes from how DDXPlus draws its onset values. ✅ **Decided 2026-09-25: ≥ 8 stays** (the owner, taking the recommendation) | P3 |

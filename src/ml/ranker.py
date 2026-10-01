@@ -9,8 +9,8 @@ either.
 :func:`open_ranker` is the counterpart of
 :func:`~src.medical_kg.neo4j_store.open_graph_store`: it returns *something* that ranks, whatever is
 missing. Without the release files, without a trained model, or with a model trained on different
-features, it returns a :class:`DegradedRanker` whose flat scores the pipeline's ``_normalise``
-collapses to zeros — so the ranking is then provably the knowledge graph's alone, and
+features, it returns a :class:`DegradedRanker` whose flat scores abstain in the fusion
+(``src/fusion/pool.py``) — so the ranking is then provably the knowledge graph's alone, and
 ``degraded_components`` says ``"ml"``. Both release files are gitignored, so **a fresh clone and CI
 are always degraded**, which is the correct default and is exactly what the tests assert.
 
@@ -85,8 +85,8 @@ class ProbabilityModel(Protocol):
 class DegradedRanker:
     """Stands in when there is no usable model. Implements ``ConditionRanker``.
 
-    Its scores are flat, which ``src.pipeline._normalise`` turns into zeros, so the fused ranking
-    is the graph's alone. That is a stronger guarantee than returning ``{}``: the ablation is
+    Its scores are flat, so the model abstains in the fusion (``src/fusion/pool.py``) and the
+    fused ranking is exactly the graph's. That is a stronger guarantee than returning ``{}``: the ablation is
     testable by comparing the two pipelines' rankings for equality.
     """
 

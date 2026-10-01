@@ -15,6 +15,7 @@ all, rather than by inspecting scores: that is what the claim means.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -34,12 +35,18 @@ from src.pipeline import DiagnosisPipeline
 from src.stubs import ConstantRanker, EmptyRetriever, InMemoryGraphStore, TemplateExplainer
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+from _config import fusion_weights_from_config, load_config  # noqa: E402
+
 GOLDEN_PATH = REPO_ROOT / "tests" / "fixtures" / "golden_cases.yaml"
 REAL_EVIDENCES = REPO_ROOT / "data" / "raw" / "ddxplus" / "release_evidences.json"
 REAL_CONDITIONS = REPO_ROOT / "data" / "interim" / "ddxplus_chestpain_conditions.json"
 REAL_MODELS = REPO_ROOT / "models" / "nightingale_b0_b1"
 CONFIGURED_MODELS = REPO_ROOT / "models" / "nightingale_b1_asked" / "b1_asked_aug"
 """The bundle configs/config.yaml ranks with since EXP-019: B1-LR′+aug."""
+CONFIGURED_WEIGHTS = fusion_weights_from_config(load_config())
+"""configs/config.yaml's fusion weights, so the golden rankings run at the configured α."""
 needs_real_data = pytest.mark.skipif(
     not all(p.exists() for p in (REAL_EVIDENCES, REAL_CONDITIONS, REAL_MODELS)),
     reason="data/ and models/ are not committed (CI)",
@@ -235,6 +242,7 @@ def rank_without_flags(case: PatientCase, graph, ranker) -> list[str]:
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),
         enable_red_flags=False,
+        **CONFIGURED_WEIGHTS,  # the α the demo runs at (EXP-006)
     )
     expanded = expand_case(case, dict(graph.graph.nodes(data="label")))
     return [c.condition_id for c in pipeline.run(expanded).candidates]

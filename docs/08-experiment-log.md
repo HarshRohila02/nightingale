@@ -63,6 +63,138 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-006 — Fusion: the graph's weight, swept on validation at three evidence levels (2c) (validation split)
+
+| Field | Value |
+|---|---|
+| Date | 2026-09-25 (design); 2026-09-30 (rule revised after an independent review, still before the sweep); 2026-10-01 (three statements corrected and one rule added after a second review, still before the sweep) |
+| Author | P4 (run by Claude) |
+| Config / ablation | The graph (B2) fused with each `+aug` B1 variant, seed 42: **B2 ⊕ B1-LR+aug** and **B2 ⊕ B1-XGB+aug** (unprimed), **B2 ⊕ B1-LR′+aug** (the configured pipeline) and **B2 ⊕ B1-XGB′+aug** (primed, judged separately, `docs/05` §4, §7). A7-style systems without RAG, the LLM or the patient KG: the protocol's A0 needs B1-DL+aug, which does not exist yet. Reported descriptively |
+| Split used | validation, at 100%, 50% and 25% of each patient's evidence, on EXP-019's masks (both digests must reproduce; the realised sizes are EXP-019's) |
+| Git commit | the commit that adds this entry records the design and the rule **before any ranking under this design was computed for a validation patient, and before any fused ranking on validation was scored** (EXP-008's safety check had run 3,000 validate patients through the earlier min-max pipeline and recorded only whether each result needed repair). The results follow in a later commit |
+| MLflow run | — (nothing is trained) |
+| Seed | 42: the masks, the bootstrap, and the XGBoost components (EXP-018's seed-42 models, `docs/05` §6) |
+
+**Question:** which single weight for the graph serves the fusion at every evidence level, and what
+does fusion then do against the ML component alone and against the graph alone?
+
+**The design** (`src/fusion/pool.py`, `docs/02` §6). Known when it was chosen: EXP-019's
+single-system results (each model alone, the graph alone, the red-flag layer); the golden cases,
+including their min-max fused ranks (EXP-005 point 7, EXP-018); and that EXP-008's safety check had
+run 3,000 validate patients through the min-max pipeline, with no metric taken. No fused result on
+validation was known. A **logarithmic opinion pool** over the 13 conditions the model knows,
+`log q(c) = (1 − α) · log max(p_ml(c), ε) + α · log P_kg(c)`, normalised, where `P_kg` is the
+graph's posterior (uniform prior); at α = 0 the floor is not applied. Three choices:
+
+1. **A condition the model cannot score takes its probability from the graph alone** (aortic
+   dissection: `P(dissection) = P_kg(dissection)`, and the 13 share the rest in the pool's
+   proportions). This answers EXP-005 point 7, where min-max capped dissection at the graph's
+   weight, so it could never rank first. *Found in review:* P(dissection) is the same at every α;
+   α moves its rank only through how sharply the 13 are pooled. Dissection enters the top 3 whenever
+   P_kg(dissection) exceeds the fused probability of the pool's third condition, which with a
+   near-certain model happens for findings that score 0 on the ADD-RS, such as pain going to the back or hypertension. On a
+   reviewer's hand-written cases, ordinary benign presentations (reflux, panic, pleuritic pain with
+   fever, exertional angina, palpitations) put dissection 13th–14th, and presentations the graph
+   reads as dissection put it 1st at every weight (min-max: 2nd–4th); cases with pain going to the
+   back or hypertension (ADD-RS 0), such as a hypertensive 58-year-old man with sharp pain going to
+   the back, put it 2nd–3rd, above where the graph alone ranks it. Whether that is wanted is a
+   clinical question for the team (A-2). The rule's MRR and must-not-miss constraint
+   cannot see dissection at 2nd or 3rd when the true condition is 1st; Precision@3 can, so it is
+   recorded at every α.
+2. **The model floor ε = 0.01**, not tuned: no model probability below 1% is taken at face value, so
+   a near-certain model cannot veto what the graph supports; at α = 0.5 the graph must prefer a
+   condition about 100 times over the model's answer to put it first. GC-001 motivated it (the
+   retrained models give unstable angina 0.98–1.00 and MI near 0, EXP-018). **On the golden cases
+   it changes no expectation and no required condition's rank** (GC-001's MI is 2nd either way),
+   but it reorders the lower places of every golden case: for the configured B1-LR′+aug, stable
+   angina and acute pulmonary edema swap 3rd and 4th on GC-001, and on GC-004 dissection, 4th
+   without the floor, drops out of the top 5 with it (*corrected 2026-10-01*: this said the floor
+   "changes no rank" on GC-001). No golden expectation exercises it. The value was
+   chosen with GC-001 in view; no other value was tried. DDXPlus, where the models are right, cannot
+   measure what it guards against.
+3. **An absent signal abstains**: a degraded (flat or all-zero) model leaves the graph's order
+   exactly; a failed graph leaves the model's. A ranker whose scores are not finite, non-negative
+   probabilities is treated as failed (`degraded_components: ["ml"]`).
+
+Fused scores are log-probabilities, not calibrated (2b).
+
+**The rule that picks α** (`scripts/sweep_fusion.py`; `tests/test_sweep_fusion.py` pins it). It
+applies to the unrounded values the script computes:
+
+- **The grid:** α from 0.05 to 1 in steps of 0.05; ε and everything else fixed. **α = 0 is left
+  out:** it is not a fusion (the floor is off there), and it is not the model alone either, because
+  dissection takes the graph's posterior at every α (at α = 0 the configured model's near-zero
+  probabilities, taken at face value, put dissection 2nd on GC-004). The ML component alone is
+  scored separately and is the comparator. α = 1 is exactly B2, ties included: the pool returns
+  the graph's posterior there (*corrected 2026-10-01*: before, pooling broke the graph's ties
+  between dissection and the model's conditions, which its rounded scores make common).
+- **The golden cases first.** An α is admissible only if all four golden cases keep their
+  expectations with red flags off, for the component swept, and for B1-LR′+aug, whose α the
+  pipeline adopts, also for B1-LR, the other model the golden tests run. If none is admissible, no α
+  is adopted: the pipeline keeps 0.5 / 0.5, and no golden expectation or weight is changed by hand.
+  **Recorded now, before the sweep** (`scripts/sweep_fusion.py --golden-only`, hand-written cases
+  only): every α on the grid is admissible for all four components and for B1-LR. GC-001's MI is
+  2nd for α 0.05–0.85 (3rd for B1-XGB+aug at 0.05) and 1st for α 0.90–1, for every component
+  and for B1-LR; GC-002's embolism, GC-003's dissection and GC-004's GERD are 1st at every α.
+  The script prints each rank. (*Corrected 2026-10-01*: this said MI was 1st only at α = 1.)
+- **What is scored:** the fused ranking alone, **red flags off**. Red flags bypass fusion (`docs/02`
+  §6) and are never tuned; fusion plus red flags is reported beside it.
+- **The objective:** among admissible α, **the mean over the three levels of MRR**, with **one α
+  for every level** (`docs/05` §3.7 asks the report to say which). Top-3 and must-not-miss recall@3
+  are saturated for the `+aug` models (EXP-019, R-16); MRR is H1's other metric.
+- **The constraint:** at every level, the fused ranking's must-not-miss recall@3 is at least the ML
+  component's own, from the same run (equal to EXP-019's). Because dissection, which no DDXPlus
+  patient has, can push a true must-not-miss condition out of the top 3 at every α, the constraint
+  may fail everywhere; then, among the admissible α, the highest mean must-not-miss recall@3 is
+  taken, then MRR. Ties go to the smaller α. The branch taken is reported.
+- **The components:** each of the four `+aug` variants is swept on its own. The pipeline takes
+  B1-LR′+aug's α, written to `configs/config.yaml` as `ranking.ml_weight` = 1 − α and
+  `ranking.kg_weight` = α, which the demo, `scripts/check_crosswalk.py` and the golden-case tests
+  read. B1-DL+aug will be swept the same way when it exists. **The configured component stays
+  B1-LR′+aug:** these fused results do not choose it. EXP-019 point 9 left the family open for 2c;
+  revisiting it would be a separate, dated decision after the sweep, disclosed as post hoc.
+  *(Added 2026-10-01, before the sweep.)*
+- **Seeds:** α is chosen on the seed-42 components only, since the seed-42 model is the one used
+  (§6). When EXP-020's seeds 43–46 return, each is fused at its arm's seed-42 α, never re-swept, and
+  reported as mean ± std beside the seed-42 figures at every level; the same for the `+aug`
+  logistic regressions' seeds if errata item 5 is approved. A seed's own optimum may be reported as
+  a check on α's stability, and is never used.
+- **Recorded at every α,** not only the chosen one: Precision@3, how often dissection enters the top
+  3, and how many must-not-miss patients dissection alone pushes out of it.
+- **Reported at the chosen α,** with and without red flags, with a 95% interval for every ratio:
+  the §3.1 and §3.2 ranking and safety metrics (top-1, 3 and 5, MRR, Precision@3, Recall@5 on
+  `D_in` and on the full D, per-condition F1, must-not-miss recall@3, the dangerous false-negative
+  rate), and §3.3's Brier score (over all 14 conditions, dissection included), ECE and
+  reliability table of the fused probabilities, which red flags reorder but do not change. The
+  red-flag layer's own sensitivity and precision do not depend on α; they are EXP-019's. McNemar
+  on top-3 (all patients, and must-not-miss patients) for fused against the ML component alone,
+  fused against B2, and fused plus red flags against the ML component alone. (*Narrowed
+  2026-10-01* from "every §3 metric", which the script did not compute.)
+
+**What this cannot decide.** No H1-R or H2-R verdict: A0 does not exist yet, and which B1 the
+reduced-evidence claims compare against is the team's question (errata item 17). **Which α A7 uses**
+(its own component's, chosen by this rule, or A0's) is not this entry's to decide: it goes to the
+team as errata item 18. The ′ systems' 50% and 25% inputs depend on open decision A-9; a change to
+it means a re-sweep. α is chosen on these patients, so the fused figures will be optimistic until
+the test split is opened (Phase 4). Every figure is on DDXPlus, which is synthetic and where the
+graph is circular (R-12); the system is closed-world (R-13).
+
+**Already measured, on hand-written cases only** (the golden cases, red flags off, α = 0.5 before
+any sweep): GC-003's aortic dissection ranks **1st** (under min-max it was 3rd, and 4th with the
+channel models); GC-001's MI 2nd, behind unstable angina (the retrained models give it 0.98–1.00,
+B1-LR 0.89); GC-002's embolism and GC-004's GERD 1st. The same with B1-LR and B1-LR′+aug.
+
+**Status: the sweep waits for two things.** (1) **The team's decision on E-1**, at least items 2–4,
+6, 17 and 18: the errata proposal and PROGRESS's E-1 row put E-1 before any fusion result, and this
+sweep's McNemar tests of fused against its `+aug` component are the comparison item 17 decides.
+(2) **The owner's choice of where it runs** (D-7): tuning on project data, nothing trained, about
+3–5 minutes on the laptop's CPU. These fused results will not exist until both are settled, unless
+the team or the owner says to run it first, which would then be recorded here.
+
+**Results:** to follow.
+
+---
+
 ### EXP-019 — Every system at 100%, 50% and 25% evidence: amendment 3's masks (validation split)
 
 | Field | Value |
@@ -1298,7 +1430,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Run 2026-09-19 on Colab by the owner; logged* |
 | EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
-| EXP-006 | A0 fusion, weight sweep | 2 | Fusion weights (validation only) |
+| EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; waits for E-1 and D-7)* | 2 | The graph's weight α (validation only), one for every level |
 | EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only | 3 | H3 |

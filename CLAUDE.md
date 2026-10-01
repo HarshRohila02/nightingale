@@ -102,10 +102,16 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   number on DDXPlus data without saying so. Its Precision@3 (0.756) nearly matches B1's, with no
   training. The old overlap score scored 88% and punished the conditions BODHI-S enriches (MI 0.60,
   EXP-016); 2a fixed that (MI 1.000). The golden cases are the evidence that counts.
-- **With red flags off, a condition the ML ranker cannot score can never outrank one it can**
-  (EXP-005): dissection's ML score is 0, so after min-max its fused score is at most the graph's
-  weight. GC-003's dissection is first by graph score and 3rd fused. How to fuse a
-  knowledge-graph-only condition is 2c's decision; red flags rank it first today.
+- **The fusion is a logarithmic opinion pool** (2c, `src/fusion/pool.py`, `docs/02` §6), not the
+  first design's min-max sum, which capped a condition the ML ranker cannot score at the graph's
+  weight, so it could never rank first (EXP-005). A condition outside the model (aortic dissection)
+  takes the graph's posterior at every weight; the model's probabilities are floored at 0.01, so an
+  overconfident model cannot veto the graph; a degraded model, or one whose scores are not finite,
+  non-negative probabilities, leaves the graph's order exactly. GC-003's dissection is now first
+  with red flags off. `fused_score` is a log-probability, not calibrated. The one tuned quantity,
+  the graph's weight α, will come from EXP-006's pre-registered sweep (it waits for E-1 and D-7;
+  until then an untuned 0.5) and lives in `configs/config.yaml`'s `ranking:` block, which the
+  scripts and the golden tests read: never retune it by hand.
 - **BODHI-S is CC-BY-NC: never commit its text.** `src/medical_kg/bodhi_s.py` keys facts by
   BODHI-S's ids, with paraphrased notes, and the KG card prints counts only.
 - The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced

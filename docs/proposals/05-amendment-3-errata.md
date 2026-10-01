@@ -14,7 +14,9 @@ of the approved text it adopts, so the team can pick a different one.
 
 **Nothing scored so far depends on them.** EXP-019 scores B0, B1 and B2 descriptively at the three
 levels. The corrections decide how H1-R, H2-R, H6 and the reduced-evidence Target are *judged*, so
-they should be settled before any fusion (2c) or deep-model result exists.
+they should be settled before any fusion (2c) or deep-model result exists. *(2026-09-30:)* 2c's
+fusion is built and EXP-006's sweep is recorded in `docs/08`; the sweep waits for these errata,
+and item 18 was added from its review.
 
 ---
 
@@ -30,6 +32,7 @@ they should be settled before any fusion (2c) or deep-model result exists.
 | 6 | §4 labels, §5, §1 H6 | **"Arm" is never defined, and H6's arm is not fixed.** §4's labels make "B1-DL" the plain model. §5 fixes A0's component as "B1-DL, the `+aug` arm", but H6 and H1-R say only "B1-DL". The proposal's decision 4 said `+aug` for A0 **and** H6. Nor does §7 say what a primed A0′ is compared with. | §4, after the labels table, add: *"An arm is one training variant of a model: plain, `+aug`, ′ or ′+aug. In H1-R and H6, B1-DL means B1-DL+aug, seed 42, the arm A0 uses, and 'trained like it' means B1-LR+aug and B1-XGB+aug. Primed systems are compared with the primed variants trained like them."* |
 | 7 | §6 and §9, "fixed before any such model exists" | Untrue for the B1 comparators: B1-LR+aug and B1-XGB+aug, seed 42, were trained before approval (EXP-018), and §9 says so. | §6: *"… is the seed-42 model. It is fixed here, before any B1-DL model exists; the seed-42 `+aug` B1 models of EXP-018 predate this rule and are disclosed in §9."* §9's summary: replace "fixed before any such model exists" with *"fixed before any B1-DL model exists"*. |
 | 8 | §3.7 "Drawn once" | **The primed models' input is not covered by the validity check.** The digest covers the kept tokens. The "asked" sets also contain unlisted questions from a second permutation (A-9), so a changed NumPy stream could alter them without changing the digest. EXP-019 records a second digest, but `docs/05` does not require one. | After the digest sentence, add: *"A second digest, of the same lines with the questions asked (in evidence-code order) in place of the kept tokens, covers the input of models with the 'asked' channel; for them, a run that does not reproduce both digests is invalid."* |
+| 18 | §5 A7 | *(Added 2026-09-30, from the 2c review, before any fusion result.)* **Which fusion weight does A7 use?** §5 defines A7 as "A0 with that component replaced by a B1 variant trained like it", which can be read as A0's weight or as the weight the same rule picks for A7's own component. Fusing A7 at a weight tuned for B1-DL+aug would handicap A7 and inflate the deep ranker's measured contribution. EXP-006 sweeps each component on its own. | §5, after the amendment paragraph, add: *"Each fused configuration's weight is chosen for its own ML component by the rule EXP-006 records; A7 at A0's weight is reported beside it."* Settle before EXP-006's sweep, which already sweeps each B1 component on its own. |
 
 ## 2. Needed for the final report
 
@@ -62,5 +65,5 @@ they should be settled before any fusion (2c) or deep-model result exists.
 ## 5. The §9 row, if approved
 
 ```markdown
-| 2026-09-__ | **Amendment 3a (errata to amendment 3): §§ header, 1, 3.7, 4, 5, 6 and, by item 17, 7, as listed in docs/proposals/05-amendment-3-errata.md.** Corrections of contradictions and gaps found in amendment 3's approved wording, and the B2 description; no metric, level, mask or threshold changes | Found by an independent review of the applied text on 2026-09-25, the day amendment 3 was approved, before any fusion or deep-model result existed. When the errata were approved, EXP-019 had scored B0, B1 and B2 at the three levels (descriptive, §9 amendment 3) | The team, 2026-09-__ (relayed by the owner) |
+| 2026-09-__ | **Amendment 3a (errata to amendment 3): §§ header, 1, 3.7, 4, 5, 6 and, by item 17, 7, as listed in docs/proposals/05-amendment-3-errata.md.** Corrections of contradictions and gaps found in amendment 3's approved wording, and the B2 description; no metric, level, mask or threshold changes | Items 1–16 found by an independent review of the applied text on 2026-09-25, the day amendment 3 was approved; item 17 raised by EXP-019's results the same day, and said so; item 18 from the review of 2c's fusion on 2026-09-30. All before any fusion or deep-model result existed. When the errata were approved, EXP-019 had scored B0, B1 and B2 at the three levels (descriptive, §9 amendment 3) | The team, 2026-09-__ (relayed by the owner) |
 ```

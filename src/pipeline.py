@@ -12,6 +12,7 @@ Week-3 walking skeleton reachable before any real component exists.
 from __future__ import annotations
 
 import logging
+import math
 
 from src.conditions import BY_ID, CONDITIONS
 from src.contracts import (
@@ -26,59 +27,19 @@ from src.contracts import (
     GraphStore,
     PatientCase,
 )
+from src.fusion import (
+    DEFAULT_KG_WEIGHT,
+    DEFAULT_ML_WEIGHT,
+    LOG_FLOOR,
+    fuse_scores,
+    valid_model_scores,
+)
 from src.reasoning.red_flags import evaluate_red_flags
 from src.reasoning.safety import safety_check
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["DiagnosisPipeline", "fuse_scores"]
-
-DEFAULT_ML_WEIGHT = 0.5
-DEFAULT_KG_WEIGHT = 0.5
-
-
-def _normalise(scores: dict[str, float]) -> dict[str, float]:
-    """Min-max normalise to [0, 1]. A flat input maps to all zeros."""
-    if not scores:
-        return {}
-    values = list(scores.values())
-    lo, hi = min(values), max(values)
-    if hi - lo < 1e-12:
-        return {k: 0.0 for k in scores}
-    return {k: (v - lo) / (hi - lo) for k, v in scores.items()}
-
-
-def fuse_scores(
-    ml_scores: dict[str, float],
-    kg_scores: dict[str, float],
-    ml_weight: float = DEFAULT_ML_WEIGHT,
-    kg_weight: float = DEFAULT_KG_WEIGHT,
-) -> dict[str, float]:
-    """Combine ML and KG signals into a single ranking score.
-
-    Both signals are normalised before weighting so that one cannot dominate
-    purely because of its scale.
-
-    Args:
-        ml_scores: {condition_id: raw model score}.
-        kg_scores: {condition_id: graph connectivity score}.
-        ml_weight: Weight on the (normalised) ML signal.
-        kg_weight: Weight on the (normalised) KG signal.
-
-    Returns:
-        {condition_id: fused score} over the union of both inputs.
-
-    Note:
-        Weights are tuned on validation only (docs/05-evaluation-protocol.md §2)
-        and must be reported in the final write-up — they are a result, not a
-        hidden hyperparameter.
-    """
-    ml_norm = _normalise(ml_scores)
-    kg_norm = _normalise(kg_scores)
-    return {
-        cid: ml_weight * ml_norm.get(cid, 0.0) + kg_weight * kg_norm.get(cid, 0.0)
-        for cid in set(ml_norm) | set(kg_norm)
-    }
 
 
 class DiagnosisPipeline:
@@ -124,8 +85,8 @@ class DiagnosisPipeline:
 
         candidates = self._build_candidates(case, ml_scores, kg_scores, fused, graph_ok)
         if "ml" not in degraded and getattr(self.ranker, "degraded", False):
-            # No usable model, so the ranker's flat scores normalise to zeros and the ranking is
-            # the graph's alone (src/ml/ranker.py). Same duck-typed check as the graph below.
+            # No usable model: its flat scores abstain in the pool (src/fusion/pool.py), so the
+            # ranking is exactly the graph's. Same duck-typed check as the graph below.
             degraded.append("ml")
         if graph_ok and getattr(self.graph, "degraded", False):
             # A fallback store serves the graph (docs/02-architecture.md §7). The results are
@@ -157,11 +118,24 @@ class DiagnosisPipeline:
 
     def _safe_ml_scores(self, case: PatientCase, degraded: list[str]) -> dict[str, float]:
         try:
-            return self.ranker.score(case)
+            scores = self.ranker.score(case)
         except Exception:  # noqa: BLE001 - degradation is the contract
             logger.exception("ML ranker failed; continuing with KG-only ranking")
             degraded.append("ml")
             return {}
+        total = sum(scores.values()) if valid_model_scores(scores) else math.nan
+        if not (math.isfinite(total) and total > 0):
+            # The pool reads the scores as probabilities (src/fusion/pool.py). A logit, a NaN or
+            # an infinity would otherwise crash the fusion or silently corrupt every fused score;
+            # no scores, a zero sum or one that overflows would abstain without saying so.
+            logger.error(
+                "case %s: the ML ranker returned scores that are not finite, non-negative "
+                "probabilities with a positive sum; continuing with KG-only ranking",
+                case.case_id,
+            )
+            degraded.append("ml")
+            return {}
+        return scores
 
     def _safe_kg_scores(self, case: PatientCase, degraded: list[str]) -> dict[str, float] | None:
         """The graph's scores, or None if the graph store failed."""
@@ -188,7 +162,7 @@ class DiagnosisPipeline:
                 label=condition.label,
                 ml_score=ml_scores.get(cid, 0.0),
                 kg_score=kg_scores.get(cid, 0.0),
-                fused_score=fused.get(cid, 0.0),
+                fused_score=fused.get(cid, LOG_FLOOR),
                 is_must_not_miss=condition.is_must_not_miss,
             )
             candidate.assessments = self._assess(case, cid, graph_ok)

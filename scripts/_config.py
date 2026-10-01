@@ -23,6 +23,7 @@ __all__ = [
     "GRAPH_BACKENDS",
     "REPO_ROOT",
     "describe_graph",
+    "fusion_weights_from_config",
     "load_config",
     "open_graph_from_config",
     "open_ranker_from_config",
@@ -42,6 +43,26 @@ def load_config(path: Path | str | None = None) -> dict[str, Any]:
     if not config_path.exists():
         return {}
     return yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+
+
+def fusion_weights_from_config(config: dict[str, Any]) -> dict[str, float]:
+    """``ml_weight`` and ``kg_weight`` from the ``ranking:`` block, for ``DiagnosisPipeline``.
+
+    The graph's share of the fusion, α = kg_weight / (ml_weight + kg_weight), is the one quantity
+    EXP-006 tunes (``src/fusion/pool.py``). Reading it here is what lets the demo,
+    ``scripts/check_crosswalk.py`` and the golden-case ranking tests run at the configured α. The
+    other ``ranking:`` keys are not read by the scripts yet.
+
+    Raises:
+        ValueError: for a pair the fusion cannot use (negative, both 0, not finite).
+    """
+    from src.fusion import DEFAULT_KG_WEIGHT, DEFAULT_ML_WEIGHT, graph_weight
+
+    ranking = config.get("ranking") or {}
+    ml_weight = float(ranking.get("ml_weight", DEFAULT_ML_WEIGHT))
+    kg_weight = float(ranking.get("kg_weight", DEFAULT_KG_WEIGHT))
+    graph_weight(ml_weight, kg_weight)
+    return {"ml_weight": ml_weight, "kg_weight": kg_weight}
 
 
 def open_ranker_from_config(config: dict[str, Any]) -> Any:
