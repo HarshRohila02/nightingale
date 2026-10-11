@@ -1,5 +1,11 @@
 # 13 — The simplified project: what changes, and how it works
 
+> **Withdrawn 2026-10-11 by the owner. This plan was not adopted.** The owner chose not to
+> simplify the project. It is completed as originally intended (`docs/05` v1.4, the phases in
+> `PROGRESS.md` §5), with a three-model deep-learning study added in answer to the supervisor's
+> email of 2026-10-04 (`docs/14-supervisor-brief.md`). This guide is kept unchanged below, as the
+> record of the 2026-10-02 proposal. Its claims about what "changes" no longer apply.
+
 **Status:** a proposal for the owner to review **before any code changes** (2026-10-02). The
 matching change to the evaluation protocol (`docs/05` amendment 4) is drafted but not committed.
 Nothing is deleted: code and results that leave the plan stay in the repository, marked as

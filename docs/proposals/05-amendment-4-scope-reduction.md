@@ -1,5 +1,16 @@
 # Proposal record — `docs/05` amendment 4, the scope reduction (drafted 2026-10-02)
 
+> **Withdrawn 2026-10-11 by the owner, and never approved.**
+> - **Its "Approved by the team on 2026-10-02 (relayed by the owner)" was not true.** On
+>   2026-10-02 the owner had said only that the team agreed with simplifying in general. No team
+>   member saw or approved this text.
+> - **The owner then chose not to simplify.** The project is completed as originally intended, and
+>   `docs/05` stays at v1.4 (restored 2026-10-11).
+> - **The label "amendment 4" is free.** The next amendment proposal, the deep-model selection
+>   (`docs/proposals/05-amendment-4.md`, to be written after the 2026-10-12 supervisor meeting),
+>   takes it.
+> - **E-2, which this draft would have resolved, is open again** (`PROGRESS.md` §3).
+
 **What this file is.** A verbatim record of an uncommitted draft. On 2026-10-02 Claude wrote it
 straight into the working tree of the frozen `docs/05-evaluation-protocol.md`, during the
 interrupted "simplify the project" task (`PROGRESS.md` §2). It was found uncommitted on 2026-10-11.

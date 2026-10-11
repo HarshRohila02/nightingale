@@ -63,6 +63,64 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-020 — Seeds 43–46: B1-XGB, B1+aug and B1′+aug, trained on Colab (validation split, full evidence only, so far)
+
+| Field | Value |
+|---|---|
+| Date | 2026-10-01 (run by the owner on Colab); recorded 2026-10-11 |
+| Author | P2 (run by the owner; recorded by Claude) |
+| Config / ablation | B1 (plain) seeds 42–46; B1+aug and B1′+aug seeds 43–46, with logistic regression and XGBoost in each (`notebooks/colab_b1_seeds.ipynb`, `docs/11` §4.3) |
+| Split used | validation, full evidence only (the bundle's own `metrics.json`). **Not yet scored at 50% or 25%:** that needs a change to `scripts/evaluate_reduced_evidence.py`, which waits for the owner's go-ahead (2026-10-11: "no changes to code base yet") |
+| Git commit | `b676f99` for all 13 runs, `uncommitted_changes: false`; Colab, Python 3.13.15, NumPy 2.1.3, scikit-learn 1.6.1, XGBoost 2.1.4, Tesla T4 |
+| MLflow run | — (`run.json` and `metrics.json` per run, in `models/nightingale_b1_seeds/`) |
+| Seed | 42–46 |
+
+**Question.** How much does each figure depend on the seed (`docs/05` §6)? This covers the
+retrained XGBoost of every arm and, by amendment 3a item 5, the `+aug` logistic regressions.
+
+**What ran.** All 13 planned runs finished between 2026-10-01 19:51:01 and 20:24:26 UTC, 33 min
+25 s of training in all (the notebook predicted 50–60 min with the download). The bundle came to
+the laptop as `models/nightingale_b1_seeds.zip` (35,875,456 bytes) and was unzipped on 2026-10-02
+at 02:06, before draft amendment 4 called this run "cancelled". That draft was withdrawn on
+2026-10-11. EXP-018's seed-42 `+aug` models were trained at `4583e91` with the same NumPy, 2.1.3.
+
+| Arm / seed | Wall time, s | XGB best round | LR iterations | LR top-1 / MRR | XGB top-1 / MRR | No-findings probe, LR (M/F); XGB (M/F) |
+|---|---|---|---|---|---|---|
+| B1 / 42 | 61 | 117 | 17 | 0.9983 / 0.9991 | 0.9985 / 0.9992 | AF 0.42/0.61; AF 1.00/1.00 |
+| B1 / 43–46 | 60–63 | 123, 142, 199, 114 | 17 | identical to seed 42 | 0.9985 / 0.9992 | as seed 42 |
+| B1+aug / 43 | 153 | 362 | 48 | 0.9982 / 0.9991 | 0.9984 / 0.9992 | PSVT 0.43/0.40; AF 0.41/0.34 |
+| B1+aug / 44 | 155 | 376 | 53 | 0.9983 / 0.9991 | 0.9985 / 0.9992 | PSVT 0.41/0.39; AF 0.25/0.21 |
+| B1+aug / 45 | 160 | 422 | 53 | 0.9982 / 0.9991 | 0.9985 / 0.9992 | PSVT 0.41/0.40; PSVT 0.24/0.26 |
+| B1+aug / 46 | 156 | 385 | 56 | 0.9982 / 0.9991 | 0.9985 / 0.9992 | PSVT 0.40/0.39; AF 0.42/0.45 |
+| B1′+aug / 43 | 256 | 495 | 116 | 0.9983 / 0.9991 | 0.9985 / 0.9992 | AF 0.29/0.24; AF 0.25/0.26 |
+| B1′+aug / 44 | 265 | 504 | 131 | 0.9983 / 0.9991 | 0.9985 / 0.9992 | PSVT 0.24 / AF 0.22; AF 0.18/0.18 |
+| B1′+aug / 45 | 245 | 525 | 92 | 0.9983 / 0.9991 | 0.9985 / 0.9992 | PSVT 0.24/0.23; AF 0.24/0.23 |
+| B1′+aug / 46 | 261 | 460 | 138 | 0.9983 / 0.9991 | 0.9985 / 0.9992 | AF 0.31/0.36; AF 0.31/0.27 |
+
+Every run reaches top-3 and must-not-miss recall@3 of 1.000 at full evidence (16,943 must-not-miss
+patients). The 95% intervals are in each run's `metrics.json`.
+
+**Interpretation:**
+1. **Seed 42 of plain B1 reproduces EXP-004 byte for byte.** `b1_logreg.json`, `b1_xgboost.ubj` and
+   `features.json` have the same SHA-256 as `models/nightingale_b0_b1/`. That closes the
+   reproducibility check the notebook was built for.
+2. **Plain B1-LR is deterministic**, as the notebook expected: its seeds 43–46 have the same
+   coefficients, and only `params.seed` differs. The `+aug` logistic regressions differ by seed,
+   because their masked copies are drawn from the seed.
+3. **At full evidence the seed changes nothing that matters** (R-16): top-1 moves by at most 0.0001.
+   What the seeds are for, the spread at 50% and 25%, is not measured yet.
+4. **EXP-018's "the atrial-fibrillation answer is gone" held for seed 42 only.** At other seeds,
+   several `+aug` models again put atrial fibrillation first for a patient with no findings, at
+   0.18–0.45 rather than 1.000. EXP-018 point 1 is narrowed accordingly.
+
+**Next action.** Score the seed models at 100%, 50% and 25% on EXP-019's masks:
+- at least B1-LR′+aug's and B1-XGB′+aug's, the comparators for the deep-model study;
+- this needs `--models/--out` in `scripts/evaluate_reduced_evidence.py`, so EXP-019's file is not
+  overwritten;
+- it is a code change, so it waits for the owner's go-ahead.
+
+Also run the golden cases at seeds 43–46.
+
 ### EXP-006 — Fusion: the graph's weight, swept on validation at three evidence levels (2c) (validation split)
 
 | Field | Value |
@@ -487,7 +545,18 @@ Fused with the graph, red flags off: every model puts PE and GERD first and MI s
 
 **Interpretation:**
 
-1. **R-18's failure is gone from every retrained model.** Original XGBoost answered atrial
+1. ~~**R-18's failure is gone from every retrained model.**~~ **R-18's confident failure is gone
+   from every retrained seed-42 model** *(narrowed 2026-10-11 by EXP-020)*. At seeds 43–46, on the
+   no-findings probe, atrial fibrillation is again the top answer:
+   - of all four B1-XGB′+aug seeds;
+   - of three of the four B1-XGB+aug seeds;
+   - of B1-LR′+aug at seeds 43 and 46, and at 44 for the female probe.
+
+   Every one of those answers sits between 0.18 and 0.45; the original XGBoost gave 1.000. So the
+   retraining removed the *certainty*, not the answer, which may be a fair prior: AF patients answer
+   the fewest questions. The golden cases have not been run at those seeds.
+
+   Original XGBoost answered atrial
    fibrillation to all four golden cases; no retrained model answers it to any. **The masked copies
    do that on their own**: without the channel, a short row is no longer a rare row, so it no longer
    predicts the condition whose patients answer fewest questions.
@@ -1460,4 +1529,6 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-017 | B1 under a partial history *(unplanned, run 2026-09-23)* | 1 | R-18: the models separate once the history is incomplete; evidence for D-10 (b) |
 | EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are ~~overconfident on short input~~ near-certain on hand-written input (narrowed by EXP-019). The reduced levels wait for amendment 3 |
 | EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |
-| EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used |
+| EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used. *Run 2026-10-01 on Colab by the owner; logged 2026-10-11, at full evidence; the 50%/25% scoring waits for a code change* |
+| EXP-021 | Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)* | 2 | Which deep model becomes B1-DL′+aug, A0′'s ML component, by a rule fixed before training. B1-LR′+aug stays the comparator and the backup |
+| EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |

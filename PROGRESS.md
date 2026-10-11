@@ -122,7 +122,35 @@ supervisor on 2026-10-12 (`docs/14-supervisor-brief.md`, and a private Artifact 
 tests; commit the two 10-02 drafts verbatim as records; restore `docs/05` to v1.4 and mark both
 drafts withdrawn; record EXP-020, narrow EXP-018's "gone", score the comparators' seeds 43–46;
 record the email and the owner's decisions; refresh §1, §3, §5, §6, §7, §8.
-**Done so far:** this marker. **Next step:** run the tests, then write the brief.
+**Done so far (2026-10-11):**
+- Tests: 725 passed, 9 skipped.
+- **WP-A:** the brief, `docs/14-supervisor-brief.md`, also published as a private page at
+  https://claude.ai/artifact/JFGNT7b69YpcVwyrJS1Sb1.
+- **Commit `3282254`:** the 10-02 drafts recorded verbatim
+  (`docs/proposals/05-amendment-4-scope-reduction.md`, `docs/13`).
+- **`docs/05` restored to v1.4.** Both drafts are marked withdrawn.
+- **EXP-020** written up from the bundle, with the planned rows EXP-021/022.
+- **EXP-018 point 1** narrowed.
+- **`docs/11` §4.3** "Done".
+
+**The owner, mid-task: "just update the things, no changes to code base yet".** So the seed
+scoring (it needs `--models/--out` in `scripts/evaluate_reduced_evidence.py`) and the latency
+baseline (it needs a new script) wait for the owner's go-ahead.
+
+**Remaining in WP0 (records only):**
+- §1 (Week 4, next action, blocked-on);
+- §3 (E-2 open again; amendment 4 = the deep-model selection, to be drafted after the 2026-10-12
+  meeting);
+- §5 (a new 2f deep-model study);
+- §6 (the owner's decisions of 2026-10-11);
+- §7 (the seeds bundle);
+- §8 (session lines for 2026-10-02 and 2026-10-11);
+- `docs/12` stale rows;
+- `docs/07` two risks;
+- the memory note on the supervisor.
+
+**Then:** the meeting (2026-10-12), with the supervisor's answers recorded, and the plan's WP1
+onward only on the owner's go-ahead for code.
 
 *The interrupted 2026-10-02 entry, as found:*
 

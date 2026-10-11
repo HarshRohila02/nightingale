@@ -251,6 +251,11 @@ it into `models/nightingale_b1_seeds/`, then tell Claude. The seed-42 models sta
 the laptop scores every seed at 100%, 50% and 25% on the recorded masks (scoring only). No patient
 rows are in the zip.
 
+**Done 2026-10-01** (recorded 2026-10-11, EXP-020). The owner ran it at `b676f99`: all 13 runs, in
+33 min 25 s of training (19:51–20:24 UTC). The bundle was unzipped into
+`models/nightingale_b1_seeds/` on 2026-10-02. Seed 42 of B1 reproduces EXP-004 byte for byte. The
+50%/25% scoring is still to do; it needs a script change.
+
 ---
 
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
