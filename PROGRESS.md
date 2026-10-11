@@ -106,7 +106,40 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-_Nothing in flight._
+**Recovery found 2026-10-11 (§4.4).** The 2026-10-02 task below was interrupted and is
+uncommitted: `M PROGRESS.md` (this entry), `M docs/05-evaluation-protocol.md` (the drafted amendment
+4: header v2.0, §0, seven "superseded" markers, §8 rule 8, a §9 row that says "Approved by the team
+on 2026-10-02", which the team never did), `?? docs/13-simplified-project-guide.md`. No commit since
+`b32c136`. Also unrecorded: `models/nightingale_b1_seeds/` (EXP-020, run 2026-10-01 at `b676f99`,
+unzipped 2026-10-02 02:06). **The owner's choice (2026-10-11): do not simplify; complete the project
+as originally intended (`docs/05` v1.4), "for now"; keep both 10-02 drafts as records, then restore
+`docs/05` to v1.4.** Plan approved by the owner the same day (the supervisor's 2026-10-04 email:
+"check which deep learning model is best suited to your approach … check the model complexity too,
+as real-time models are preferred"; Claude's plan file `this-was-the-reply-fancy-wind.md`).
+
+**Task now (2026-10-11): WP-A, then WP0.** WP-A: a one-page brief for the owner's meeting with the
+supervisor on 2026-10-12 (`docs/14-supervisor-brief.md`, and a private Artifact page). WP0: run the
+tests; commit the two 10-02 drafts verbatim as records; restore `docs/05` to v1.4 and mark both
+drafts withdrawn; record EXP-020, narrow EXP-018's "gone", score the comparators' seeds 43–46;
+record the email and the owner's decisions; refresh §1, §3, §5, §6, §7, §8.
+**Done so far:** this marker. **Next step:** run the tests, then write the brief.
+
+*The interrupted 2026-10-02 entry, as found:*
+
+**Task (2026-10-02): simplify the project** (the owner: "too complicated and big to be viable for a
+college project and for the explainability to the mentor"; the owner says the team already agrees,
+and chose: keep one small MLP, template explanations with an optional LLM paraphrase).
+`docs/05` amendment 4 (scope reduction: three research questions, 100% and 25% judged, 50% in an
+appendix, two logistic-regression models + the MLP, four ablation rows, explicit tests), which also
+resolves E-2; EXP-006 narrowed to the configured component; cut items marked ⏭️ (patient KG +
+Synthea, FastAPI, SHAP, RAG, guardrails, "what to ask next", B3/B4, XGBoost seeds 43–46); PROGRESS,
+CLAUDE.md, README, charter and docs/02 notes; `docs/12` redrawn. Nothing deleted.
+**Done so far:** `docs/05` amendment 4 drafted into the file (§0, the superseded markers, the §9
+row), **uncommitted**. **Paused 2026-10-02 at the owner's request**: before any code changes, the
+owner asked for a guide to what the simplified project will do and what changes
+(`docs/13-simplified-project-guide.md`). **Next step:** the owner reviews the guide; on their
+go-ahead, finish the task (the sweep narrowed to the configured component, the cut items marked
+⏭️, the records), verify, commit. If they change the plan, revise the drafted amendment first.
 
 ---
 
