@@ -63,6 +63,67 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-022 — Complexity and real time: each model's cost, and the pipeline's latency on the laptop CPU (baseline) · *2026-10-12*
+
+| Field | Value |
+|---|---|
+| Date | 2026-10-12 (the baseline; re-run with `--deep` on the trained transformer when it exists) |
+| Author | P4 (Claude) |
+| Config / ablation | B1-LR′+aug (the configured ranker), B1-XGB′+aug (both EXP-018, seed 42), and B1-DL′+aug **untrained, the same architecture** (D-12): the cost is fixed by the architecture, not the weights. The pipeline as `scripts/demo.py` builds it: the NetworkX graph, the configured α, the template explainer, no retrieval, no LLM |
+| Split used | validation rows for the model timings (1,000 patients at full evidence); the four golden cases for the pipeline. Nothing is scored for accuracy |
+| Git commit | the commit that adds this entry (`scripts/measure_latency.py`) |
+| Machine | the owner's laptop: Windows 11, Intel64 Family 6 Model 198 (24 logical CPUs), Python 3.11.9, NumPy 1.26.4, **one BLAS thread** |
+
+**Question.** How big and how costly is each model, and is the ranking fast enough to update live
+as the findings are entered (D-14, "real time")?
+
+**Method.** For each model:
+- 100 warm-up calls, then 1,000 timed calls of `predict_proba` on single rows (batch 1, the
+  dashboard's case);
+- three passes, with the models in a shuffled order.
+
+For the pipeline: 100 warm-up runs, then 300 timed runs per golden case, with every collaborator
+wrapped by the script to time it. No pipeline code was changed. A repeat run reproduced every p95
+to within 6%.
+
+| Model | Parameters / trees | Multiply-adds per patient | On disk | Load | p50 | p95 | p99 | Max |
+|---|---|---|---|---|---|---|---|---|
+| B1-LR′+aug | 8,996 | 8,983 | 0.11 MB | 0.003 s | 0.009 ms | 0.010 ms | 0.011 ms | 0.03 ms |
+| B1-XGB′+aug | 5,824 trees, 264,396 nodes (depth ≤ 6) | ≤ 6 comparisons per tree | 14.6 MB | 3.16 s | 0.40 ms | 0.43 ms | 0.48 ms | 21.7 ms |
+| B1-DL′+aug (untrained) | 225,645 | 9,610,752 | 1.22 MB (JSON) | 0.005 s | 0.75 ms | 0.78 ms | 0.82 ms | 1.4 ms |
+
+| The whole ranking (ms) | p50 | p95 | Max | Mean by stage |
+|---|---|---|---|---|
+| with B1-LR′+aug, 4 golden cases | 0.91–1.10 | 0.94–1.13 | 26–31 | ranker 0.08 · graph 0.03 · fusion 0.02 · red flags 0.02 · explanation 0.01 · safety check 0.08–0.24 · the rest (candidates, assessments) 0.8–0.9 |
+| with B1-DL′+aug, 4 golden cases | 1.79–1.95 | 1.95–2.01 | 27–40 | the same, with the ranker 0.88–0.90 |
+
+**Findings.**
+1. **Real time is feasible, by a wide margin.** The whole ranking takes about 1 ms with logistic
+   regression and 2 ms with the transformer at p95. The worst single run in 1,200 took 40 ms, the
+   same 26–40 ms in every case and both runs: most likely a Python garbage collection or a Windows
+   scheduling pause, not the models. All of this is far under the 0.1 s at which a response
+   feels instant (Nielsen's limits; no clinical standard sets a number). So **the dashboard can
+   re-rank live as each finding is ticked** (D-14). That is a recommendation for 2e, not a gate
+   on the model.
+2. **The transformer costs about 80× logistic regression's time** (0.78 against 0.010 ms at p95)
+   and **about 1,000× its multiply-adds**, yet it is still well under a millisecond, and its cost
+   is the same for every patient.
+3. **XGBoost is the slowest to load (3.2 s) and the largest (14.6 MB)**, and has the worst
+   single-call outlier (21.7 ms). Its per-call time is half the transformer's.
+4. **The model is not the bottleneck either way.** With logistic regression, assembling the
+   result (candidates, the ✓/?/✗ assessments, the safety check) takes most of the time.
+
+**Limits.**
+- Soft real time only: Python on Windows guarantees no deadline, so p99 and the maximum are
+  reported, not promised.
+- One laptop, one thread, the CPU only.
+- The LLM explanation (Phase 3) is outside the ranking path, so it is not in these figures. It
+  follows the ranking in seconds (NFR-1 allows 20 s).
+- Aura is not timed: the graph is read once at start-up and scored in memory, as NetworkX does.
+- The transformer is untrained here. Re-run with `--deep` on the trained model to confirm.
+
+---
+
 ### EXP-021 — B1-DL, the small transformer: trained on Colab, judged by D-13's safety floor (validation split) · *pre-registered 2026-10-12, before any training*
 
 | Field | Value |
@@ -1649,4 +1710,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |
 | EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used. *Run 2026-10-01 on Colab by the owner; logged 2026-10-11, at full evidence; the 50%/25% scoring waits for a code change* |
 | EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup |
-| EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |
+| EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11; the baseline done 2026-10-12, with the transformer untrained: the whole ranking p95 ≈ 1–2 ms, so live re-ranking is feasible)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |

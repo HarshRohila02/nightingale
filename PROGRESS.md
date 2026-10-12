@@ -119,7 +119,7 @@ memory note. Docs only.
 transformer (`src/ml/deep.py`, `scripts/train_deep.py`, `notebooks/colab_b1_dl.ipynb`, the `deep`
 backend, EXP-021 pre-registered in `docs/08` before any training); T4 the latency baseline
 (EXP-022). Training itself is the owner's Colab run, after A-8's outcome is recorded (gate 1).
-**Done so far:** T1 committed (`f1393b0`). **T2, part:** `scripts/evaluate_reduced_evidence.py` takes `--model LABEL=DIR:BACKEND`, `--out` and `--no-red-flags` (the default run unchanged); seed 43 scored at 100/50/25% in 112 s (EXP-020); seeds 44–46 (about 6 min of laptop CPU together) wait for the owner's OK, being over ~5 min. **T3, this commit:** `src/ml/deep.py` (the transformer: NumPy forward pass, PyTorch training, JSON weights), `scripts/train_deep.py`, `notebooks/colab_b1_dl.ipynb`, the `deep` backend in `src/ml/ranker.py`, `holdout_split` extracted in `scripts/train_baselines.py`, D-13 as code (`src/eval/safety_floor.py`), EXP-021 pre-registered (`docs/08`), `docs/11` §4.4, CLAUDE.md; tests: 29 new (`tests/test_deep.py`, `tests/test_safety_floor.py`), the 6 torch ones run in `.venv-gpu` on the CPU with the GPU hidden. **Next step:** T4, the latency baseline (EXP-022). **State on 2026-10-11, committed:** `3282254` (the 10-02 drafts
+**Done so far:** T1 committed (`f1393b0`). **T2, part:** `scripts/evaluate_reduced_evidence.py` takes `--model LABEL=DIR:BACKEND`, `--out` and `--no-red-flags` (the default run unchanged); seed 43 scored at 100/50/25% in 112 s (EXP-020); seeds 44–46 (about 6 min of laptop CPU together) wait for the owner's OK, being over ~5 min. **T3, this commit:** `src/ml/deep.py` (the transformer: NumPy forward pass, PyTorch training, JSON weights), `scripts/train_deep.py`, `notebooks/colab_b1_dl.ipynb`, the `deep` backend in `src/ml/ranker.py`, `holdout_split` extracted in `scripts/train_baselines.py`, D-13 as code (`src/eval/safety_floor.py`), EXP-021 pre-registered (`docs/08`), `docs/11` §4.4, CLAUDE.md; tests: 29 new (`tests/test_deep.py`, `tests/test_safety_floor.py`), the 6 torch ones run in `.venv-gpu` on the CPU with the GPU hidden. T3 committed (`5b94a41`). **T4, this commit:** `scripts/measure_latency.py` and EXP-022's baseline: the whole ranking takes p95 ≈ 1.1 ms with B1-LR′+aug and ≈ 2.0 ms with the transformer (untrained, same architecture), max 40 ms in 1,200 runs, so live re-ranking is feasible (D-14). **Next:** the owner's items (§1); then 1e FastAPI and 2e the dashboard, each after the owner approves its install (D-4). **State on 2026-10-11, committed:** `3282254` (the 10-02 drafts
 verbatim), `5aab083` (`docs/05` back to v1.4, drafts withdrawn, EXP-020, the brief), pushed.
 
 *The interrupted 2026-10-02 entry, as found:*
@@ -456,7 +456,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green. *(W
   - [x] T3: the code, the notebook, EXP-021 pre-registered before training (2026-10-12) — → pending
   - [ ] The owner's Colab run, after A-8's outcome is recorded (gate 1)
   - [ ] Scored at 100/50/25%; D-13 applied; the ranker switched or kept
-  - [ ] EXP-022: complexity and latency; live re-ranking decided (D-14)
+  - [ ] EXP-022: complexity and latency; live re-ranking decided (D-14). *Baseline done 2026-10-12* (→ pending): p95 ≈ 1–2 ms for the whole ranking, so the dashboard can re-rank live; re-run with `--deep` on the trained model
 
 ### Phase 3 — Evidence & Explanation · ⬜
 **Exit criteria:** 🎯 **W7 milestone** — feature-complete against the README architecture.
