@@ -39,7 +39,7 @@ from _config import (  # noqa: E402
 
 from src.conditions import BY_ID  # noqa: E402
 from src.contracts import DiagnosisResult, PatientCase  # noqa: E402
-from src.medical_kg.crosswalk import DERIVED_SOURCE, expand_case  # noqa: E402
+from src.medical_kg.crosswalk import expand_case, recorded_answers  # noqa: E402
 from src.medical_kg.neo4j_store import GraphUnavailable  # noqa: E402
 from src.ml.ranker import describe  # noqa: E402
 from src.pipeline import DiagnosisPipeline  # noqa: E402
@@ -82,20 +82,8 @@ def load_cases() -> dict[str, dict]:
     return {c["id"]: c for c in data["cases"]}
 
 
-def answered_by(case: PatientCase) -> dict[str, str]:
-    """{question the crosswalk added: label of the recorded finding that answers it}.
-
-    The graph links a condition to the *question*, so that stays the claim; the answer is shown
-    beside it. "Pressure-type pain" answers "Characterize your pain", which GERD is linked to, but
-    the graph never says GERD presents with pressure-type pain (docs/02 §5.2).
-    """
-    everything = [*case.findings, *case.risk_factors]
-    recorded = {f.concept_id: f.label for f in everything if f.source != DERIVED_SOURCE}
-    return {
-        f.concept_id: recorded[origin]
-        for f in everything
-        if f.source == DERIVED_SOURCE and (origin := f.qualifiers.get("crosswalk_from")) in recorded
-    }
+answered_by = recorded_answers
+"""{question the crosswalk added: the recorded finding answering it} (src/medical_kg/crosswalk.py)."""
 
 
 def render(result: DiagnosisResult, top_k: int = 5, case: PatientCase | None = None) -> str:

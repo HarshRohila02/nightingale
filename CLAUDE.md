@@ -221,9 +221,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 
 ```bash
 ./.venv/Scripts/python.exe -m pytest                        # tests, incl. golden clinical cases
-./.venv/Scripts/python.exe -m black src tests scripts       # format
-./.venv/Scripts/python.exe -m ruff check src tests scripts  # lint
+./.venv/Scripts/python.exe -m black app src tests scripts       # format
+./.venv/Scripts/python.exe -m ruff check app src tests scripts  # lint
 ./.venv/Scripts/python.exe scripts/demo.py --case GC-003    # walking skeleton, real graph + model (--graph stub without data/)
+./.venv/Scripts/python.exe -m streamlit run app/streamlit_app.py  # 2e: the dashboard, 127.0.0.1:8501, re-ranks live
+./.venv/Scripts/python.exe scripts/serve_api.py               # 1e: the API, 127.0.0.1:8000/docs
+./.venv/Scripts/python.exe scripts/measure_latency.py         # EXP-022: model cost and pipeline latency (~15 s)
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data

@@ -44,10 +44,10 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Format check
-        run: black --check src tests scripts
+        run: black --check app src tests scripts
 
       - name: Lint
-        run: ruff check src tests scripts
+        run: ruff check app src tests scripts
 
       - name: Tests
         run: pytest --cov=src --cov-report=term-missing

@@ -82,6 +82,7 @@ __all__ = [
     "case_from_ddxplus",
     "concepts_from_evidences",
     "expand_case",
+    "recorded_answers",
     "validate_crosswalk",
 ]
 
@@ -547,6 +548,22 @@ def case_from_ddxplus(
 # --------------------------------------------------------------------------- #
 # Hand-authored case → knowledge graph
 # --------------------------------------------------------------------------- #
+
+
+def recorded_answers(case: PatientCase) -> dict[str, str]:
+    """{question :func:`expand_case` added: label of the recorded finding that answers it}.
+
+    The graph links a condition to the *question*, so that stays the claim; a display shows the
+    answer beside it. "Pressure-type pain" answers "Characterize your pain", which GERD is linked
+    to, but the graph never says GERD presents with pressure-type pain (docs/02 §5.2).
+    """
+    everything = [*case.findings, *case.risk_factors]
+    recorded = {f.concept_id: f.label for f in everything if f.source != DERIVED_SOURCE}
+    return {
+        f.concept_id: recorded[origin]
+        for f in everything
+        if f.source == DERIVED_SOURCE and (origin := f.qualifiers.get("crosswalk_from")) in recorded
+    }
 
 
 def expand_case(case: PatientCase, labels: Mapping[str, str] | None = None) -> PatientCase:
