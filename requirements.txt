@@ -52,7 +52,7 @@ ollama~=0.3            # client for the locally hosted model
 biopython~=1.84        # Entrez / PubMed E-utilities
 
 # --- Serving / UI ---------------------------------------------------------- #
-fastapi~=0.115
+# fastapi and httpx come from requirements-dev.txt above (the API tests need them)
 uvicorn[standard]~=0.32
 streamlit~=1.40
 

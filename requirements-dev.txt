@@ -25,6 +25,10 @@ python-dotenv~=1.0
 # rows. Moved from requirements.txt (2026-09-19). scikit-learn brings SciPy with it.
 scikit-learn~=1.5
 xgboost~=2.1
+# ...and by the API and its tests (task 1e): FastAPI, and httpx for its test client. Moved from
+# requirements.txt (2026-10-12). The server, uvicorn, stays there: no test starts it.
+fastapi~=0.115
+httpx~=0.28
 
 # Test runner
 pytest~=8.3

@@ -22,6 +22,7 @@ __all__ = [
     "DEFAULT_CONFIG",
     "GRAPH_BACKENDS",
     "REPO_ROOT",
+    "build_pipeline",
     "describe_graph",
     "fusion_weights_from_config",
     "load_config",
@@ -155,3 +156,40 @@ def describe_graph(store: Any) -> str:
     if getattr(store, "degraded", False):
         line += f"; standing in for Neo4j: {store.degraded_reason}"
     return line
+
+
+def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> dict[str, Any]:
+    """The pipeline as ``scripts/demo.py`` builds it, for the app and the dashboard.
+
+    The configured ranker and graph, the template explainer, no retrieval yet (Phase 3), and the
+    configured fusion weights.
+
+    Returns:
+        ``pipeline``, ``ranker``, ``graph``, ``labels`` (the real graph's node labels, for
+        ``expand_case``; None for the stub) and ``about`` (one line each for the ranker and the
+        graph).
+
+    Raises:
+        GraphUnavailable: as :func:`open_graph_from_config`.
+    """
+    from src.ml.ranker import describe
+    from src.pipeline import DiagnosisPipeline
+    from src.stubs import EmptyRetriever, TemplateExplainer
+
+    ranker = open_ranker_from_config(config)
+    graph = open_graph_from_config(config, graph_backend)
+    labels = dict(graph.graph.nodes(data="label")) if hasattr(graph, "graph") else None
+    pipeline = DiagnosisPipeline(
+        ranker=ranker,
+        graph=graph,
+        retriever=EmptyRetriever(),
+        explainer=TemplateExplainer(),
+        **fusion_weights_from_config(config),
+    )
+    return {
+        "pipeline": pipeline,
+        "ranker": ranker,
+        "graph": graph,
+        "labels": labels,
+        "about": {"ranker": describe(ranker), "graph": describe_graph(graph)},
+    }
