@@ -186,7 +186,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by
   default (decision **A-8**, kept by the team 2026-10-02, without which sudden onset and exertional
-  pain vanish; the clinical review of its 17 answers is still open), and keeps
+  pain vanish; its 17 answers were reviewed and approved as is on 2026-10-12), and keeps
   every dropped finding with a reason. A denial is never a token: it marks its question asked
   (`CaseTokens.asked`) only when it answers a whole yes/no question, and only a model with the
   "asked" channel can see that. It has **no ground
