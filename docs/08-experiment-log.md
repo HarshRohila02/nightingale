@@ -63,6 +63,101 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-021 — B1-DL, the small transformer: trained on Colab, judged by D-13's safety floor (validation split) · *pre-registered 2026-10-12, before any training*
+
+| Field | Value |
+|---|---|
+| Date | 2026-10-12: this entry, the model, the training job and the rule, **before any B1-DL model existed**. The run and its results are added below it when they arrive |
+| Author | P2 (Claude; the training run is the owner's, on Colab, D-7) |
+| Config / ablation | **B1-DL′+aug** (with the "asked" channel, 691 columns, `ddd14019c66eff10`) and **B1-DL+aug** (607 columns, `3a0d5a5e01d7f427`): `src/ml/deep.py`, `scripts/train_deep.py`, `notebooks/colab_b1_dl.ipynb` (`docs/11` §4.4) |
+| Split used | validation only: full evidence in the run, then 50% and 25% on `docs/05` §3.7's masks, whose two digests (`e99a7a8fbf792675`, `af3a357f6454838a`) must reproduce. The test split is not read |
+| Git commit | the commit that adds this entry; each run records its own in `run.json` |
+| Seed | 42–46 for both arms (`docs/05` §6); **seed 42 is the model used** |
+
+**Question.** Is the small transformer the owner chose (D-12) at least as safe as the logistic
+regression trained like it, and is it more accurate when the history is incomplete? At what cost in
+size and time? This answers the supervisor's email of 2026-10-04 on validation. H6 (`docs/05` RQ6)
+is judged on the test split in Phase 4, as `docs/05` requires.
+
+**The model, fixed before training** (no tuning, T-6): an FT-Transformer (Gorishniy et al. 2021,
+rtdl's defaults) at a smaller size.
+- **Tokens:** one per DDXPlus question (84), plus age and sex. Each is its bias plus the sum of its
+  columns' max-abs-scaled values times their embeddings, so an unasked question adds its
+  `unasked` embedding. A [CLS] token comes last. That makes 87 tokens for every patient, with no
+  positions.
+- **Blocks:** 2 blocks, d = 96, 4 heads (24 per head, as rtdl's 192/8), pre-normalisation (the first
+  block without its attention LayerNorm), ReGLU feed-forward of width 128, dropout 0.2 on attention
+  and 0.1 in the feed-forward, none on the residuals. The last block computes [CLS] only.
+- **Head:** LayerNorm → ReLU → linear.
+- **Size** (`DeepRanker.complexity()`, pinned by a test):
+  - B1-DL′+aug: **225,645 parameters**, 9,610,752 multiply-adds per patient;
+  - B1-DL+aug: 217,581 parameters, 9,602,688 multiply-adds.
+  - The cost is the same for every patient.
+
+**Training, identical across arms and seeds** (`scripts/train_deep.py`):
+- **The rows:** the comparators' at each seed. `augment(train, seed)` gives every train patient
+  plus one masked copy, the rows B1-LR′+aug, B1-LR+aug and the XGBoost arms used at that seed.
+  Each run records an augmentation digest.
+- **Early stopping:** on XGBoost's patient-level 90/10 holdout (`holdout_split`, the same patients).
+- **Optimiser:** AdamW, lr 1e-4, weight decay 1e-5 (none on the tokenizer, the norms or the
+  biases); batch 1024, FP32, at most 50 epochs, patience 5 on the held-out cross-entropy. The best
+  epoch is kept.
+- **Determinism:** deterministic algorithms are requested. A GPU run is still not bit-reproducible
+  across machines, so the saved file is the model.
+- **Disclosed asymmetry:** logistic regression fits on all rows, the transformer on 90%. This can
+  only disadvantage the transformer.
+
+**Checks in every `run.json`:**
+- `parity`: the NumPy forward pass the laptop runs against PyTorch's, on 2,000 validate rows. It
+  should be ≤ 1e-4 in probability with no top-1 disagreement. A run beyond that is flagged and
+  reported, not discarded.
+- the augmentation digest, the epoch history, `complexity`, the commit and the versions.
+
+`tests/fixtures/deep_parity.json` pins the two implementations against each other in CI.
+
+**The rule, D-13 (the owner, 2026-10-12, "safe first"), as code** (`src/eval/safety_floor.py`,
+tested). It is applied once, after the run, to the seed-42 models. **B1-DL′+aug replaces
+B1-LR′+aug as the configured ranker, and becomes A0′'s ML component, only if all of these hold:**
+1. Must-not-miss recall@3 ≥ 0.95 and the dangerous false-negative rate ≤ 0.02, at 100% and at
+   25%.
+2. At 25%, it is non-inferior to B1-LR′+aug (seed 42, EXP-018). The paired bootstrap of the
+   per-case difference (1,000 resamples, seed 42) must have its 95% lower bound above −0.005,
+   both for the must-not-miss top-3 hit and for the reciprocal rank (MRR).
+3. All four golden cases pass with it as the ranker, red flags on and off.
+
+**B1-DL+aug becomes A0's component under the same rule against B1-LR+aug.** A component that fails
+stays logistic regression, recorded by a dated `docs/05` §9 entry (§5 allows the change before the
+test split opens), and the transformer is reported as the comparison. Either way, every figure is
+reported, for both arms and all five seeds, at every level with its interval:
+- McNemar on top-3 and the paired MRR test against B1-LR(′)+aug and B1-XGB(′)+aug;
+- the seed spread, and for how many of the five seeds the D-13 outcome would also hold;
+- the no-findings probe, the raw scores' ECE, and the golden cases' confidence (EXP-018's concern);
+- the training time and the complexity.
+
+**What was known when this was written (disclosure):**
+- EXP-019's comparator figures at seed 42. At 25%, B1-LR′+aug reaches top-1 0.946, MRR 0.971 and
+  must-not-miss recall@3 0.997, so the headroom is small (R-19).
+- EXP-020's bundle and its no-findings probe.
+- Seed 43 of every comparator, scored at three levels the same day (B1-LR′+aug at 25%: 0.945,
+  0.971, 0.998).
+- The supervisor's emails of 2026-09-20 and 2026-10-04, and a literature review (2026-10-11).
+- The architecture was the owner's choice, not a result.
+
+Nothing had been done at the time:
+- no deep model trained;
+- no fused DDXPlus ranking scored;
+- no test data read.
+
+The 2026-10-11 plan to compare three architectures (MLP, ResNet, transformer) by a selection rule
+was replaced by D-12 before anything was trained, so no architecture was chosen on data.
+
+**Limits, stated with every result:**
+- synthetic patients, R-12, R-13, R-16;
+- random masks are not real history-taking;
+- the validation figures describe validation; the test read counts.
+
+---
+
 ### EXP-020 — Seeds 43–46: B1-XGB, B1+aug and B1′+aug, trained on Colab (validation split, full evidence only, so far)
 
 | Field | Value |
@@ -265,6 +360,29 @@ recorded here.
 
 **Results:** to follow.
 
+
+**Seed 43 at 50% and 25%** (2026-10-12, on the laptop; scoring only, 112 s):
+`scripts/evaluate_reduced_evidence.py --no-graph --no-red-flags --model …` on the six seed-43
+bundles, with docs/05 §3.7's masks (both digests reproduced). The results are in
+`data/interim/exp020_seed43.json`. Point estimates; the intervals are in the file.
+
+| Seed 43, 25% evidence | Top-1 | MRR | Must-not-miss recall@3 | Dangerous FNR |
+|---|---|---|---|---|
+| B1-LR (deterministic, = EXP-004) | 0.7656 | 0.8582 | 0.9251 | 0.0237 |
+| B1-XGB | 0.2416 | 0.5756 | 0.8797 | 0.0601 |
+| B1-LR+aug | 0.9308 | 0.9625 | 0.9959 | 0.0008 |
+| B1-XGB+aug | 0.9333 | 0.9642 | 0.9973 | 0.0003 |
+| B1-LR′+aug | 0.9451 | 0.9707 | 0.9976 | 0.0005 |
+| B1-XGB′+aug | 0.9469 | 0.9719 | 0.9979 | 0.0004 |
+
+Seed 43 tells the same story as EXP-019's seed 42:
+- the plain models miss the safety targets at 25%;
+- every `+aug` model meets them;
+- the "asked" channel adds about 0.014 top-1.
+
+At 50% every `+aug` model is at 0.982–0.986 top-1 and ≥ 0.9999 must-not-miss recall@3. Seeds 44–46
+take about 2 minutes each, so together about 6 minutes of laptop CPU; that waits for the owner's
+OK, because it is over the agreed ~5 minutes.
 ---
 
 ### EXP-019 — Every system at 100%, 50% and 25% evidence: amendment 3's masks (validation split)
@@ -1530,5 +1648,5 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are ~~overconfident on short input~~ near-certain on hand-written input (narrowed by EXP-019). The reduced levels wait for amendment 3 |
 | EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |
 | EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used. *Run 2026-10-01 on Colab by the owner; logged 2026-10-11, at full evidence; the 50%/25% scoring waits for a code change* |
-| EXP-021 | Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)* | 2 | Which deep model becomes B1-DL′+aug, A0′'s ML component, by a rule fixed before training. B1-LR′+aug stays the comparator and the backup |
+| EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup |
 | EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |

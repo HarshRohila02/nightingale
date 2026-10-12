@@ -63,14 +63,16 @@ __all__ = [
 DEFAULT_BACKEND = "logreg"
 """EXP-017 / R-18. Not ``xgboost``: see the module docstring."""
 
-BACKENDS: tuple[str, ...] = ("logreg", "xgboost", "none")
-"""``none`` asks for the degraded ranker deliberately, for a knowledge-graph-only ablation."""
+BACKENDS: tuple[str, ...] = ("logreg", "xgboost", "deep", "none")
+"""``deep`` is the transformer B1-DL (src/ml/deep.py, D-12). ``none`` asks for the degraded ranker
+deliberately, for a knowledge-graph-only ablation."""
 
 DEFAULT_MODEL_DIR = Path("models/nightingale_b0_b1")
 DEFAULT_EVIDENCES = Path("data/raw/ddxplus/release_evidences.json")
 DEFAULT_CONDITIONS = Path("data/interim/ddxplus_chestpain_conditions.json")
 LOGREG_FILE = "b1_logreg.json"
 XGBOOST_STEM = "b1_xgboost"
+DEEP_FILE = "b1_dl.json"
 
 
 @runtime_checkable
@@ -192,6 +194,15 @@ def _load_model(backend: str, model_dir: Path, stem: str | None) -> ProbabilityM
             if not path.exists():
                 return f"no trained model at {path}"
             return LogisticBaseline.from_json(json.loads(path.read_text(encoding="utf-8")))
+        if backend == "deep":
+            from src.ml.deep import DeepRanker
+
+            path = model_dir / (stem or DEEP_FILE)
+            if not path.exists():
+                return f"no trained model at {path}"
+            return DeepRanker.from_json(json.loads(path.read_text(encoding="utf-8")))
+        if backend != "xgboost":
+            return f"no loader for backend {backend!r}"
         path = model_dir / f"{stem or XGBOOST_STEM}.meta.json"
         if not path.exists():
             return f"no trained model at {path}"
@@ -214,7 +225,8 @@ def open_ranker(
     Args:
         backend: ``ml.backend`` in configs/config.yaml, one of :data:`BACKENDS`. ``logreg`` is the
             default; of the original B1 models only it is fit for short input (R-18), while every
-            ``+aug`` model is (EXP-019); ``xgboost`` is for experiments;
+            ``+aug`` model is (EXP-019); ``xgboost`` is for experiments; ``deep`` is the
+            transformer (D-12), configured only if it passes D-13's safety floor;
             ``none`` asks for the degraded ranker, which is how a knowledge-graph-only ablation is
             configured.
         model_dir: The trained bundle. Gitignored, so it is absent in CI.

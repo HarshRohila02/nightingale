@@ -126,6 +126,26 @@ def provenance(device: str) -> dict[str, Any]:
     }
 
 
+def holdout_split(
+    labels: np.ndarray, share: float, seed: int, *, augmented: bool
+) -> tuple[np.ndarray, np.ndarray]:
+    """(fit rows, held-out rows) of the training frame, split by patient and stratified by label.
+
+    ``labels`` holds one class number per train patient, before any masked copy. With
+    ``augmented``, row ``i + patients`` is patient ``i``'s masked copy (``augment``), and it goes to
+    the same side, so no patient is on both. The deep ranker uses the same split as XGBoost.
+    """
+    from sklearn.model_selection import train_test_split
+
+    patients = len(labels)
+    fit, holdout = train_test_split(
+        np.arange(patients), test_size=share, stratify=labels, random_state=seed
+    )
+    if not augmented:
+        return fit, holdout
+    return np.concatenate([fit, fit + patients]), np.concatenate([holdout, holdout + patients])
+
+
 def variant(asked_channel: bool, augmented: bool) -> str:
     """The proposal's suffix for a model: ′ for the asked channel, +aug for masked copies."""
     return ("′" if asked_channel else "") + ("+aug" if augmented else "")
@@ -177,8 +197,6 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--asked-channel is constant at full evidence; use it with --augment")
     suffix = variant(args.asked_channel, args.augment)
 
-    from sklearn.model_selection import train_test_split
-
     started = datetime.now(timezone.utc)
     timings: dict[str, float] = {}
     clock = time.perf_counter()
@@ -200,21 +218,13 @@ def main(argv: list[str] | None = None) -> int:
     lap("load")
 
     patients = len(train)
-    fit_patients, holdout_patients = train_test_split(
-        np.arange(patients),
-        test_size=args.holdout,
-        stratify=label_index(train["label_condition_id"]),
-        random_state=args.seed,
+    fit_rows, holdout_rows = holdout_split(
+        label_index(train["label_condition_id"]), args.holdout, args.seed, augmented=args.augment
     )
     if args.augment:
         print(f"Drawing one masked copy of each of {patients:,} train patients")
         train = augment(train, codes=encoder.codes, seed=args.seed)
-        # Row i and row i + patients are the same patient: keep them on the same side.
-        fit_rows = np.concatenate([fit_patients, fit_patients + patients])
-        holdout_rows = np.concatenate([holdout_patients, holdout_patients + patients])
         lap("augment")
-    else:
-        fit_rows, holdout_rows = fit_patients, holdout_patients
 
     print(
         f"Encoding {len(train):,} + {len(validate):,} rows into {len(encoder.feature_names)} columns"

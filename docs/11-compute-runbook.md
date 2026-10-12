@@ -258,6 +258,44 @@ rows are in the zip.
 
 ---
 
+### 4.4 The deep ranker B1-DL, a small transformer (EXP-021) · *ready 2026-10-12 · a Colab GPU, the owner's choice of 2026-10-12*
+
+**Wait for one thing first:** the outcome of A-8's clinical review must be recorded in
+`PROGRESS.md` §6. The team made it the last gate before anything deep is trained. Tell Claude the
+outcome; Claude records it and names the commit to run.
+
+1. Open
+   <https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b1_dl.ipynb>.
+2. **Runtime → Change runtime type → T4 GPU.** A transformer on a CPU would take days, so the
+   notebook stops if there is no GPU.
+3. Set `COMMIT` to the commit Claude names. `USE_DRIVE = True` saves every finished model to your
+   Google Drive (`MyDrive/nightingale_b1_dl`). Allow the prompt; a disconnect then loses at most
+   the arm in progress.
+4. **Runtime → Run all**, and keep the tab open.
+   - The **smoke cell** trains one epoch on 1% of the patients, in a few minutes, and prints how
+     long a full arm should take. If that projection is far above 30 minutes an arm, stop and tell
+     Claude.
+   - The **real run** trains both arms at seeds 42, 43, 44, 45 and 46, seed 42 first. That is ten
+     arms, roughly **2–4 hours** in all, plus about 20 minutes to download and decode the data.
+   - If Colab stops you (its free GPU time is limited), reconnect, choose the T4 again and **Run
+     all**: finished arms are skipped. Kaggle Notebooks (30 free GPU hours a week) work the same
+     way. Hugging Face's GPU hardware is paid, so it is not the default.
+5. Your browser downloads **`nightingale_b1_dl.zip`**. Unzip it into `models/nightingale_b1_dl/`
+   and tell Claude.
+6. *Optional:* the last cell scores every seed at 50% and 25% on the CPU (15–30 minutes) and
+   downloads a second zip. The laptop scores seed 42 anyway.
+
+The laptop then:
+- re-scores seed 42 at 100%, 50% and 25% with the NumPy forward pass;
+- applies D-13 (`src/eval/safety_floor.py`);
+- runs the golden cases with the transformer;
+- and, only if it passes, switches `configs/config.yaml` to `backend: deep`.
+
+No patient rows are in the zip. **Keep the notebook and its outputs private** (models trained on
+DDXPlus are never published).
+
+---
+
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
 
 Neo4j runs in Neo4j's own cloud, so nothing extra runs on the laptop. The knowledge graph holds no

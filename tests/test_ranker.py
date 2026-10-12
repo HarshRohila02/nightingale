@@ -113,7 +113,7 @@ class TestDegrading:
     def test_the_default_backend_is_not_xgboost(self):
         """EXP-017 / R-18: XGBoost answers atrial fibrillation to everything short."""
         assert DEFAULT_BACKEND == "logreg"
-        assert set(BACKENDS) == {"logreg", "xgboost", "none"}
+        assert set(BACKENDS) == {"logreg", "xgboost", "deep", "none"}  # deep: D-12, 2026-10-12
 
     def test_a_degraded_ranker_makes_the_pipeline_say_so(self):
         result = pipeline_with(open_ranker("none")).run(GC001)

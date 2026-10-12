@@ -1,7 +1,9 @@
 """EXP-019: every system that exists, on validate at 100%, 50% and 25% evidence (docs/05 §3.7).
 
     python scripts/evaluate_reduced_evidence.py --digest-only   # draw the masks and print their digests
-    python scripts/evaluate_reduced_evidence.py                 # score
+    python scripts/evaluate_reduced_evidence.py                 # score (EXP-019)
+    python scripts/evaluate_reduced_evidence.py --no-graph --no-red-flags --out data/interim/exp020_seed43.json \
+        --model "B1-LR′+aug=models/nightingale_b1_seeds/b1_asked_aug/seed43:logreg" ...   # other bundles
 
 Amendment 3 (approved 2026-09-25) scores every system at three evidence levels. The masks come
 from src/ml/evidence_masks.py, the question rule of docs/05 §3.7, drawn once with seed 42. Their
@@ -23,6 +25,12 @@ change: the model (LR against XGB on the same rows), the masked copies (+aug aga
 "asked" channel (′+aug against +aug). The reduced-evidence figures of B0, B1 and B2 are descriptive,
 not pre-registered (§9). Validate only: the test split stays closed until Phase 4. Scoring only,
 nothing is trained. Writes data/interim/exp019_reduced_evidence.json.
+
+**Other bundles** (EXP-020's seeds, EXP-021's transformer): ``--model LABEL=DIR:BACKEND``, repeated,
+replaces the six models above, and ``--out`` names the file. The comparisons are then the pairs
+above whose two labels are both given, so a seed's bundles keep the seed-42 labels and their
+comparisons. ``--no-red-flags`` skips the red-flag layer, which no model changes. Without these
+flags the run is EXP-019's, unchanged.
 """
 
 from __future__ import annotations
@@ -114,6 +122,17 @@ SHOWN = (
     "must-not-miss recall@3",
     "dangerous false-negative rate",
 )
+
+
+def parse_model(spec: str) -> tuple[str, Path, str]:
+    """``LABEL=DIR:BACKEND`` (``--model``) as a :data:`MODELS` entry; DIR is relative to the
+    repository unless absolute."""
+    label, sep, rest = spec.partition("=")
+    directory, colon, backend = rest.rpartition(":")
+    if not (sep and colon and label and directory and backend):
+        raise argparse.ArgumentTypeError(f"--model takes LABEL=DIR:BACKEND, got {spec!r}")
+    path = Path(directory)
+    return label, path if path.is_absolute() else REPO_ROOT / path, backend
 
 
 def digest(lines: list[str]) -> str:
@@ -237,7 +256,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--raw-dir", type=Path, default=REPO_ROOT / "data" / "raw" / "ddxplus")
     parser.add_argument("--digest-only", action="store_true", help="draw the masks; score nothing")
     parser.add_argument("--no-graph", action="store_true", help="skip B2, the slowest system")
+    parser.add_argument(
+        "--no-red-flags",
+        action="store_true",
+        help="skip the red-flag layer, which no model changes",
+    )
+    parser.add_argument(
+        "--model",
+        action="append",
+        type=parse_model,
+        metavar="LABEL=DIR:BACKEND",
+        help="score this bundle instead of the six EXP-019 models (repeat it)",
+    )
+    parser.add_argument("--out", type=Path, help="the JSON written (default: EXP-019's file)")
     args = parser.parse_args(argv)
+    models = tuple(args.model) if args.model else MODELS
+    labels = [label for label, _, _ in models]
+    if len(set(labels)) != len(labels):
+        parser.error(f"each --model needs its own label: {labels}")
+    pairs = tuple(pair for pair in PAIRS if pair[0] in labels and pair[1] in labels)
     started = time.perf_counter()
 
     conditions = args.interim / "ddxplus_chestpain_conditions.json"
@@ -280,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
         key = str(level)
         report, cases[("B0", level)] = score("B0", frame, prior.predict_proba(len(frame)))
         results["systems"].setdefault("B0", {})[key] = report
-        for label, bundle, backend in MODELS:
+        for label, bundle, backend in models:
             ranker = open_ranker(
                 backend, model_dir=bundle, evidences_path=evidences, conditions_path=conditions
             )
@@ -309,10 +346,11 @@ def main(argv: list[str] | None = None) -> int:
             }
             print(f"  scored B2 at {level} ({time.perf_counter() - started:.0f} s)")
 
-    results["red_flag_layer"] = {str(level): red_flag_layer(f) for level, f in frames.items()}
+    if not args.no_red_flags:
+        results["red_flag_layer"] = {str(level): red_flag_layer(f) for level, f in frames.items()}
 
     for level in frames:
-        for a, b, change in PAIRS:
+        for a, b, change in pairs:
             ca, cb = cases[(a, level)], cases[(b, level)]
             everyone = mcnemar(top3_hits(ca), top3_hits(cb))
             serious = [i for i, o in enumerate(ca) if o.true_condition in critical]
@@ -329,10 +367,10 @@ def main(argv: list[str] | None = None) -> int:
                 }
             )
 
-    out = args.interim / "exp019_reduced_evidence.json"
+    out = args.out or args.interim / "exp019_reduced_evidence.json"
     out.write_text(json.dumps(results, indent=1, ensure_ascii=False), encoding="utf-8")
 
-    names = ["B0", *(m[0] for m in MODELS), *([] if args.no_graph else ["B2"])]
+    names = ["B0", *labels, *([] if args.no_graph else ["B2"])]
     for level in frames:
         print(f"\nEvidence {level:.0%}:")
         print(f"  {'system':<13}" + "".join(f"{n[:14]:>16}" for n in SHOWN))

@@ -174,6 +174,14 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   (`models/nightingale_b1_asked/b1_asked_aug`). The retrained models are calibrated against DDXPlus
   on masked validate (ECE ≤ 0.011) but **near-certain on hand-written cases where a history cannot
   decide** (GC-001: unstable angina 0.98–1.00): never show a raw score as a probability.
+- **The deep ranker B1-DL is a small transformer** (`src/ml/deep.py`; D-12, EXP-021). It
+  trains with PyTorch on a cloud GPU only (`scripts/train_deep.py`, `notebooks/colab_b1_dl.ipynb`,
+  `docs/11` §4.4). The laptop, the pipeline and CI run it as a **NumPy forward pass**: no torch in
+  `.venv`. Its weights are plain JSON (base64 float32 with a SHA-256 each), never a pickle.
+  **It replaces B1-LR′+aug only if it passes D-13's safety floor** (`src/eval/safety_floor.py`,
+  fixed before training). The torch tests skip without torch. To run them, use `.venv-gpu` with
+  **`CUDA_VISIBLE_DEVICES=-1`**: Git Bash on Windows drops an empty value, which leaves the GPU
+  visible. Import torch **before SciPy**, or its DLLs fail to load (WinError 1114).
 - **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by
