@@ -4,6 +4,13 @@
 `eb3b7d4` · **Source of truth:** `PROGRESS.md` (this file is a readable summary of it, not a
 replacement)
 
+> **Out of date in places, marked 2026-10-12.** Since this was written: the owner chose to
+> complete the project as first planned, not simplified (2026-10-11); the XGBoost seeds were
+> trained (EXP-020); the deep ranker is a small transformer (D-12, 2026-10-12); and **the
+> deadline moved earlier: a working prototype and the report are presented on 2026-11-15**. §5
+> and §6 below are the plan of 2026-10-02, with the stale lines struck through; the current dates
+> are in `PROGRESS.md` §5.
+
 Nightingale is a clinician-facing **decision-support prototype for acute chest pain**. Given a
 patient's findings, it ranks 14 possible causes and explains the ranking. It is **decision
 support only, never a diagnosis**. It combines four ideas:
@@ -229,11 +236,11 @@ errors, all corrected and recorded, including errors in claims made earlier in t
 |---|---|---|---|
 | 1 | **E-2 item 1** — the team decides at which evidence level the reduced-evidence claims are judged (recommended: 25%) | the team | a reply |
 | 2 | **EXP-006 sweep** — choose the fusion weight on validation | E-2, then the owner's D-7 choice (the laptop's CPU is suggested) | 3–5 min to run, ½ day to report |
-| 3 | **XGBoost seeds 43–46** — the owner runs the Colab notebook; the laptop scores them | the owner | ~1 h on Colab, ½ day to score |
+| 3 | **XGBoost seeds 43–46** — ~~the owner runs the Colab notebook;~~ trained on Colab 2026-10-01 (EXP-020, 33 min); the laptop scores them | ~~the owner~~ nothing | ~~~1 h on Colab,~~ ½ day to score |
 | 4 | **1e FastAPI service** and **1d patient KG + Synthea** | nothing | ~1 week together |
 | 5 | **2b calibration + SHAP**, then **2e Streamlit dashboard** | the sweep | ~1 week |
 | 6 | 🎯 **W5 prototype** — tag `v0.1-prototype`, record the demo video | 1–5 | — |
-| 7 | **B1-DL deep ranker** — design, train on the cloud, score at three levels | the team's clinical review of A-8's 17 answers; a training location | ~1 week |
+| 7 | **B1-DL deep ranker** — *(2026-10-12: a small transformer, D-12)* design, train on the cloud, score at three levels | the team's clinical review of A-8's 17 answers; a training location | ~1 week |
 | 8 | **Phase 3** — evidence retrieval, the grounded LLM explainer (model choice D-5), guardrails, "what to ask next" | the prototype; GPU or cloud for the LLM | ~2 weeks |
 | 9 | 🎯 **W7 feature-complete** | 8 | — |
 | 10 | **Phase 4** — open the test split once; all ablations; statistics; report; presentation; compliance checklists; tag `v1.0` | everything above | ~2 weeks |
@@ -268,12 +275,12 @@ gantt
     Buffer week                      :2026-11-18, 2026-11-25
 ```
 
-**About 7 weeks of the 8–10-week plan remain.** The plan's dates still hold:
+~~**About 7 weeks of the 8–10-week plan remain.** The plan's dates still hold:~~ *(2026-10-12: they no longer do; see the note at the top and `PROGRESS.md` §5. The prototype and the report are presented on 2026-11-15.)*
 
-- the W5 prototype by **2026-10-21**;
-- feature-complete by **2026-11-04**;
-- the final report and `v1.0` by **2026-11-18**, about 6½ weeks from now;
-- a buffer week to **2026-11-25**.
+- ~~the W5 prototype by **2026-10-21**;~~
+- ~~feature-complete by **2026-11-04**;~~
+- ~~the final report and `v1.0` by **2026-11-18**, about 6½ weeks from now;~~
+- ~~a buffer week to **2026-11-25**.~~
 
 The project is **ahead of plan in some places**: the W3 skeleton came 13 days early, and 2a and
 2d were pulled forward from Phase 2. It is **behind in two**: 1d (patient KG) and 1e (the FastAPI
@@ -288,7 +295,7 @@ service) have not started, and are now scheduled beside the Phase 2 work.
   yet granted, R-14).
 - **The LLM choice** (D-5), deferred to Phase 3.
 
-If the decisions come back within a few days of each request, the plan's dates are realistic. If
+~~If the decisions come back within a few days of each request, the plan's dates are realistic.~~ *(2026-10-12: nine days passed with nothing committed, and the deadline moved to 2026-11-15, so there is no buffer left; the full scope fits only with quick decisions, and the cut line now has dated checkpoints, `PROGRESS.md` §5.)* If
 time runs short, the agreed cut line drops these first, in order:
 
 1. the PTB-XL ECG and KG-embedding stretch goals;

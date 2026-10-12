@@ -211,13 +211,24 @@ so that any protocol amendment is made before a fusion result exists:*
 
 ---
 
-### 🟠 R-02 — Ten-week timeline is too short for the full pipeline
-**L 4 · I 3 · Score 12 · Owner P4 · Status: OPEN — mitigated by design**
+### 🔴 R-02 — Ten-week timeline is too short for the full pipeline
+**L 5 · I 3 · Score 15 · Owner P4 · Status: OPEN — mitigated by design; re-scored 2026-10-12** · ~~L 4 · Score 12~~
 
 *Mitigation:* the plan is built around a **Week-5 working prototype** that is demo-able without RAG
 or LLM, and a documented cut line (PTB-XL → KG embeddings → "what to ask next" → hybrid retrieval →
 LLM explainer). The prototype, red-flag layer, and ablation study are never cut.
 *Trigger:* the Week-3 walking skeleton slips by more than 3 days.
+
+*Update 2026-10-12 (L 4 → 5).* The trigger was not hit (the walking skeleton was reached on
+2026-09-24), but the plan slipped anyway: nothing was committed between 2026-10-02 and 2026-10-11
+while the scope cut was drafted and then withdrawn, the owner added a deep-model study after the
+supervisor's email of 2026-10-04, and **the deadline moved earlier**: a working prototype and the
+report are presented on **2026-11-15** (was: report 2026-11-18, buffer week to 2026-11-25). So
+there is no buffer before the deadline. The full original scope fits only if decisions come
+within a day or two and nothing large breaks. *Mitigation added:* dated checkpoints that apply
+the cut line (PROGRESS.md §5: 2026-10-28, 2026-10-31, 2026-11-03), and the prototype never waits
+for the deep model (it ships with whichever ranker is configured). The report is drafted
+alongside the work from Phase 3, not after it.
 
 ---
 
@@ -399,6 +410,24 @@ on validation. Policy stated in [05-evaluation-protocol.md](05-evaluation-protoc
 
 ---
 
+### 🟡 R-19 — The deep ranker is no better than logistic regression
+**L 4 · I 2 · Score 8 · Owner P2 · Status: OPEN** · *opened 2026-10-12 with D-12*
+
+The supervisor asked for the deep-learning model "best suited to your approach" that "gives
+accurate results". The owner chose a small transformer (D-12, EXP-021). But the room it has is
+small: at 25% of the history, the comparators trained like it already reach MRR 0.971 (B1-LR′+aug)
+and 0.973 (B1-XGB′+aug), and must-not-miss recall@3 0.997–0.998 (EXP-019); at 100% everything is
+at the ceiling (R-16). H6 may well not be supported.
+
+*Mitigation:* this is a legitimate result, like R-09. The question is answered either way: the
+report gives the transformer's accuracy, safety, size, compute and latency beside the classical
+models' (EXP-021, EXP-022), at every evidence level and over five seeds. **Safety first (D-13):**
+the transformer replaces B1-LR′+aug as the pipeline's ranker only if it meets the safety targets
+and is non-inferior to it on validation; otherwise logistic regression stays, and the deep model
+is reported as the comparison. Nothing is tuned to make it win (T-6).
+
+---
+
 ### 🟡 R-09 — Fusion does not beat the ML-only baseline
 **L 3 · I 2 · Score 6 · Owner P4 · Status: OPEN**
 
@@ -464,3 +493,4 @@ knowledge; daily standup surfaces absence early.
 | 1 | 2026-09-24 | R-18: the "asked" channel, the masks and the retrain job are built; the retrain waits for the owner to say where (D-7). Score unchanged until a retrained model is scored | — |
 | 1 | 2026-09-23 | **R-18 opened** (found by EXP-017, while smoke-testing the new ranker seam): B1's two models are 0.001 apart on full evidence and 0.38-0.59 top-1 apart once half the history is missing, because the encoder cannot tell a denied question from an unasked one. XGBoost falls below the 0.95 must-not-miss target at 25% evidence. **R-17 opened** with `src/ml/case_tokens.py`: the concept -> token inversion has no ground truth. R-16 unchanged: at 100% evidence every EXP-004 figure reproduces exactly | — |
 | 1 | 2026-09-20 | **R-16 opened** (found by EXP-004): B1 reaches the ceiling of DDXPlus's top-3 and must-not-miss recall@3 (both 1.000), which raises decision D-10. **R-03 confirmed** on the real train counts (rarest 10,162, 2.70×; EXP-003). R-09 cannot be tested on full-evidence DDXPlus (see R-16). R-14: the first cloud job, B0/B1, ran on a Colab T4 in about a minute. Other scores unchanged | — |
+| 4 | 2026-10-12 | **R-02 re-scored 12 → 15**: the deadline is now 2026-11-15 for the prototype and the report, with no buffer before it; dated checkpoints apply the cut line. **R-19 opened** (D-12): the small transformer may be no better than logistic regression, which leaves it as the comparison (D-13) | the owner's decisions of 2026-10-12 |
