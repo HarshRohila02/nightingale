@@ -441,9 +441,32 @@ Seed 43 tells the same story as EXP-019's seed 42:
 - every `+aug` model meets them;
 - the "asked" channel adds about 0.014 top-1.
 
-At 50% every `+aug` model is at 0.982–0.986 top-1 and ≥ 0.9999 must-not-miss recall@3. Seeds 44–46
-take about 2 minutes each, so together about 6 minutes of laptop CPU; that waits for the owner's
-OK, because it is over the agreed ~5 minutes.
+At 50% every `+aug` model is at 0.982–0.986 top-1 and ≥ 0.9999 must-not-miss recall@3. ~~Seeds
+44–46 take about 2 minutes each, so together about 6 minutes of laptop CPU; that waits for the
+owner's OK, because it is over the agreed ~5 minutes.~~
+
+**Seeds 44–46** (2026-10-12, the owner's OK; 110 s each): the same command on each seed's six bundles.
+Both digests reproduced every time. The results are in `data/interim/exp020_seed44.json`–`46`. The
+range over **seeds 43–46** at 25% is below; EXP-019's seed 42 falls inside every `+aug` range.
+
+| 25% evidence, seeds 43–46 | Top-1 | MRR | Must-not-miss recall@3 | Dangerous FNR |
+|---|---|---|---|---|
+| B1-LR (deterministic) | 0.7656 | 0.8582 | 0.9251 | 0.0237 |
+| B1-XGB | 0.2416–0.2643 | 0.5756–0.5848 | 0.8663–0.8797 | 0.0601–0.0740 |
+| B1-LR+aug | 0.9308–0.9318 | 0.9625–0.9630 | 0.9959–0.9960 | 0.0008–0.0012 |
+| B1-XGB+aug | 0.9333–0.9352 | 0.9642–0.9650 | 0.9968–0.9975 | 0.0002–0.0006 |
+| B1-LR′+aug | 0.9447–0.9468 | 0.9703–0.9716 | 0.9970–0.9980 | 0.0002–0.0006 |
+| B1-XGB′+aug | 0.9465–0.9470 | 0.9716–0.9719 | 0.9977–0.9979 | 0.0002–0.0004 |
+
+**Every EXP-019 conclusion holds at every seed:**
+- the plain models miss the safety targets at 25%;
+- every `+aug` model meets them;
+- the "asked" channel's gain (about +0.014 top-1, +0.008 MRR) is larger than the seed spread
+  (≤ 0.002 for the `+aug` models).
+
+**The seed matters most for plain XGBoost**: 0.58–0.68 top-1 at 50% (seed 42: 0.597), the model
+EXP-017 already ruled out for short input. At 50% every `+aug` model is at 0.982–0.986 top-1 and
+must-not-miss recall@3 ≥ 0.9999, again at every seed.
 ---
 
 ### EXP-019 — Every system at 100%, 50% and 25% evidence: amendment 3's masks (validation split)
