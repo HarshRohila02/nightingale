@@ -184,6 +184,16 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   visible. Import torch **before SciPy**, or its DLLs fail to load (WinError 1114). **NumPy's matmul on
   transposed, non-contiguous 3-D/4-D views falls back to a slow non-BLAS loop** (100× slower): keep
   products 2-D or contiguous (`_linear`, `_attention`).
+- **Calibration is fitted per system, on validation** (`src/fusion/calibration.py`,
+  `scripts/calibrate.py`, EXP-007): a calibrator fits one exact score, so A0's waits for D-13's
+  component and EXP-006's α, and the pipeline refuses one fitted for another system
+  (`calibration` in `degraded_components`). Aortic dissection, which no DDXPlus patient has,
+  keeps its raw probability (a one-vs-rest fit would zero it), and calibration never reorders.
+  **A calibrator fitted on full histories over-sharpens short ones** (Platt took B1-LR′+aug's ECE
+  at 25% from 0.011 to 0.098), and **isotonic regression gives some true conditions ~0 at 25%**
+  (up to 8.7% of patients): judge a method at every level, never at 100% alone. The logistic
+  regressions are already calibrated on DDXPlus and stay raw; none of this fixes the
+  hand-written cases' near-certainty.
 - **A hand-authored case reaches the model through `src/ml/case_tokens.py`**, never through
   `expand_case` (which stops at the question and never gives an answer). It chooses a
   representative answer per concept from two hand-curated tables, admits `Match.NARROWER` by

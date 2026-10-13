@@ -188,6 +188,143 @@ figures existed.
 - A calibrator fitted on DDXPlus says nothing about how often real patients have each condition.
 - B2 is circular (R-12), and every probability is conditional on the 14 conditions (R-13).
 
+#### Stage 1 results (2026-10-13)
+
+**The run:** `scripts/calibrate.py` at `7f5a2fb`, the commit that recorded the rule above.
+- NumPy 1.26.4; both digests reproduced; 94 s on the laptop CPU.
+- `data/interim/exp007_calibration.json`; each system's chosen calibrator in `models/calibration/`
+  (gitignored). The pipeline uses none of them: `calibration.file` stays null.
+- The raw scores reproduce EXP-019: B1-LR′+aug's ECE at 25% is 0.0110, B1-LR+aug's 0.0099.
+
+**Cross-fitted, calibrator fitted at 100%, applied at each level** (Brier over 14 conditions; top-label
+ECE with its 95% bootstrap interval). **Bold** is the method the rule chose.
+
+| System | Method | Brier 100% | 50% | 25% | ECE 100% | 50% | 25% |
+|---|---|---|---|---|---|---|---|
+| B1-LR′+aug | **none** | 0.0033 | 0.0218 | 0.0760 | 0.0002 [0.0001, 0.0007] | 0.0015 [0.0011, 0.0029] | 0.0110 [0.0092, 0.0131] |
+| | temperature | 0.0033 | 0.0219 | 0.0764 | 0.0002 | 0.0024 | 0.0139 |
+| | Platt | 0.0034 | 0.0257 | 0.1130 | 0.0010 | 0.0145 | 0.0981 |
+| | isotonic | 0.0033 | 0.0298 | 0.1057 | 0.0000 | 0.0091 | 0.0296 |
+| B1-LR+aug | **none** | 0.0034 | 0.0292 | 0.0956 | 0.0009 [0.0004, 0.0013] | 0.0033 [0.0023, 0.0046] | 0.0099 [0.0082, 0.0121] |
+| | temperature | 0.0034 | 0.0292 | 0.0951 | 0.0002 | 0.0034 | 0.0059 |
+| | Platt | 0.0034 | 0.0368 | 0.1491 | 0.0010 | 0.0138 | 0.0943 |
+| | isotonic | 0.0033 | 0.0420 | 0.1650 | 0.0001 | 0.0162 | 0.0617 |
+| B2 *(circular, R-12)* | none | 0.0447 | 0.1156 | 0.2364 | 0.0379 | 0.0358 | 0.0295 |
+| | temperature | 0.0452 | 0.1174 | 0.2360 | 0.0362 | 0.0333 | 0.0154 |
+| | **Platt** | 0.0084 | 0.0765 | 0.2382 | 0.0032 [0.0027, 0.0039] | 0.0175 [0.0161, 0.0194] | 0.0510 [0.0486, 0.0537] |
+| | isotonic | 0.0075 | 0.0823 | 0.2793 | 0.0013 | 0.0211 | 0.0556 |
+
+**The rule's means over the three levels:**
+
+| System | none | temperature | Platt | isotonic | Chosen |
+|---|---|---|---|---|---|
+| B1-LR′+aug | **0.0337** | 0.0339 | 0.0474 | 0.0463 | none |
+| B1-LR+aug | 0.0427 | **0.0426** | 0.0631 | 0.0701 | none (temperature is lowest, but none is within 0.0005) |
+| B2 | 0.1323 | 0.1328 | **0.1077** | 0.1230 | Platt |
+
+**Verdicts, by the pass rule above** (descriptive: the dashboard would show A0's probabilities, not
+these). All three pass: their chosen calibrators' cross-fitted ECE is below 0.10 at all three levels.
+The largest is B2's 0.051 at 25%. The per-condition ECE is at most 0.0035 for the logistic
+regressions (myocarditis at 25%) and 0.048 for B2 (stable angina at 25%).
+
+**Beside it, a calibrator fitted at each reduced level** (cross-fitted, at its own level only). ECE at
+25%:
+
+| System | none | temperature | Platt | isotonic |
+|---|---|---|---|---|
+| B1-LR′+aug | 0.0110 | 0.0032 | 0.0040 | 0.0020 |
+| B1-LR+aug | 0.0099 | 0.0070 | 0.0036 | 0.0020 |
+| B2 | 0.0295 | 0.0163 | 0.0227 | 0.0131 |
+
+**The share of patients whose most probable calibrated condition is not the system's first-ranked
+one:**
+
+| System | Method | 100% | 50% | 25% |
+|---|---|---|---|---|
+| B1-LR′+aug | Platt | 0.000 | 0.004 | 0.038 |
+| | isotonic | 0.000 | 0.011 | 0.043 |
+| B1-LR+aug | Platt | 0.000 | 0.007 | 0.064 |
+| | isotonic | 0.000 | 0.015 | 0.100 |
+| B2 | Platt | 0.080 | 0.141 | 0.244 |
+| | isotonic | 0.080 | 0.140 | 0.240 |
+
+`none` and temperature scaling never change it.
+
+**Added after seeing the results** (descriptive; it chooses nothing): the log loss under isotonic
+regression at 25% (0.95 for B1-LR′+aug, 1.85 for B1-LR+aug, 3.18 for B2, against 0.13, 0.17 and 0.46
+raw) showed that it gives some true conditions almost no probability. The share of patients whose
+true condition gets under 0.001, with the same folds and fits
+(`exp007_zeros.py`, run from the session's scratchpad):
+
+| System | Method | 100% | 50% | 25% | 25%, must-not-miss patients |
+|---|---|---|---|---|---|
+| B1-LR′+aug | isotonic | 0.0001 | 0.0059 | 0.0244 | 0.0000 |
+| B1-LR+aug | isotonic | 0.0001 | 0.0062 | 0.0499 | 0.0009 |
+| B2 | Platt | 0.0000 | 0.0000 | 0.0006 | 0.0013 |
+| B2 | isotonic | 0.0002 | 0.0136 | 0.0871 | 0.1020 |
+
+Under every method not in the table (none and temperature scaling for all three, Platt for the
+logistic regressions) the share rounds to 0.0000 at every level.
+
+**The golden cases** (hand-written, no ground truth, R-17). The probability of the system's
+first-ranked condition, raw → under each method, from the calibrators fitted on every patient:
+
+| Case | System | First | none | temperature | Platt | isotonic |
+|---|---|---|---|---|---|---|
+| GC-001 | B1-LR′+aug | unstable angina | 0.998 | 0.998 | 0.957 | 0.999 |
+| GC-001 | B2 | MI | 0.644 | 0.709 | 0.974 | 0.969 |
+| GC-002 | B1-LR′+aug | pulmonary embolism | 1.000 | 1.000 | 0.988 | 1.000 |
+| GC-003 | B1-LR′+aug | unstable angina | 0.647 | 0.625 | 0.397 | 0.600 |
+| GC-003 | B2 | aortic dissection | 0.677 | 0.677 | 0.677 | 0.677 |
+| GC-004 | B1-LR′+aug | GERD | 1.000 | 1.000 | 0.922 | 1.000 |
+
+GC-001's MI, which the case requires, is third under B1-LR′+aug at 0.000 under every method except
+Platt (0.014). B1-LR+aug gives much the same.
+
+**Interpretation.**
+1. **The two logistic regressions need no calibration on DDXPlus.** Their raw probabilities are
+   already calibrated at every level (ECE ≤ 0.011), and no method fitted at 100% improves the
+   levels' mean Brier score by more than the margin. The rule keeps them raw. Their ML-only systems
+   (A1, A1b) would pass the display rule as they stand.
+2. **A calibrator fitted on full histories over-sharpens short ones.** At 100% these models are right
+   for 99.8% of patients, so a fit there learns that a high score can be trusted; at 25% the same
+   scores are right less often. Every method that fits more than one number makes 25% worse: Platt
+   0.011 → 0.098, isotonic 0.011 → 0.030 for B1-LR′+aug. Temperature scaling, one number, moves
+   it little either way (to 0.014, 0.006 and 0.015 for the three systems). **A calibrator fitted at the level itself helps** (0.011 → 0.002–0.004), but it cannot be
+   deployed: a hand-written case has no known level. So the protocol's design, one calibrator
+   fitted at 100% and applied unchanged, is the deployable one, and the rule's mean over the levels
+   is what protects the short histories.
+3. **Isotonic regression is unsafe here.** Fitted at 100%, it gives the true condition under 0.001 for
+   2.4–5.0% of the logistic regressions' patients at 25%, and for 8.7% of the graph's (10.2% of its
+   must-not-miss patients). A displayed "0%" beside a must-not-miss condition is the failure the
+   system exists to prevent. The rule did not choose it for any system. That it would not be shown
+   is a fact about these three systems, not a guarantee.
+4. **The graph's posterior is overconfident when it is wrong.** Its Brier score at 100% is 0.045 raw
+   and 0.008 after Platt, though its top-label ECE (0.038) was within the target already. The rule
+   chose Platt for B2 on the levels' mean, yet at 25% Platt is a little worse than raw (ECE 0.051
+   against 0.030). For a quarter of the patients at 25%, B2's most probable calibrated condition is
+   not its first-ranked one. These are circular figures (R-12), reported because A0's fused score
+   contains the graph's posterior.
+5. **No method fixes the hand-written cases.** Calibration fitted on DDXPlus leaves the logistic
+   regressions near-certain on GC-001 (unstable angina 0.998, MI 0.000), as expected (EXP-018,
+   EXP-019 point 7). Platt on the graph raises GC-001's MI from 0.64 to 0.97: DDXPlus teaches the
+   graph to trust its first answer, which on DDXPlus is circular. **The dissection rule works:**
+   GC-003's dissection keeps the graph's 0.677 under every method.
+6. **H5 is not judged here.** It concerns A0's fused score, at 100%, on the test split.
+
+**Next action.**
+- **Stage 2,** A0′'s fused score, once D-13 has fixed the ML component and EXP-006 has chosen its α:
+  `scripts/calibrate.py --fused <component>` with the component's `--model`, then
+  `calibration.file` set to its calibrator.
+- **Decided at stage 2, with its figures in view:** how the dashboard shows a probability.
+  Interpretations 4 and 5 bear on it: a calibrated probability can disagree with the order beside
+  it, and on a hand-written case a must-not-miss condition can sit at 0.000. A band with a floor
+  ("< 1%" rather than "0%") is the obvious option, for the team. Changing the selection rule
+  itself, for instance excluding isotonic, would be a post hoc change to this entry, made only by a
+  dated note.
+- **The transformer:** when the Kaggle bundle arrives, B1-DL′+aug and B1-DL+aug alone, by this rule,
+  in the D-13 report.
+
 ---
 
 ### EXP-022 — Complexity and real time: each model's cost, and the pipeline's latency on the laptop CPU (baseline) · *2026-10-12*
@@ -1849,7 +1986,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
 | EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; ~~waits for E-1 and D-7~~ E-1 settled 2026-10-02 (amendment 3a); waits for E-2's first item, then D-7)* | 2 | The graph's weight α (validation only), one for every level |
-| EXP-007 | Calibration (Platt vs isotonic) *(pre-registered 2026-10-13, with temperature scaling and "none" beside them; stage 1 on the components and the graph alone, stage 2 on A0's fused score after D-13 and EXP-006)* | 2 | H5; what may be shown as a probability |
+| EXP-007 | Calibration (Platt vs isotonic) *(pre-registered 2026-10-13, with temperature scaling and "none" beside them; stage 1 on the components and the graph alone, run 2026-10-13: the logistic regressions stay raw (already calibrated), the graph takes Platt, isotonic is unsafe at 25%; stage 2 on A0's fused score after D-13 and EXP-006)* | 2 | H5; what may be shown as a probability |
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only | 3 | H3 |
 | EXP-010 | B4 text-RAG + LLM | 3 | H3 |
