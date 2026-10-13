@@ -558,7 +558,8 @@ a fact about the machine.
 
 A hand-authored case reaches the model through `src/ml/case_tokens.py`, which chooses the DDXPlus
 *answer* each concept stands for; `expand_case` stops at the question, deliberately, because that
-is the level the graph works at (§5.2). The configured backend is **logistic regression, not
+is the level the graph works at (§5.2). *Since D-13 (2026-10-13) the configured backend is the
+transformer B1-DL′+aug (`deep`), with B1-LR′+aug as the backup; before that it was* **logistic regression, not
 XGBoost**: see EXP-017 and R-18, and `ml:` in `configs/config.yaml`.
 
 *Built 2026-09-19.* `open_graph_store()` (`src/medical_kg/neo4j_store.py`) reads the graph from

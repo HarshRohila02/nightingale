@@ -44,7 +44,9 @@ REAL_EVIDENCES = REPO_ROOT / "data" / "raw" / "ddxplus" / "release_evidences.jso
 REAL_CONDITIONS = REPO_ROOT / "data" / "interim" / "ddxplus_chestpain_conditions.json"
 REAL_MODELS = REPO_ROOT / "models" / "nightingale_b0_b1"
 CONFIGURED_MODELS = REPO_ROOT / "models" / "nightingale_b1_asked" / "b1_asked_aug"
-"""The bundle configs/config.yaml ranks with since EXP-019: B1-LR′+aug."""
+"""B1-LR′+aug: the configured ranker from EXP-019 to D-13 (2026-10-13), now the backup."""
+DEEP_MODELS = REPO_ROOT / "models" / "nightingale_b1_dl" / "b1_dl_asked_aug" / "seed42"
+"""B1-DL′+aug, the configured ranker since D-13 (2026-10-13)."""
 CONFIGURED_WEIGHTS = fusion_weights_from_config(load_config())
 """configs/config.yaml's fusion weights, so the golden rankings run at the configured α."""
 needs_real_data = pytest.mark.skipif(
@@ -251,20 +253,31 @@ def rank_without_flags(case: PatientCase, graph, ranker) -> list[str]:
 @needs_real_data
 @pytest.mark.golden
 @pytest.mark.parametrize(
-    "models",
+    "models, backend",
     [
-        pytest.param(REAL_MODELS, id="B1-LR"),
+        pytest.param(REAL_MODELS, "logreg", id="B1-LR"),
         pytest.param(
             CONFIGURED_MODELS,
+            "logreg",
             id="B1-LR-asked-aug",
             marks=pytest.mark.skipif(
                 not CONFIGURED_MODELS.exists(), reason="EXP-018's bundle is not on this machine"
             ),
         ),
+        pytest.param(
+            DEEP_MODELS,
+            "deep",
+            id="B1-DL-asked-aug",
+            marks=pytest.mark.skipif(
+                not DEEP_MODELS.exists(), reason="EXP-021's bundle is not on this machine"
+            ),
+        ),
     ],
 )
 @pytest.mark.parametrize("golden", GOLDEN_CASES, ids=[c["id"] for c in GOLDEN_CASES])
-def test_the_real_components_rank_a_golden_case_without_its_red_flag(golden, real_graph, models):
+def test_the_real_components_rank_a_golden_case_without_its_red_flag(
+    golden, real_graph, models, backend
+):
     """`pipeline.run` sorts by (red_flag, fused_score), so a flagged candidate wins whatever it
     scores. Three of the four golden cases are flagged, so with the flags on they cannot detect a
     ranking regression at all. This turns them off and puts the ranking itself under test, on the
@@ -273,10 +286,11 @@ def test_the_real_components_rank_a_golden_case_without_its_red_flag(golden, rea
     GC-001 was a strict xfail here until 2a: its infarction ranked 4th, behind Boerhaave and
     pericarditis, because the overlap score divided by each condition's evidence-set size
     (EXP-014). The naive-Bayes score puts it 2nd (EXP-005), so it is a plain assertion now.
-    It runs for the original B1-LR and for the configured B1-LR′+aug (EXP-019).
+    It runs for the original B1-LR, for B1-LR′+aug (EXP-019) and for the configured B1-DL′+aug
+    (D-13, 2026-10-13).
     """
     ranker = open_ranker(
-        model_dir=models, evidences_path=REAL_EVIDENCES, conditions_path=REAL_CONDITIONS
+        backend, model_dir=models, evidences_path=REAL_EVIDENCES, conditions_path=REAL_CONDITIONS
     )
     # A degraded ranker would make this a graph-only ranking and pass for the wrong reason.
     assert not ranker.degraded, getattr(ranker, "reason", "")

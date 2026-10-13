@@ -20,8 +20,10 @@ applies to the unrounded values this script computes:
   either, because aortic dissection takes the graph's posterior at every α. The ML component alone
   is scored separately and is the comparator. α = 1 is exactly B2.
 * **The golden cases first.** An α is admissible only if all four golden cases keep their
-  expectations with red flags off, for the component swept; for B1-LR′+aug, whose α the pipeline
-  adopts, also for B1-LR, the other model the golden tests run. These use hand-written cases only
+  expectations with red flags off, for the component swept; for the configured component, whose α
+  the pipeline adopts, also for the other models the golden tests run. Since D-13 (2026-10-13)
+  that is B1-DL′+aug, with B1-LR and B1-LR′+aug beside it; before, B1-LR′+aug with B1-LR (EXP-006's
+  dated note). These use hand-written cases only
   and are recorded in EXP-006 before the sweep. If no α passes, none is adopted: the pipeline keeps
   0.5 / 0.5, and no golden expectation or weight is changed by hand.
 * **What is scored.** The fused ranking alone, red flags off: red flags bypass fusion
@@ -35,11 +37,13 @@ applies to the unrounded values this script computes:
   fail everywhere; then, among the golden-admissible α, the highest mean must-not-miss recall@3 is
   taken, then MRR. Ties go to the smaller α. The branch taken is reported.
 * **The components.** The four B1 variants trained like A0's component (``+aug``, and ′ for the
-  primed systems), seed 42, each swept on its own. The pipeline takes B1-LR′+aug's α, written to
-  ``ranking.ml_weight`` = 1 − α and ``ranking.kg_weight`` = α in configs/config.yaml. A0's own
-  component, B1-DL+aug, is swept the same way when it exists. **The configured component stays
-  B1-LR′+aug:** these fused results do not choose it. Revisiting it (EXP-019 point 9) would be a
-  separate, dated decision after the sweep, disclosed as post hoc.
+  primed systems), seed 42, each swept on its own, and since D-13 (2026-10-13) A0′'s and A0's own
+  components, B1-DL′+aug and B1-DL+aug, swept the same way. The pipeline takes the configured
+  component's α (B1-DL′+aug's since D-13; B1-LR′+aug's before), written to
+  ``ranking.ml_weight`` = 1 − α and ``ranking.kg_weight`` = α in configs/config.yaml. **These fused
+  results do not choose the component:** D-13 chose it, on the components alone, before any fused
+  validation ranking was scored. Revisiting it would be a separate, dated decision after the
+  sweep, disclosed as post hoc.
 * **Seeds.** α is chosen on the seed-42 components only (``docs/05`` §6). When EXP-020's seeds
   43–46 return, each is fused at its arm's seed-42 α, never re-swept, and reported as mean ± std
   beside the seed-42 figures.
@@ -97,9 +101,20 @@ from src.reasoning.red_flags import evaluate_red_flags  # noqa: E402
 from src.stubs import EmptyRetriever, TemplateExplainer  # noqa: E402
 
 GRID = tuple(round(0.05 * i, 2) for i in range(1, 21))
-COMPONENTS = tuple(m for m in exp019.MODELS if m[0].endswith("+aug"))
-CONFIGURED = "B1-LR′+aug"
-ALSO_GOLDEN = {CONFIGURED: ("B1-LR", exp019.B1, "logreg")}
+DEEP = REPO_ROOT / "models" / "nightingale_b1_dl"
+COMPONENTS = (
+    *(m for m in exp019.MODELS if m[0].endswith("+aug")),
+    # A0′'s and A0's components since D-13 (2026-10-13), swept the same way (EXP-006's note).
+    ("B1-DL′+aug", DEEP / "b1_dl_asked_aug" / "seed42", "deep"),
+    ("B1-DL+aug", DEEP / "b1_dl_aug" / "seed42", "deep"),
+)
+CONFIGURED = "B1-DL′+aug"
+ALSO_GOLDEN = {
+    CONFIGURED: (
+        ("B1-LR", exp019.B1, "logreg"),
+        ("B1-LR′+aug", exp019.ASKED_AUG, "logreg"),
+    )
+}
 """The other models the golden-case ranking tests run beside the configured one."""
 IDS = tuple(c.id for c in CONDITIONS)
 MODEL_COLUMNS = tuple(IDS.index(label) for label in LABELS)
@@ -302,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
     # The golden-case gate first: hand-written cases only, before any validation patient.
     golden: dict[str, Any] = {}
     for label, ranker in rankers.items():
-        others = [ALSO_GOLDEN[label]] if label in ALSO_GOLDEN else []
+        others = list(ALSO_GOLDEN.get(label, ()))
         extra = {name: _open(name, b, k, evidences, conditions) for name, b, k in others}
         golden[label] = {}
         for alpha in GRID:

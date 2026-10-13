@@ -178,8 +178,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   trains with PyTorch on a cloud GPU only (`scripts/train_deep.py`; `notebooks/kaggle_b1_dl.ipynb`, the
   owner's choice, or `colab_b1_dl.ipynb`; `docs/11` §4.4). The laptop, the pipeline and CI run it as a **NumPy forward pass**: no torch in
   `.venv`. Its weights are plain JSON (base64 float32 with a SHA-256 each), never a pickle.
-  **It replaces B1-LR′+aug only if it passes D-13's safety floor** (`src/eval/safety_floor.py`,
-  fixed before training). The torch tests skip without torch. To run them, use `.venv-gpu` with
+  **It replaced B1-LR′+aug as the configured ranker on 2026-10-13, having passed D-13's safety
+  floor** (`src/eval/safety_floor.py`, fixed before training; `scripts/apply_safety_floor.py`): at
+  25% non-inferior to B1-LR′+aug, its MRR higher (+0.0018 [+0.0009, +0.0026]), every golden case
+  passing. B1-LR′+aug is the backup (two keys in `ml:`). The torch tests skip without torch. To run them, use `.venv-gpu` with
   **`CUDA_VISIBLE_DEVICES=-1`**: Git Bash on Windows drops an empty value, which leaves the GPU
   visible. Import torch **before SciPy**, or its DLLs fail to load (WinError 1114). **NumPy's matmul on
   transposed, non-contiguous 3-D/4-D views falls back to a slow non-BLAS loop** (100× slower): keep

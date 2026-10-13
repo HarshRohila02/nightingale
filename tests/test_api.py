@@ -32,7 +32,7 @@ REAL = [
     REPO_ROOT / "data" / "raw" / "ddxplus" / "release_evidences.json",
     REPO_ROOT / "data" / "interim" / "ddxplus_chestpain_conditions.json",
     REPO_ROOT / "data" / "interim" / "ddxplus_evidences.json",
-    REPO_ROOT / "models" / "nightingale_b1_asked" / "b1_asked_aug" / "b1_logreg.json",
+    REPO_ROOT / "models" / "nightingale_b1_dl" / "b1_dl_asked_aug" / "seed42" / "b1_dl.json",
 ]
 
 

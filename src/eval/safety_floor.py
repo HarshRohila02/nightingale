@@ -20,8 +20,11 @@ The transformer passes when every check passes:
    off. The caller runs them (``tests/test_ranker.py``'s checks) and passes the result in.
 
 Otherwise logistic regression stays the ranker, and the transformer is reported as the comparison.
-If it passes, the switch is recorded by a dated `docs/05` §9 entry, which §5 requires for a change
-of A0's ML component before the test split opens.
+*Corrected 2026-10-13, when the rule was applied:* this said a pass is recorded by a dated `docs/05`
+§9 entry. EXP-021, the pre-registration, has it the other way round, and so does the protocol:
+A0's ML component already is B1-DL+aug (`docs/05` §5, amendment 3, D-11), so a pass changes no
+protocol text (only the configured ranker, in `configs/config.yaml`), and **a failure** would need
+the §9 entry, since A0's component would then be the logistic regression.
 """
 
 from __future__ import annotations

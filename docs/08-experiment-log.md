@@ -327,6 +327,38 @@ Platt (0.014). B1-LR+aug gives much the same.
 - **The transformer:** when the Kaggle bundle arrives, B1-DL′+aug and B1-DL+aug alone, by this rule,
   in the D-13 report.
 
+#### The transformer arms (2026-10-13, as pre-registered above)
+
+**The run:** `scripts/calibrate.py --no-graph`, with both arms' seed-42 bundles from EXP-021, after
+A-10.
+- 230 s on the laptop CPU; both digests reproduced.
+- `data/interim/exp007_calibration_dl.json`; calibrators in `models/calibration/`.
+
+**The rule keeps both raw: "none".** The levels' mean Brier scores:
+
+| System | none | temperature | Platt | isotonic |
+|---|---|---|---|---|
+| B1-DL′+aug | 0.0317 | 0.0317 | 0.0318 | 0.0339 |
+| B1-DL+aug | 0.0396 | 0.0396 | 0.0413 | 0.0481 |
+
+Temperature scaling is lowest for B1-DL′+aug by 0.00005, inside the margin.
+
+**ECE, cross-fitted, "none":**
+
+| System | 100% | 50% | 25% |
+|---|---|---|---|
+| B1-DL′+aug | 0.0003 [0.0001, 0.0008] | 0.0024 [0.0016, 0.0036] | 0.0047 [0.0034, 0.0068] |
+| B1-DL+aug | 0.0001 [0.0000, 0.0005] | 0.0037 [0.0030, 0.0051] | 0.0039 [0.0028, 0.0062] |
+
+- Both pass the display rule at every level.
+- At 25% both are better calibrated raw than the logistic regressions (0.0110 and 0.0099).
+- Fitted at 100%, isotonic regression again makes 25% worse (0.0137 and 0.0289).
+
+**The golden cases,** with the transformer alone:
+- The near-certainty is unchanged: GC-001's unstable angina 0.997 and GC-002's embolism 1.000.
+- GC-003's first condition is spontaneous pneumothorax (0.557 and 0.757), by "tearing pain". In the
+  fused pipeline, dissection is first.
+
 ---
 
 ### EXP-022 — Complexity and real time: each model's cost, and the pipeline's latency on the laptop CPU (baseline) · *2026-10-12*
@@ -387,6 +419,21 @@ to within 6%.
   follows the ranking in seconds (NFR-1 allows 20 s).
 - Aura is not timed: the graph is read once at start-up and scored in memory, as NetworkX does.
 - The transformer is untrained here. Re-run with `--deep` on the trained model to confirm.
+
+**Re-run with the trained transformer (2026-10-13, after D-13 made it the configured ranker):**
+`scripts/measure_latency.py --deep models/nightingale_b1_dl/b1_dl_asked_aug/seed42`, 26 s;
+`data/interim/exp022_latency_deep.json`. The baseline's file is kept.
+- **The model, batch 1, one thread:** p50 1.29 ms, p95 1.38 ms, p99 1.52 ms, max 2.67 ms; 1.23 MB on
+  disk.
+  - Its cost does not depend on its weights, as the untrained baseline predicted.
+  - B1-LR′+aug: p95 0.020 ms. B1-XGB′+aug: 0.59 ms.
+- **The whole pipeline,** golden cases, 300 runs each:
+  - p95 10.3–12.6 ms with B1-DL′+aug, against 2.0–2.8 ms with B1-LR′+aug. Max 38–62 ms.
+  - Most of it is the new explanation step, 5.6–8.5 ms on average, which now includes the
+    model's reasons (2b): one batch of the case and each case-without-one-finding.
+  - The ranker itself takes 1.3–1.5 ms.
+- **Still well inside live re-ranking** (D-14): about 0.01 s against the 0.1 s convention. The
+  dashboard asks for the reasons once more for its rows, so a re-rank there costs about 20 ms.
 - *2026-10-13:* the NumPy pass was made ~10× faster for bulk scoring (products kept 2-D or
   contiguous, so they reach BLAS). The batch-1 figure above (0.78 ms on one thread) is unchanged.
   With the default 24 BLAS threads one patient had cost ~7–18 ms; a batch of up to 64 rows now
@@ -487,6 +534,66 @@ was replaced by D-12 before anything was trained, so no architecture was chosen 
 - random masks are not real history-taking;
 - the validation figures describe validation; the test read counts.
 
+#### D-13 applied (2026-10-13): both arms pass, and the configured ranker is now B1-DL′+aug
+
+**The run:** `scripts/apply_safety_floor.py` (seed 42), which only applies the rule
+pre-registered in `src/eval/safety_floor.py` (`5b94a41`).
+- Run at `ad4e2d4` (after A-10), with the script committed beside its result.
+- About 2½ minutes on the laptop CPU; both mask digests reproduced.
+- The golden cases ran through the pipeline at the configured weights (0.5 / 0.5).
+- Output: `data/interim/exp021_d13_seed42.json`.
+
+**At 25% of the history, on validation** (95% bootstrap intervals; the differences are paired,
+transformer − logistic regression):
+
+| | Top-1 | MRR | Must-not-miss recall@3 | Dangerous false negatives |
+|---|---|---|---|---|
+| **B1-DL′+aug** | 0.9487 [0.9464, 0.9509] | 0.9728 [0.9715, 0.9740] | 0.9981 [0.9973, 0.9987] | 0.0004 [0.0001, 0.0007] |
+| B1-LR′+aug | 0.9459 [0.9436, 0.9482] | 0.9710 [0.9697, 0.9722] | 0.9975 [0.9967, 0.9982] | 0.0004 [0.0001, 0.0008] |
+| **B1-DL+aug** | 0.9347 [0.9323, 0.9373] | 0.9649 [0.9635, 0.9663] | 0.9976 [0.9968, 0.9983] | 0.0004 [0.0001, 0.0008] |
+| B1-LR+aug | 0.9311 [0.9285, 0.9337] | 0.9627 [0.9612, 0.9641] | 0.9958 [0.9948, 0.9967] | 0.0009 [0.0005, 0.0014] |
+
+At 100% both transformers reach must-not-miss recall@3 1.000 and a dangerous false-negative rate of
+0.000 (top-1 0.9985 and 0.9984).
+
+**The checks:**
+
+| Check | B1-DL′+aug vs B1-LR′+aug | B1-DL+aug vs B1-LR+aug |
+|---|---|---|
+| Must-not-miss recall@3 ≥ 0.95, dangerous rate ≤ 0.02, at 100% and 25% | pass | pass |
+| Must-not-miss recall@3 at 25%, lower bound > −0.005 | +0.0006 [−0.0001, +0.0013], pass | +0.0018 [+0.0011, +0.0026], pass |
+| MRR at 25%, lower bound > −0.005 | +0.0018 [+0.0009, +0.0026], pass | +0.0022 [+0.0016, +0.0029], pass |
+| All four golden cases, red flags on and off | pass | pass |
+| **D-13** | **passes** | **passes** |
+
+- **Not only non-inferior:** the MRR intervals exclude 0 for both arms, and the unprimed arm's
+  must-not-miss interval does too. This is validation, and only the test read counts.
+- The comparators' figures equal EXP-019's at seed 42.
+
+**What follows, as pre-registered:**
+- **`configs/config.yaml` ranks with B1-DL′+aug** (`backend: deep`,
+  `models/nightingale_b1_dl/b1_dl_asked_aug/seed42`). B1-LR′+aug is the comparison and the backup;
+  two keys switch back.
+- **The protocol is unchanged.** A0's ML component is B1-DL+aug and A0′'s B1-DL′+aug, as
+  `docs/05` §5 already says (amendment 3, D-11), so no §9 entry is needed. A failure would have
+  needed one.
+  - `src/eval/safety_floor.py`'s docstring said the opposite, and was corrected.
+  - My message to the owner before the run said "a dated entry in the frozen protocol", which was
+    wrong for the same reason.
+- **EXP-006** takes the configured component's α, B1-DL′+aug's, and sweeps both transformer arms
+  too (its dated note).
+- The golden ranking tests run the transformer beside B1-LR and B1-LR′+aug
+  (`tests/test_ranker.py`, 4 more).
+
+**Still to report** (EXP-021's "every figure"):
+- **The five seeds.** The safety targets hold at every seed on the cloud's own figures: at 25%,
+  must-not-miss recall@3 ≥ 0.9969 and the dangerous rate ≤ 0.0007, for both arms.
+  - Non-inferiority at seeds 43–46 needs each seed scored per patient, about 5 minutes of laptop
+    CPU.
+- **The full comparison table:** McNemar and the paired MRR test against B1-LR(′)+aug and
+  B1-XGB(′)+aug at every level and seed, about 20 minutes.
+- Both wait for the owner's choice of where (D-7).
+
 #### The run, received and checked (2026-10-13)
 
 **The run.** The owner ran `notebooks/kaggle_b1_dl.ipynb` on Kaggle (GPU T4 x2) at `84e43f8`, as a
@@ -528,7 +635,10 @@ verdict: D-13 needs the paired tests against B1-LR′+aug and the golden cases, 
 | | 25% | 0.9487 | 0.9728 | 0.9981 | 0.0004 |
 | B1-DL+aug | 100% | 0.9984 | 0.9992 | 1.0000 | 0.0000 |
 | | 25% | 0.9347 | 0.9649 | 0.9976 | 0.0004 |
-| *B1-LR′+aug (EXP-020)* | 25% | 0.9451 | 0.9707 | 0.9976 | 0.0005 |
+| *B1-LR′+aug* | 25% | ~~0.9451~~ 0.9459 | ~~0.9707~~ 0.9710 | ~~0.9976~~ 0.9975 | ~~0.0005~~ 0.0004 |
+
+*Corrected 2026-10-13, at D-13:* the struck figures were EXP-020's **seed 43**, quoted by mistake
+beside seed 42. Seed 42's, as D-13 and EXP-019 compute them, replace them.
 
 - **Seeds 43–46** stay within 0.003 of seed 42 on every figure at 25%.
 - **The no-findings probe:** for a patient with no findings, B1-DL′+aug answers PSVT at 0.38 and
@@ -571,7 +681,7 @@ no ground truth, R-17):
     on and off (GC-001's MI 2nd with flags off, 1st with them on).
   - The golden expectations were not touched. D-13's golden check runs on this component.
 
-**Next:** D-13 on the laptop, which takes minutes:
+~~**Next:** D-13 on the laptop, which takes minutes:~~ *Done the same day, below.*
 1. the paired bootstrap at 25% against B1-LR′+aug (and B1-DL+aug against B1-LR+aug);
 2. the golden cases with the transformer, red flags on and off;
 3. then the switch, or not, by a dated `docs/05` §9 entry;
@@ -728,6 +838,17 @@ applies to the unrounded values the script computes:
   B1-LR′+aug:** these fused results do not choose it. EXP-019 point 9 left the family open for 2c;
   revisiting it would be a separate, dated decision after the sweep, disclosed as post hoc.
   *(Added 2026-10-01, before the sweep.)*
+  *Note, 2026-10-13, before any sweep (D-13, EXP-021):* the configured component is now
+  **B1-DL′+aug**, chosen by D-13 on the components alone, so **the pipeline takes B1-DL′+aug's
+  α**.
+  - Its golden gate also requires the other models the golden tests run, B1-LR and B1-LR′+aug.
+  - Both transformer arms are swept beside the four `+aug` B1 variants (six components).
+  - `scripts/sweep_fusion.py --golden-only`, run that day after A-10 on hand-written cases only:
+    every golden case holds at every α on the grid, for all six components. GC-001's MI is 2nd up
+    to α = 0.85 and 1st from 0.90, under every model.
+  - No fused DDXPlus ranking was scored.
+  - With six components the sweep is longer than the 3–5 minutes estimated (perhaps 8), so the
+    owner says where (D-7).
 - **Seeds:** α is chosen on the seed-42 components only, since the seed-42 model is the one used
   (§6). When EXP-020's seeds 43–46 return, each is fused at its arm's seed-42 α, never re-swept, and
   reported as mean ± std beside the seed-42 figures at every level; the same for the `+aug`
