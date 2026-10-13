@@ -261,10 +261,9 @@ patients. The model's reasons (§4.13) found it (EXP-021). The inversion still h
 
 ## 4.9 The deep ranker B1-DL
 
-**Choice.** The supervisor asked on 2026-10-04 for the deep model best suited to the approach, and
-for its complexity, since real-time models are preferred. The owner chose one model, a small
-transformer (decision D-12, 2026-10-12); no other architecture was trained, so none was selected on
-data (EXP-021).
+**Choice.** Asked by the supervisor (2026-10-04) for the deep model best suited to the approach and
+for its complexity, the owner chose one small transformer (decision D-12); no other architecture was
+trained, so none was selected on data (EXP-021).
 
 **Architecture** (`src/ml/deep.py`), an FT-Transformer (Gorishniy et al. 2021) at a smaller size,
 fixed before training:
@@ -363,41 +362,28 @@ ranking is also tested with red flags off (`tests/test_ranker.py`).
 
 **Which flags are appropriate** (decision A-7, for red-flag precision only): the ischaemic flags
 are also appropriate for the cardiac conditions on the same ECG-and-troponin pathway, and the
-flags for dissection, embolism, pneumothorax and Boerhaave for their own condition only. A panel of
-three independent judges decided all 104 flag–condition pairs by majority; the panel was told not
-to read results but was not fully blind to firing rates (`docs/04` §3).
+flags for dissection, embolism, pneumothorax and Boerhaave for their own condition only. Three
+independent judges decided all 104 flag–condition pairs, and their majority was adopted unchanged
+by the project's AI assistant, to which the owner had delegated the decision; the judges were told
+not to read results but were not fully blind to firing rates (`docs/04` §3).
 
 **The safety layer v1** (`src/reasoning/safety.py`) checks every result last and repairs rather
-than fails. It enforces three requirements:
-
-- **FR-6.4:** the disclaimer is exactly the text of `docs/04` §2;
-- **FR-6.2:** every flagged candidate comes before every unflagged one, and is named in the
-  result's red flags;
-- **FR-6.5:** no sentence recommends a treatment, names a drug or gives a dose. Such a sentence is
-  removed and listed among the explanation's unsupported claims; investigations such as an ECG are
-  kept.
-
-It is deterministic and lexical, so it catches the phrasing a template or a language model would
-use, not every paraphrase; the claim-support check against retrieved evidence is Phase 3c's
-[pending: 3c guardrails]. On 3,000 validation patients it found nothing to repair (EXP-008).
+than fails: the disclaimer is exactly the text of `docs/04` §2 (FR-6.4); every flagged candidate
+comes before every unflagged one and is named in the red flags (FR-6.2); and a sentence that
+recommends a treatment, names a drug or gives a dose is removed and listed among the explanation's
+unsupported claims (FR-6.5), while investigations such as an ECG are kept. It is deterministic and
+lexical (§7.8) [pending: 3c guardrails]. On 3,000 validation patients it found nothing to repair
+(EXP-008).
 
 ## 4.12 Calibration
 
 No raw score is shown as a probability until it passes calibration (`docs/05` §3.3, `docs/04`
-F-2). `src/fusion/calibration.py` implements four methods, fixed before any was fitted on project
-data (EXP-007): none, temperature scaling, one-vs-rest Platt scaling and one-vs-rest isotonic
-regression. Two rules hold for every method:
-
-1. **A condition with no patient in the fitting data keeps its raw probability.** DDXPlus has no
-   aortic dissection, so a one-vs-rest fit would learn to give it 0 whatever the findings: for a
-   must-not-miss condition, the one mistake the system exists to avoid.
-2. **Calibration never changes the ranking.** The calibrated probability is a number beside the
-   rank, and the share of patients for whom it disagrees with the rank is reported.
-
-A calibrator fits one system's exact scores, so it records what it was fitted for, and the pipeline
-refuses one fitted for another system, reporting `calibration` as degraded. **No calibrator is
-configured yet:** the one A0's fused score needs waits for EXP-006's α [pending: EXP-007 stage 2].
-Stage 1's findings are in §6.9.
+F-2). `src/fusion/calibration.py` implements the four methods of EXP-007 (§5.10) under two rules: a
+condition with no patient in the fitting data keeps its raw probability (otherwise a one-vs-rest fit
+would give aortic dissection 0 whatever the findings), and calibration never changes the ranking. A
+calibrator records the system it was fitted for, and the pipeline refuses one fitted for another,
+reporting `calibration` as degraded. **No calibrator is configured yet:** the one A0's fused score
+needs waits for EXP-006's α [pending: EXP-007 stage 2]. Stage 1's findings are in §6.9.
 
 ## 4.13 The model's reasons
 

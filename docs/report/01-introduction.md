@@ -90,7 +90,7 @@ medical language model; any claim of clinical efficacy.
 
 The questions, hypotheses and success criteria were fixed in the evaluation protocol before any
 model was trained (`docs/05`, frozen 2026-09-17). They change only through its dated amendment log,
-and every amendment is disclosed in this report (Chapter 7, §7.7). The table below reproduces
+and every amendment is disclosed in this report (Chapter 7, §7.10). The table below reproduces
 `docs/05` §1 as it stands at version 1.4, word for word; the last column, which is ours, gives
 each hypothesis's amendment status.
 
