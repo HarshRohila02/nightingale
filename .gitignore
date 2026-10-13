@@ -43,3 +43,6 @@ secrets/
 Thumbs.db
 .idea/
 .vscode/
+
+# Agents' git worktrees (Claude Code), never part of the repository
+.claude/worktrees/
