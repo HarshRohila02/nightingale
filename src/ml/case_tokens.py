@@ -13,9 +13,12 @@ column for each. Choosing which is a clinical judgement rather than a lookup, so
 below are hand-curated:
 
 * :data:`REPRESENTATIVE` — the answer that stands for a concept covering several. Taking the lowest
-  value id would be wrong: it yields *avant-bras* (forearm) for ``SYM:radiation_jaw_arm``, where the
-  discriminating answer is *mâchoire* (jaw), and *cheville* (ankle) for
-  ``SYM:leg_swelling_unilateral``, where DDXPlus's own patients say *mollet* (calf).
+  value id would be wrong: it yields *avant-bras* (forearm) for ``SYM:radiation_jaw_arm``, which
+  no validate patient gives, and *cheville* (ankle) for ``SYM:leg_swelling_unilateral``, where
+  DDXPlus's own patients say *mollet* (calf). The answer must also be one DDXPlus gives for the
+  conditions the concept points to: *mâchoire* (jaw) was chosen first, but in DDXPlus only acute
+  pulmonary edema patients give it, so the jaw/arm concept now stands for *sous la mâchoire*
+  (under the jaw), the jaw answer of its MI and angina patients (decision A-10, 2026-10-13).
 * :data:`ORDINAL_REPRESENTATIVE` — a value comfortably inside the qualifying range, never the
   threshold itself, so that hand-written cases do not all land exactly on a decision boundary.
 
@@ -172,7 +175,7 @@ REPRESENTATIVE: Mapping[str, tuple[str, ...]] = {
     "SYM:pain_character_sharp": ("V_192",),            # vive, sharp
     # --- Radiation, E_57 ----------------------------------------------------- #
     "SYM:radiation_back": ("V_39",),                   # colonne dorsale, thoracic spine
-    "SYM:radiation_jaw_arm": ("V_121",),               # mâchoire, jaw: the ischaemic pattern
+    "SYM:radiation_jaw_arm": ("V_163",),               # sous la mâchoire, under the jaw (A-10)
     "SYM:radiation_neck": ("V_53",),                   # côté du cou (D), right side of the neck
     # --- Swelling, E_152 ----------------------------------------------------- #
     "SYM:leg_swelling": ("V_119",),                    # mollet (D)

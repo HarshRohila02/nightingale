@@ -267,7 +267,9 @@ Under every method not in the table (none and temperature scaling for all three,
 logistic regressions) the share rounds to 0.0000 at every level.
 
 **The golden cases** (hand-written, no ground truth, R-17). The probability of the system's
-first-ranked condition, raw → under each method, from the calibrators fitted on every patient:
+first-ranked condition, raw → under each method, from the calibrators fitted on every patient.
+*These were computed before A-10 (2026-10-13) changed how GC-001's jaw/arm radiation reaches
+the models; the DDXPlus figures above do not depend on it.*
 
 | Case | System | First | none | temperature | Platt | isotonic |
 |---|---|---|---|---|---|---|
@@ -561,6 +563,13 @@ no ground truth, R-17):
 - **Not changed.** The representative answer is the team's clinical choice (A-8), so the fix
   (`V_163`, under the jaw) is asked as **A-10** (`PROGRESS.md` §3). It was found by looking at the
   transformer on a golden case, and the record says so.
+- **Changed the same day by A-10 (the owner, "let's go with your recommendation"):**
+  `SYM:radiation_jaw_arm` → `E_57_@_V_163`, under the jaw.
+  - On GC-001 alone, both B1-LR′+aug and B1-DL′+aug now answer unstable angina. The
+    transformer's reasons count the jaw/arm finding slightly for MI (+0.5 log-odds).
+  - Every golden case still passes with B1-LR, B1-LR′+aug and both transformer arms, red flags
+    on and off (GC-001's MI 2nd with flags off, 1st with them on).
+  - The golden expectations were not touched. D-13's golden check runs on this component.
 
 **Next:** D-13 on the laptop, which takes minutes:
 1. the paired bootstrap at 25% against B1-LR′+aug (and B1-DL+aug against B1-LR+aug);
