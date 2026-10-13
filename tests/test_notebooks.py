@@ -49,11 +49,13 @@ def test_no_notebook_downloads_the_test_split(path):
 
 
 @pytest.mark.parametrize(
-    "name", ["colab_b1_dl.ipynb", "kaggle_b1_dl.ipynb"], ids=["colab", "kaggle"]
+    "name",
+    ["colab_b1_dl.ipynb", "kaggle_b1_dl.ipynb", "kaggle_exp021_reports.ipynb"],
+    ids=["colab", "kaggle", "kaggle-reports"],
 )
 def test_the_deep_notebooks_pass_only_flags_their_scripts_accept(name):
     source = "\n".join(code_cells(REPO_ROOT / "notebooks" / name))
-    for script in ("train_deep.py", "evaluate_reduced_evidence.py"):
+    for script in ("train_deep.py", "evaluate_reduced_evidence.py", "report_deep.py"):
         accepted = script_flags(script)
         # The flags written after each mention of the script, up to the end of its call.
         for call in re.findall(rf"{re.escape(script)}(.*?)(?:\]|\n\n|$)", source, flags=re.S):

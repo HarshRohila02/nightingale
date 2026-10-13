@@ -585,7 +585,13 @@ At 100% both transformers reach must-not-miss recall@3 1.000 and a dangerous fal
 - The golden ranking tests run the transformer beside B1-LR and B1-LR′+aug
   (`tests/test_ranker.py`, 4 more).
 
-**Still to report** (EXP-021's "every figure"):
+**The golden cases at every seed** (`scripts/report_deep.py --golden-only`, 2026-10-13, after
+A-10): all ten networks pass all four, red flags on and off (`data/interim/exp021_golden.json`).
+So D-13's third check holds at every seed.
+
+**Still to report** (EXP-021's "every figure"; *2026-10-13: `scripts/report_deep.py` and
+`notebooks/kaggle_exp021_reports.ipynb` are ready, on Kaggle, the owner's choice, `docs/11`
+§4.5*):
 - **The five seeds.** The safety targets hold at every seed on the cloud's own figures: at 25%,
   must-not-miss recall@3 ≥ 0.9969 and the dangerous rate ≤ 0.0007, for both arms.
   - Non-inferiority at seeds 43–46 needs each seed scored per patient, about 5 minutes of laptop

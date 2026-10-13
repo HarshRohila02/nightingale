@@ -307,6 +307,39 @@ No patient rows are in the zip: the data is downloaded to `/tmp`, outside Kaggle
 
 ---
 
+### 4.5 The transformer's full report (EXP-021) · *ready 2026-10-13 · Kaggle, the owner's choice of 2026-10-13*
+
+**From 2026-10-13, every cloud job runs on Kaggle** (the owner: "let's do all our work on kaggle as we
+can do with broswer close as well"). The Colab sections above stay as records.
+
+D-13 has already decided the ranker on seed 42. This job produces the rest of EXP-021's report:
+- every seed of both transformer arms, against B1-LR(′)+aug and B1-XGB(′)+aug, at 100%, 50% and
+  25%;
+- McNemar's test and the paired bootstraps;
+- D-13's first two checks at every seed.
+
+It runs on the CPU, because the laptop's NumPy forward pass is what gets scored. The golden cases
+were checked on the laptop for all ten networks (`scripts/report_deep.py --golden-only`). The
+comparator models are not in the repository, so they travel as a private Kaggle dataset.
+
+1. **Once: the models as a private dataset.**
+   - On kaggle.com, **Create → New Dataset**, upload `models/kaggle_upload/nightingale_models.zip`
+     (49 MB; written by Claude), name it `nightingale-models`, **Private**.
+   - Models trained on DDXPlus are never published.
+2. **Create → New Notebook → File → Import Notebook**: `notebooks/kaggle_exp021_reports.ipynb`.
+3. **Add Input → Your Datasets → nightingale-models.**
+4. **Session options:** Accelerator **None**, Internet **on**.
+5. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+   - The smoke cell (300 patients) stops a broken setup early.
+   - The report should take 30–60 minutes. This is an estimate: about 25 minutes on the laptop's
+     CPU, and Kaggle's CPU is slower.
+6. From the latest version's **Output**, download `exp021_reports.zip`, unzip it into
+   `data/interim/`, and tell Claude.
+
+The notebook downloads DDXPlus's validation split only: not `train.csv`, never `test.csv`.
+
+---
+
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
 
 Neo4j runs in Neo4j's own cloud, so nothing extra runs on the laptop. The knowledge graph holds no
