@@ -106,7 +106,15 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-*Empty: the 2026-10-13 task (A-10 applied; D-13 run, and the ranker switched) is committed. Next work is in §1.*
+**Task now (2026-10-13): five workstreams in parallel, by agents; the transformer's reports on Kaggle.** The owner asked how much is left and to "call multiple agents if needed to multitask and complete it faster", then chose four workstreams, retrieval too, and **Kaggle for all cloud work** ("rather than on colab let's do all our work on kaggle as we can do with broswer close as well"). Each agent works in its own git worktree and branch, does not touch PROGRESS.md, CLAUDE.md or `docs/08`, installs and downloads nothing on the laptop, and hands back its records; Claude reviews, merges, records and pushes each.
+1. **1d:** `notebooks/kaggle_synthea.ipynb` (Synthea's cardiac patients, generated on Kaggle) and `src/patient_kg/`, with tests on a small synthetic fixture.
+2. **3d:** "what to ask next", the findings and tests that best separate the top candidates, in the pipeline (`suggested_next_tests`), the API and the dashboard.
+3. **3e:** reliability diagrams (SVG, no plotting library) and error analysis by condition on validation, for the configured system's components.
+4. **The report draft:** `docs/report/`, chapters for what is built and measured.
+5. **3a:** retrieval: the corpus fetch (PMC Open Access, NCBI E-utilities) and the embedding in a Kaggle notebook; on the laptop, BM25 and the dense search over the embeddings in NumPy, with no installs.
+6. **Claude, meanwhile:** `notebooks/kaggle_exp021_reports.ipynb`, EXP-021's remaining reports (seeds 43–46, the full comparison table), on Kaggle as the owner chose.
+- *Done so far:* the records of the owner's choices (this commit).
+- *Next step:* launch the five agents; write the EXP-021 notebook.
 
 ---
 
@@ -190,7 +198,7 @@ changes — update this table when they do.
 | Phase | Weeks | Target end | Status |
 |---|---|---|---|
 | 0 — Preparation & documentation | 1 | 2026-09-23 | ✅ 2026-09-17 · env items → 1.0 |
-| 1 — Data & knowledge foundations | 2–3 | ~~2026-10-07~~ 2026-10-21 *(1d, 1e)* | 🔄 1.0 ✅ · 1a ✅ · 1b ✅ · 1c ✅ · 1d, 1e to go |
+| 1 — Data & knowledge foundations | 2–3 | ~~2026-10-07~~ 2026-10-21 *(1d, 1e)* | 🔄 1.0 ✅ · 1a ✅ · 1b ✅ · 1c ✅ · 1e ✅ · 1d to go |
 | 2 — Reasoning, fusion & prototype | 4–5 | ~~2026-10-21~~ 2026-10-25 *(🎯 W5 prototype)* | 🔄 2a ✅ · 2d ✅ (pulled forward) · 2c 🔄 (the sweep waits for E-2's first item, then D-7) · 2f ⬜ (the transformer, D-12) |
 | 3 — Evidence & explanation | 6–7 | ~~2026-11-04~~ 2026-11-03 *(🎯 W7 feature-complete)* | ⬜ |
 | 4 — Evaluation, ablations & write-up | 8–9 | ~~2026-11-18~~ **2026-11-15** *(the prototype and the report presented)* | ⬜ |
@@ -333,7 +341,7 @@ ranker with **real** KG-matched supporting findings, end to end · CI green. *(W
 - [ ] Patient KG builder
 - [ ] Start the PubMed/PMC corpus fetch — slow, so begin now; used in Phase 3
 
-**1e — Platform · 🔄** · P4
+**1e — Platform · ✅ 2026-10-12** (every item done: FastAPI, the evaluation harness, the golden cases on the real components, the W3 skeleton) · P4
 - [x] FastAPI: `POST /diagnose`, `GET /conditions`, `GET /health`, and `GET /concepts` for a form's choices (`src/api/app.py`; `scripts/serve_api.py` serves it on 127.0.0.1 from configs/config.yaml through the new `build_pipeline`, the demo's pipeline). Each result carries the disclaimer; `X-Elapsed-Ms` gives the time taken. 13 tests: the golden cases through the API with the stubs, and with the configured pipeline where data/ and models/ exist (2026-10-12) — `ef96fc7`
 - [x] Evaluation harness scaffold (`src/eval/metrics.py`): Precision@3 and Recall@5 on `D_in`, as amended by D-8, with Recall@5 on the full D beside them (`docs/05` amendment 1). Also top-1/3/5, MRR, per-condition F1, must-not-miss recall@3, the dangerous false-negative rate, red-flag sensitivity against the true condition (amendment 2) and precision, ECE, Brier and the reliability table, a 95% bootstrap interval for every ratio metric (1,000 resamples, seed 42; 3.6 s for 11 metrics on 34k cases), and McNemar's test. 25 tests with hand-computed answers. Open decision **A-7** added (what makes a red flag "appropriate") — `fafabb2`
 - [x] Re-verify golden cases against real components — **fix the component, not the expectation**. All four hold on the real graph and the real model: with red flags on (`scripts/check_crosswalk.py`), with them off (`tests/test_ranker.py`, since `3436d0b`; GC-001 fixed by 2a in `868f837`, not by changing its expectation), and in the demo — `26a00ad`
@@ -494,6 +502,7 @@ explainer. **Never cut:** the W5 prototype, the red-flag layer, the ablation stu
 | 2026-10-12 | **The deadline: a working prototype and the report are presented on 2026-11-15** (was: the report on 2026-11-18, with a buffer week to 2026-11-25) | the owner · §5 |
 | 2026-10-12 | **A-8's clinical review: done, approved as is.** The 17 representative answers (`REPRESENTATIVE` / `ORDINAL_REPRESENTATIVE` in `src/ml/case_tokens.py`) stay as they are. This was gate 1's last item, so the transformer may now be trained (EXP-021). Who reviewed them is not recorded; R-17 stays open, because the inversion still has no ground truth | the owner, 2026-10-12 · `docs/02` §9, R-17 |
 | 2026-10-12 | **D-7 for 2b and 1d:** the calibrators (Platt and isotonic, EXP-007) are fitted on validation **on the laptop CPU**; Synthea's synthetic patients for 1d are generated **on Colab** (it has Java), nothing installed on the laptop. Retrieval (3a: the PubMed corpus and the embedding stack) waits ("later"); D-5 stays deferred | the owner |
+| 2026-10-13 | **D-7: Kaggle for every cloud job from now on, instead of Colab** ("rather than on colab let's do all our work on kaggle as we can do with broswer close as well"): 1d's Synthea generation (placed on Colab on 2026-10-12), EXP-021's remaining reports (seeds 43–46 and the full comparison table, about 25 min of CPU), and 3a's corpus fetch and embedding. **3a starts now** (it was "later"), with nothing installed on the laptop | the owner |
 | 2026-10-13 | **D-13 applied: the transformer passes, and B1-DL′+aug is the configured ranker** (`configs/config.yaml`: `backend: deep`, `models/nightingale_b1_dl/b1_dl_asked_aug/seed42`). Seed 42, on validation, by the rule fixed before training: the safety targets at 100% and 25%; non-inferior to B1-LR′+aug at 25% (must-not-miss recall@3 +0.0006 [−0.0001, +0.0013]; MRR +0.0018 [+0.0009, +0.0026]); every golden case, red flags on and off. B1-DL+aug passes against B1-LR+aug too, so A0 = B1-DL+aug and A0′ = B1-DL′+aug, as `docs/05` §5 already said: no protocol change. B1-LR′+aug stays the comparison and the backup. Supersedes the 2026-09-25 row's "the configured ranker becomes B1-LR′+aug" | the owner ("yes run D-13"), by the rule (D-13, 2026-10-12) · EXP-021, `scripts/apply_safety_floor.py` |
 | 2026-10-13 | **A-10 (b): `SYM:radiation_jaw_arm` stands for `E_57_@_V_163`, under the jaw**, not `V_121`, jaw, one of A-8's 17 approved answers. In DDXPlus only acute pulmonary edema patients give `V_121`; its MI and angina patients radiate under the jaw, to the biceps and the shoulders. Found by the model's reasons, after seeing the transformer answer pulmonary edema on GC-001 alone, and recorded so; no golden expectation was changed. Afterwards GC-001 alone ranks unstable angina first under both models, and every golden case passes with every model | the owner ("le'ts go with your recommendation for A-10 decision"); the team did not weigh in separately · `src/ml/case_tokens.py`, `docs/02` §9, EXP-021 |
 | 2026-10-13 | **D-7 for EXP-021: Kaggle, not Colab** ("so i don't have to keep the browser window open the whole time and can close after uploading and running"): `notebooks/kaggle_b1_dl.ipynb`, GPU T4 x2, run as a background commit (*Save & Run All*); outputs in `/kaggle/working`, resumed by adding a stopped version's output as input. `notebooks/colab_b1_dl.ipynb` stays as the alternative | the owner · `docs/11` §4.4 |
