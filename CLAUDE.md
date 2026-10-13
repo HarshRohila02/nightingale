@@ -203,6 +203,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   (`CaseTokens.asked`) only when it answers a whole yes/no question, and only a model with the
   "asked" channel can see that. It has **no ground
   truth** (R-17): the tests round-trip each concept back through `concepts_from_evidences`.
+  **In DDXPlus only acute pulmonary edema radiates to the jaw** (`E_57_@_V_121`, and the chin):
+  its MI and angina patients radiate *under* the jaw (`V_163`), to the biceps and the shoulders.
+  `SYM:radiation_jaw_arm` still maps to `V_121` (A-8), so on GC-001 the transformer alone answers
+  pulmonary edema (A-10, for the team). **`ModelRanker.reasons(case)`** (leave-one-finding-out
+  occlusion, `src/ml/reasons.py`) names the finding a model's answer rests on: run it on any
+  surprising ranking before suspecting the model.
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still

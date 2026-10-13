@@ -196,8 +196,9 @@ def describe_graph(store: Any) -> str:
 def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> dict[str, Any]:
     """The pipeline as ``scripts/demo.py`` builds it, for the app and the dashboard.
 
-    The configured ranker and graph, the template explainer, no retrieval yet (Phase 3), the
-    configured fusion weights, and the configured calibrator, if any (2b).
+    The configured ranker and graph, the template explainer (with the model's reasons, 2b), no
+    retrieval yet (Phase 3), the configured fusion weights, and the configured calibrator, if any
+    (2b).
 
     Returns:
         ``pipeline``, ``ranker``, ``graph``, ``labels`` (the real graph's node labels, for
@@ -218,7 +219,7 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
         ranker=ranker,
         graph=graph,
         retriever=EmptyRetriever(),
-        explainer=TemplateExplainer(),
+        explainer=TemplateExplainer(ranker=ranker),
         **fusion_weights_from_config(config),
         calibrator=calibrator_from_config(config),
     )

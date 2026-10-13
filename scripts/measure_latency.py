@@ -198,7 +198,7 @@ def time_pipeline(ranker: Any, graph: Any, weights: dict, cases: dict, args) -> 
         name: getattr(pipeline_module, name)
         for name in ("fuse_scores", "evaluate_red_flags", "safety_check")
     }
-    explainer = TemplateExplainer()
+    explainer = TemplateExplainer(ranker=ranker)  # the model's reasons included (2b)
     explainer.explain = timer.wrap("explanation", explainer.explain)  # type: ignore[method-assign]
     pipeline = DiagnosisPipeline(
         ranker=ranker, graph=graph, retriever=EmptyRetriever(), explainer=explainer, **weights

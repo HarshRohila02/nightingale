@@ -31,7 +31,13 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from _config import build_pipeline, load_config  # noqa: E402
 
-from app.view import build_case, candidate_rows, concept_options, example_cases  # noqa: E402
+from app.view import (  # noqa: E402
+    build_case,
+    candidate_rows,
+    concept_options,
+    example_cases,
+    model_reasons,
+)
 from src.contracts import DISCLAIMER  # noqa: E402
 from src.medical_kg.crosswalk import expand_case  # noqa: E402
 from src.medical_kg.neo4j_store import GraphUnavailable  # noqa: E402
@@ -123,7 +129,7 @@ started = time.perf_counter()
 ranked = expand_case(case, built["labels"]) if built["labels"] is not None else case
 result = built["pipeline"].run(ranked)
 elapsed = (time.perf_counter() - started) * 1000
-rows = candidate_rows(result, ranked)
+rows = candidate_rows(result, ranked, model_reasons(built["ranker"], ranked))
 
 st.caption(
     f"{built['about']['ranker']} · {built['about']['graph']} · ranked in {elapsed:.1f} ms; "
@@ -182,6 +188,17 @@ for r in rows[:DETAILED]:
             st.markdown(
                 "\n".join(f"- {s}" for s in shown) + (f"\n- …and {more} more" if more > 0 else "")
                 or "_nothing missing_"
+            )
+        if r["model_for"] or r["model_against"]:
+            st.markdown(
+                "**The model's reasons**: "
+                + (("for: " + ", ".join(r["model_for"])) if r["model_for"] else "")
+                + ("; " if r["model_for"] and r["model_against"] else "")
+                + (("against: " + ", ".join(r["model_against"])) if r["model_against"] else "")
+            )
+            st.caption(
+                "Each recorded finding removed alone, strongest first; direction and order only. "
+                "Findings that matter only together can each look weak."
             )
         if r["paths"]:
             st.markdown("**The graph's reasoning**")

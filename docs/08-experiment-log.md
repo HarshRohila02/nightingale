@@ -485,6 +485,89 @@ was replaced by D-12 before anything was trained, so no architecture was chosen 
 - random masks are not real history-taking;
 - the validation figures describe validation; the test read counts.
 
+#### The run, received and checked (2026-10-13)
+
+**The run.** The owner ran `notebooks/kaggle_b1_dl.ipynb` on Kaggle (GPU T4 x2) at `84e43f8`, as a
+background commit, and unzipped `nightingale_b1_dl.zip` into `models/nightingale_b1_dl/`.
+- **All ten networks finished** (`STATUS.txt`), between 07:01 and 09:11 UTC: 2 h 10 min of
+  training, two seeds at a time, 13–27 min per network.
+- The 50%/25% scoring then took about 4 min per seed, on the CPU.
+
+**The checks, on the laptop. Nothing was trained or tuned.**
+- **Provenance:** every `run.json` names `84e43f8` with no uncommitted changes, Python 3.13.15,
+  NumPy 2.1.3 and torch 2.11.0+cu128 on a Tesla T4.
+- **Fingerprints:** `ddd14019c66eff10` (691 columns, B1-DL′+aug) and `3a0d5a5e01d7f427` (607,
+  B1-DL+aug). The parameters are 225,645 and 217,581, as pre-registered.
+- **The rows:** 511,800 training rows, 460,620 fitted and 51,180 held out, exactly the
+  comparators' counts (EXP-018, EXP-020).
+  - The two arms share an augmentation digest at every seed (42: `6ad2c5c985e00f08`).
+  - The comparators recorded no digest, so it cannot be compared directly, and `train.csv` is not
+    on the laptop to recompute it.
+  - The rows are the comparators' by construction. `augment()` is unchanged since EXP-018 (a
+    docstring only, `eb3b7d4`), NumPy is the same 2.1.3 as their Colab runs, and so is the DDXPlus
+    snapshot (`2ad986ac…`).
+- **Parity:** the NumPy pass against PyTorch differs by at most 4.3 × 10⁻⁷ in probability on 2,000
+  validate rows, with no top-1 disagreement, in every run (threshold 1e-4).
+- **Training:** early stopping took the best epoch between 18 and 43, with a patience of 5. No run
+  reached the 50-epoch cap.
+- **Loading:** every network loads through `open_ranker("deep", …)`, which checks each weight
+  array's SHA-256 and the feature fingerprint.
+- **Reproduction:** the laptop's NumPy pass reproduces seed 42's `metrics.json` on all 33,963
+  validate patients, to within 7 × 10⁻¹¹ for every metric and for the ECE, in about 33 s per arm.
+- **Masks:** the cloud's reduced-evidence scoring reproduced both digests (`e99a7a8fbf792675`,
+  `af3a357f6454838a`) at every seed, under NumPy 2.1.3. They were first drawn under 1.26.4.
+
+**The cloud's own figures** (`reduced_evidence_seed42.json`; validation). These are not D-13's
+verdict: D-13 needs the paired tests against B1-LR′+aug and the golden cases, run on the laptop.
+
+| Seed 42 | Level | Top-1 | MRR | Must-not-miss recall@3 | Dangerous false negatives |
+|---|---|---|---|---|---|
+| B1-DL′+aug | 100% | 0.9985 | 0.9992 | 1.0000 | 0.0000 |
+| | 25% | 0.9487 | 0.9728 | 0.9981 | 0.0004 |
+| B1-DL+aug | 100% | 0.9984 | 0.9992 | 1.0000 | 0.0000 |
+| | 25% | 0.9347 | 0.9649 | 0.9976 | 0.0004 |
+| *B1-LR′+aug (EXP-020)* | 25% | 0.9451 | 0.9707 | 0.9976 | 0.0005 |
+
+- **Seeds 43–46** stay within 0.003 of seed 42 on every figure at 25%.
+- **The no-findings probe:** for a patient with no findings, B1-DL′+aug answers PSVT at 0.38 and
+  B1-DL+aug answers atrial fibrillation at 0.39–0.41. That is EXP-018's pattern: no longer certain,
+  not gone.
+- **Calibration:** the raw ECE at 100% is 0.0003.
+
+**Disclosed:** these validation figures were read on 2026-10-13, before the team had answered E-2.
+E-2's recommendation, which was written without any deep result, still stands as written; this
+entry records what was known from this date on.
+
+**Found while building the model's reasons** (2b, 2026-10-13, before D-13; hand-written cases,
+no ground truth, R-17):
+- **On GC-001 alone, the transformer answers acute pulmonary edema** (0.9997; B1-DL′+aug, seed 42).
+  Its reasons put nearly everything on one finding: "radiation to jaw/arm", at +15 log-odds.
+- **The cause is DDXPlus, through the case → token inversion.** `SYM:radiation_jaw_arm` becomes
+  `E_57_@_V_121`, *mâchoire* (jaw), one of A-8's 17 answers, approved on 2026-10-12.
+  - In validate, **only acute pulmonary edema patients have that answer**: 1,316, 53% of them.
+  - DDXPlus's MI and angina patients radiate to the biceps, the shoulders, the thyroid cartilage
+    and the thoracic spine (0.57–0.75 each), and to *sous la mâchoire*, under the jaw, `V_163`
+    (0.37–0.40). They never radiate to `V_121` or to the chin (`V_118`).
+  - B1-LR′+aug feels the same pull more weakly. Its reasons count jaw/arm radiation 2.8 log-odds
+    against unstable angina, and pulmonary edema is its second answer, at 0.0015.
+  - This is the "tearing" trap again (CLAUDE.md): a clinically right choice that DDXPlus uses
+    differently.
+- **On GC-003 alone, the transformer answers spontaneous pneumothorax**, by "tearing pain": that
+  same known DDXPlus trap.
+- **Through the fused pipeline at the configured α, all four golden cases still pass** for both
+  transformer arms, red flags on and off, with GC-001's MI first. The model's floor (ε = 0.01) and
+  the graph outweigh the model's near-certainty, which is what the pool was designed for. This
+  previews D-13's third condition; the D-13 run records it formally.
+- **Not changed.** The representative answer is the team's clinical choice (A-8), so the fix
+  (`V_163`, under the jaw) is asked as **A-10** (`PROGRESS.md` §3). It was found by looking at the
+  transformer on a golden case, and the record says so.
+
+**Next:** D-13 on the laptop, which takes minutes:
+1. the paired bootstrap at 25% against B1-LR′+aug (and B1-DL+aug against B1-LR+aug);
+2. the golden cases with the transformer, red flags on and off;
+3. then the switch, or not, by a dated `docs/05` §9 entry;
+4. the transformer's calibration (EXP-007's rule) and EXP-022's `--deep` re-run.
+
 ---
 
 ### EXP-020 — Seeds 43–46: B1-XGB, B1+aug and B1′+aug, trained on Colab (validation split, full evidence only, so far)
@@ -2000,5 +2083,5 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are ~~overconfident on short input~~ near-certain on hand-written input (narrowed by EXP-019). The reduced levels wait for amendment 3 |
 | EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |
 | EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used. *Run 2026-10-01 on Colab by the owner; logged 2026-10-11, at full evidence; the 50%/25% scoring waits for a code change* |
-| EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup |
+| EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup. *Run 2026-10-13 on Kaggle by the owner (all ten networks, 2 h 10 min); received and checked: it reproduces on the laptop; D-13 next* |
 | EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11; the baseline done 2026-10-12, with the transformer untrained: the whole ranking p95 ≈ 1–2 ms, so live re-ranking is feasible)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |

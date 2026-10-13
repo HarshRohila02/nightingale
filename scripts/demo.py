@@ -214,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
         ranker=ranker,
         graph=graph,
         retriever=EmptyRetriever(),
-        explainer=TemplateExplainer(),
+        explainer=TemplateExplainer(ranker=ranker),
         **fusion_weights_from_config(config),
     )
     result = pipeline.run(case)

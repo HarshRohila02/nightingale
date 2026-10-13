@@ -167,6 +167,24 @@ class ModelRanker:
             for label, value in zip(self.model.labels, probabilities, strict=True)
         }
 
+    def reasons(self, case: PatientCase, k: int | None = None) -> dict[str, Any] | None:
+        """The model's reasons for and against each condition it scores, strongest first (2b).
+
+        Leave-one-finding-out occlusion (:func:`src.ml.reasons.occlusion`): each recorded finding
+        removed in turn, all in one batch. Nothing is stored on the ranker, so ``last_tokens``
+        still describes the last :meth:`score`. None for a case the model cannot hold.
+
+        Args:
+            k: How many reasons each way to keep (default :data:`~src.ml.reasons.REASONS_SHOWN`).
+        """
+        from src.ml.reasons import REASONS_SHOWN, occlusion
+
+        found = occlusion(self.model, self.encoder, case, include_narrower=self.include_narrower)
+        if found is None:
+            return None
+        keep = REASONS_SHOWN if k is None else k
+        return {condition: entry.top(keep) for condition, entry in found.items()}
+
 
 def _load_encoders(evidences_path: Path, conditions_path: Path) -> dict[str, EvidenceEncoder] | str:
     """{fingerprint: encoder}, without and with the "asked" channel, or why there is none."""

@@ -223,6 +223,15 @@ non-negative scores with a positive sum (it no longer says "need not be normalis
 the highest possible score. `LOG_FLOOR` is defined in `src/fusion/pool.py`, so changing it there
 changes this contract too, and needs the same agreement.
 
+**Not contract changes (2b, 2026-10-13):**
+- `ModelRanker.reasons(case)` gives the model's reasons for and against every condition it
+  scores, by leave-one-finding-out occlusion (`src/ml/reasons.py`). It is duck-typed, like
+  `degraded`.
+- `TemplateExplainer(ranker=...)` names the top candidate's reasons, direction and order only,
+  and the dashboard shows each candidate's.
+- `DiagnosisPipeline(calibrator=...)` fills `Candidate.calibrated_probability`, a field the
+  contract already had (EXP-007).
+
 **Stub-first rule:** every Protocol gets a trivial stub implementation in Week 1
 (`ConstantRanker`, `EmptyRetriever`, `TemplateExplainer`). This is what makes the Week-3 walking
 skeleton possible before any component is finished.

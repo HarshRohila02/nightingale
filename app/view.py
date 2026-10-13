@@ -12,6 +12,10 @@
   rank, and when the graph failed there is no graph rank. The CLI used to show that case as "kg
   0.00", the best possible graph score (2e's note).
 * :func:`example_cases`: the golden cases, as form values (FR-1.5).
+
+A row also carries **the model's reasons** for its condition when the ranker gives them (2b,
+``src/ml/reasons.py``): the recorded findings whose removal moves the condition's odds most, for
+and against, names only.
 """
 
 from __future__ import annotations
@@ -26,7 +30,14 @@ from src.conditions import BY_ID
 from src.contracts import Assertion, DiagnosisResult, Finding, PatientCase
 from src.medical_kg.crosswalk import BY_CONCEPT, recorded_answers
 
-__all__ = ["build_case", "candidate_rows", "concept_options", "example_cases", "ranks_of"]
+__all__ = [
+    "build_case",
+    "candidate_rows",
+    "concept_options",
+    "example_cases",
+    "model_reasons",
+    "ranks_of",
+]
 
 GOLDEN = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "golden_cases.yaml"
 
@@ -83,8 +94,23 @@ def ranks_of(scores: Mapping[str, float]) -> dict[str, int]:
     return {cid: ordered.index(value) + 1 for cid, value in scores.items()}
 
 
+def model_reasons(ranker: Any, case: PatientCase) -> Mapping[str, Any] | None:
+    """The ranker's reasons for every condition (``ModelRanker.reasons``), or None: a ranker
+    without reasons, a degraded one, or one that fails on this case. Never raises: the
+    differential is shown either way."""
+    reasons_of = getattr(ranker, "reasons", None)
+    if reasons_of is None or getattr(ranker, "degraded", False):
+        return None
+    try:
+        return reasons_of(case)
+    except Exception:  # noqa: BLE001 - the reasons are an extra, not the result
+        return None
+
+
 def candidate_rows(
-    result: DiagnosisResult, case: PatientCase | None = None
+    result: DiagnosisResult,
+    case: PatientCase | None = None,
+    reasons: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """One row per condition, in the pipeline's order (red flags first, then the fused score).
 
@@ -92,6 +118,8 @@ def candidate_rows(
         result: The pipeline's result.
         case: The case the pipeline ranked, after ``expand_case``. Its derived questions are then
             shown with the recorded finding that answers them.
+        reasons: ``ModelRanker.reasons(case)``, {condition: Reasons}; left out when the model
+            failed for this case, since its reasons would explain a ranking it did not make.
     """
     model_failed = "ml" in result.degraded_components
     graph_failed = "graph_backend" in result.degraded_components and all(
@@ -109,6 +137,7 @@ def candidate_rows(
         {} if graph_failed else ranks_of({c.condition_id: c.kg_score for c in result.candidates})
     )
     answers = recorded_answers(case) if case else {}
+    reasons = {} if model_failed or reasons is None else reasons
 
     def label(assessment: Any) -> str:
         answer = answers.get(assessment.finding_id)
@@ -136,6 +165,8 @@ def candidate_rows(
                 "against": [label(a) for a in candidate.contradicting()],
                 "missing": [a.label for a in candidate.missing()],
                 "paths": [" → ".join(p.path) for p in candidate.paths],
+                "model_for": [r.text() for r in getattr(reasons.get(cid), "supporting", ())],
+                "model_against": [r.text() for r in getattr(reasons.get(cid), "against", ())],
             }
         )
     return rows

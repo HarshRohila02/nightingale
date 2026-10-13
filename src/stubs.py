@@ -11,6 +11,9 @@ because it only renders findings the reasoning layer already derived.
 
 from __future__ import annotations
 
+import logging
+from typing import Any
+
 from src.conditions import BY_ID, CONDITIONS
 from src.contracts import (
     Assertion,
@@ -21,6 +24,8 @@ from src.contracts import (
     PatientCase,
     ReasoningPath,
 )
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "MISSING_SHOWN",
@@ -197,8 +202,13 @@ class TemplateExplainer:
 
     Implements `Explainer`. Also the production fallback when the LLM is
     unavailable. `grounded` is always True because every sentence is rendered
-    from a `FindingAssessment` the reasoning layer produced.
+    from a `FindingAssessment` the reasoning layer produced, or, given a ranker
+    with ``reasons`` (2b), from the model's own leave-one-finding-out reasons
+    (src/ml/reasons.py): computed, never generated.
     """
+
+    def __init__(self, ranker: Any | None = None) -> None:
+        self.ranker = ranker
 
     def explain(self, case: PatientCase, candidates: list[Candidate]) -> Explanation:
         if not candidates:
@@ -228,6 +238,10 @@ class TemplateExplainer:
                 + "."
             )
 
+        sentence = self._model_reasons(case, top, candidates)
+        if sentence:
+            lines.append(sentence)
+
         flagged = [c for c in candidates if c.red_flag]
         if flagged:
             lines.append(
@@ -237,6 +251,26 @@ class TemplateExplainer:
             )
 
         return Explanation(text=" ".join(lines), grounded=True, unsupported_claims=[])
+
+    def _model_reasons(self, case: PatientCase, top: Candidate, candidates: list[Candidate]) -> str:
+        """The model's strongest reasons for the top candidate, or "" when it has none to give:
+        no ranker with reasons, a degraded one, a model that did not answer for this case (every
+        model score 0), or a condition it was not trained on (aortic dissection)."""
+        reasons_of = getattr(self.ranker, "reasons", None)
+        if reasons_of is None or getattr(self.ranker, "degraded", False):
+            return ""
+        if not any(c.ml_score > 0 for c in candidates):
+            return ""
+        from src.ml.reasons import REASONS_SHOWN, reasons_sentence
+
+        try:
+            found = reasons_of(case)
+        except Exception:  # noqa: BLE001 - an explanation never fails the result
+            logger.exception("The model's reasons failed; explaining without them")
+            return ""
+        if not found:
+            return ""
+        return reasons_sentence(found, top.condition_id, top.label, REASONS_SHOWN)
 
 
 def _humanise(concept_id: str) -> str:
