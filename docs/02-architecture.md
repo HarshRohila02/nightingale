@@ -532,6 +532,7 @@ result and repairs rather than fails.
 | LLM unavailable | Templated explanation from KG paths | `["llm"]` |
 | Model not loaded, or trained on other features | KG-only ranking, flat ML scores | `["ml"]` |
 | Case the feature space cannot hold (`Sex.OTHER`) | KG-only ranking | `["ml"]` |
+| Calibrator configured but unusable (missing, or fitted for another model or α), or the result's score is not the one it was fitted to (no model, no graph) *(2b, 2026-10-13)* | Ranks only; `calibrated_probability` stays None | `["calibration"]` |
 | Empty/invalid case | HTTP 422 with field errors | — |
 
 The UI must always render `degraded_components` — a silently degraded medical tool is a safety

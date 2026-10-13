@@ -87,6 +87,15 @@ ranking:
   top_k_display: 5
   top_k_evidence: 3
 
+calibration:
+  # 2b, EXP-007 (docs/08): the calibrator of the configured system's fused score, written by
+  # scripts/calibrate.py --fused to models/calibration/. null until EXP-007's stage 2, which needs
+  # D-13's ML component and EXP-006's α: a calibrator fits one exact score, so it is refitted
+  # whenever the model or α changes, and the pipeline refuses one fitted for another system
+  # (degraded_components: ["calibration"]). Until then no probability is shown, only ranks
+  # (docs/05 §3.3: no score is reported as a probability until it passes calibration).
+  file: null
+
 safety:
   enable_red_flags: true # never disable outside an ablation run
   must_not_miss_recall_target: 0.95

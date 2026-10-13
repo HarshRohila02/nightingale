@@ -63,6 +63,133 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-007 — Calibration: Platt scaling against isotonic regression, and when a score may be shown as a probability (2b) (validation split) · *pre-registered 2026-10-13, before any calibrator was fitted on project data*
+
+| Field | Value |
+|---|---|
+| Date | 2026-10-13: this entry, the code and the rule, **before any calibrator was fitted on a DDXPlus patient**. Stage 1's results are added below it; stage 2 runs when its inputs exist |
+| Author | P2 (Claude; on the laptop CPU, where the owner placed the calibrators on 2026-10-12, D-7) |
+| Config / ablation | `src/fusion/calibration.py`, `scripts/calibrate.py`; the pipeline's optional calibrator (`calibration.file` in `configs/config.yaml`, null until stage 2) |
+| Split used | validation only, at 100%, 50% and 25% on `docs/05` §3.7's masks, whose two digests (`e99a7a8fbf792675`, `af3a357f6454838a`) must reproduce. The test split is not read |
+| Git commit | the commit that adds this entry; the run records its own in `exp007_calibration.json` and in each saved calibrator |
+| Seed | 42: the cross-fitting folds and the bootstrap. The components are the seed-42 models |
+
+**Question.** RQ5 (`docs/05`): are the confidence scores calibrated? H5 asks for a post-calibration
+ECE < 0.10. Which method, fitted on validation, turns a system's scores into probabilities that mean
+what they say, at 100%, 50% and 25% of the history? And does it help the hand-written cases, where
+the retrained models give one condition 0.98–1.00 (EXP-018, EXP-019 point 7)?
+
+**What is calibrated, and when.** A calibrator fits one system's exact scores, so each system gets its
+own, under one rule.
+- **Stage 1 (2026-10-13):** systems whose validation rankings EXP-019 has already published, so
+  nothing here reveals a fused or a deep result:
+  - **B1-LR′+aug** alone, the configured ML component (the score of the ML-only systems, A1 and A1b);
+  - **B1-LR+aug** alone, its unprimed counterpart;
+  - **B2**, the graph alone (A2's score; **circular on DDXPlus, R-12**).
+- **When the transformer's bundle arrives (EXP-021):** B1-DL′+aug and B1-DL+aug alone, by the same
+  rule (`--model`), as part of the D-13 report.
+- **Stage 2:** **A0′'s fused score** (and A0's), the one H5 judges and the dashboard would show
+  (`--fused`). It runs after D-13 has fixed the ML component and EXP-006 has chosen its α, and the
+  script refuses to run before `data/interim/exp006_fusion.json` records that α. Fitting it now
+  would fit an α and a component that are about to change, and would read fused validation results
+  before the team answers E-2, whose recommendation was made without any. A7′ and the other fused
+  ablations are calibrated the same way, each for its own component and α.
+
+**The scores.** Each system's probability vector over the 14 conditions:
+- a model: its 13 probabilities, with aortic dissection at 0;
+- the graph: its posterior, a softmax of the log-likelihoods with a uniform prior;
+- a fused system: its fused log-probabilities, exponentiated.
+
+**The methods** (`src/fusion/calibration.py`), fixed now. None is tuned beyond its fit.
+1. **none:** the scores as they are, ablation A5's.
+2. **temperature scaling** (Guo et al. 2017), Platt scaling's one-parameter multi-class form:
+   q ∝ p^(1/T), with T fitted by log loss in [0.05, 20]. It keeps the conditions' order.
+3. **Platt scaling, one-vs-rest** (Platt 1999; Zadrozny and Elkan 2002): per condition,
+   σ(a · logit p + b), fitted to Platt's smoothed targets, then renormalised.
+4. **isotonic regression, one-vs-rest** (Zadrozny and Elkan 2002): per condition, the
+   pool-adjacent-violators fit of P(condition | p), interpolated linearly between its blocks, then
+   renormalised. A row whose calibrated values are all 0 keeps its raw shares.
+
+**Two rules for every method:**
+- **A condition with no patient in the fitting data keeps its raw probability**, and the others share
+  the rest. DDXPlus has no aortic dissection, so a one-vs-rest fit would learn to give it 0 whatever
+  the findings: for a must-not-miss condition, the worst possible outcome.
+- **Calibration never changes the ranking.** A system still ranks by its own scores, red flags first
+  where it has them, and the calibrated probability is shown beside the rank. So A5 equals A0 on every
+  ranking metric and differs only in §3.3 (amendment 3a item 15). The top-label ECE's confidence is
+  the calibrated probability of the system's first-ranked condition (`src/eval/metrics.py`). A
+  one-vs-rest method can make another condition the most probable, and how often it does is
+  reported.
+
+**Fitting, and the out-of-sample estimate.**
+- **Fitted at 100%** on validate, and applied unchanged at 50% and 25% (`docs/05` §3.7, amendment
+  3a: H5 is judged at 100%).
+- **Cross-fitted:** the 33,963 patients fall into five folds, from a permutation with seed 42. Each
+  fold is calibrated by the calibrator fitted on the other four folds' 100% rows, at every level, so
+  no patient is calibrated by a fit that saw any copy of them. Every calibrated figure reported is
+  cross-fitted.
+- **The calibrator saved,** and used, is refitted on every patient at 100%. It records its system,
+  its split and level, the digests, the commit and the rule.
+- **Beside it,** a calibrator fitted at each reduced level, on that level's rows and cross-fitted the
+  same way, is reported at its own level only (§3.7).
+
+**The figures, for every system, method and level:**
+- the multi-class Brier score over the 14 conditions, and the top-label ECE (10 bins), each with its
+  95% bootstrap interval (1,000 resamples, seed 42; the ECE's is a percentile interval of the
+  recomputed ECE);
+- the ECE per condition (one-vs-rest, 10 bins) for every condition that has patients, and their mean
+  (§3.3, "per condition and overall");
+- the log loss and the reliability table;
+- the share of patients whose most probable calibrated condition is not the system's first-ranked
+  one;
+- each golden case's first-ranked condition with its probability, raw and under each method, and the
+  probabilities of its required conditions. These are hand-written, so they have no ground truth
+  (R-17).
+
+**The rule, applied to each system on its own:** the method with the **lowest mean over the three
+levels of the cross-fitted Brier score** (calibrator fitted at 100%). A method that fits less is
+preferred when its mean is within **0.0005** of the lowest (the order: none, temperature, Platt,
+isotonic).
+- **Brier, not ECE:** the Brier score is a proper scoring rule, and the ECE depends on its bins. The
+  ECE is H5's test, and it is reported.
+- **The mean over the levels, not 100% alone:** at 100% the models are near-certain and nearly always
+  right (ECE 0.0001–0.001, EXP-004, EXP-019), so 100% alone could not tell the methods apart. The
+  system is used on short histories, every hand-written case among them.
+
+**What may be shown as a probability.**
+- A system's calibrated probabilities pass when the chosen calibrator's cross-fitted ECE is below
+  0.10 **at all three levels**. This is stricter than H5, which A0 alone must meet, at 100%, on the
+  test split (Phase 4).
+- Stage 1's verdicts are descriptive: the dashboard would show A0's probabilities, not these.
+- How the dashboard shows A0's (a number, or a band, `docs/04` F-2) is decided at stage 2, with the
+  golden cases' figures in view.
+- Every probability shown is conditional on one of the 14 conditions (R-13, closed world).
+
+**What was known when this was written (disclosure):**
+- The raw ECE of every B1 model at the three levels (EXP-019). The `+aug` models' was 0.000–0.011,
+  so little room was left for them.
+- EXP-004's 0.0001 at 100%.
+- The golden cases' near-certainty under the retrained models (EXP-018).
+- The graph posterior's ECE had never been computed. While timing the graph scorer today, one
+  patient's log-likelihoods were printed (−2.7 for the first condition, −48 for the next), so its
+  posterior is near-certain for that patient at least.
+
+Nothing had been done at the time:
+- no calibrator fitted on project data;
+- no fused or deep DDXPlus result scored;
+- no test data read.
+
+The methods are the plan's (Platt against isotonic, 2b), with temperature scaling and "none" added as
+the simplest forms. The margin, the folds and the levels' mean were chosen before any of these
+figures existed.
+
+**Limits, stated with every result:**
+- DDXPlus is synthetic, and its masks are not real history-taking.
+- A calibrator fitted on DDXPlus says nothing about how often real patients have each condition.
+- B2 is circular (R-12), and every probability is conditional on the 14 conditions (R-13).
+
+---
+
 ### EXP-022 — Complexity and real time: each model's cost, and the pipeline's latency on the laptop CPU (baseline) · *2026-10-12*
 
 | Field | Value |
@@ -1722,7 +1849,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
 | EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; ~~waits for E-1 and D-7~~ E-1 settled 2026-10-02 (amendment 3a); waits for E-2's first item, then D-7)* | 2 | The graph's weight α (validation only), one for every level |
-| EXP-007 | Calibration (Platt vs isotonic) | 2 | H5 |
+| EXP-007 | Calibration (Platt vs isotonic) *(pre-registered 2026-10-13, with temperature scaling and "none" beside them; stage 1 on the components and the graph alone, stage 2 on A0's fused score after D-13 and EXP-006)* | 2 | H5; what may be shown as a probability |
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only | 3 | H3 |
 | EXP-010 | B4 text-RAG + LLM | 3 | H3 |

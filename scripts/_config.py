@@ -23,6 +23,7 @@ __all__ = [
     "GRAPH_BACKENDS",
     "REPO_ROOT",
     "build_pipeline",
+    "calibrator_from_config",
     "describe_graph",
     "fusion_weights_from_config",
     "load_config",
@@ -64,6 +65,40 @@ def fusion_weights_from_config(config: dict[str, Any]) -> dict[str, float]:
     kg_weight = float(ranking.get("kg_weight", DEFAULT_KG_WEIGHT))
     graph_weight(ml_weight, kg_weight)
     return {"ml_weight": ml_weight, "kg_weight": kg_weight}
+
+
+def calibrator_from_config(config: dict[str, Any]) -> Any:
+    """The calibrator ``calibration.file`` names for the configured system, or None.
+
+    None when no file is configured: the system is not calibrated, and shows ranks only. A file
+    that is missing or unreadable, or a calibrator fitted for another fused system (another model,
+    another α), gives a :class:`~src.fusion.calibration.RefusedCalibrator`, so every result says
+    ``calibration`` rather than showing probabilities that belong to something else.
+    """
+    import json
+
+    from src.fusion import graph_weight
+    from src.fusion.calibration import Calibrator, RefusedCalibrator
+
+    name = (config.get("calibration") or {}).get("file")
+    if not name:
+        return None
+    try:
+        calibrator = Calibrator.from_json(
+            json.loads((REPO_ROOT / name).read_text(encoding="utf-8"))
+        )
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return RefusedCalibrator(f"{name}: {error}")
+    ml = config.get("ml") or {}
+    reason = calibrator.mismatch(
+        {
+            "kind": "fused",
+            "backend": ml.get("backend"),
+            "model_dir": ml.get("model_dir"),
+            "alpha": graph_weight(**fusion_weights_from_config(config)),
+        }
+    )
+    return RefusedCalibrator(f"{name}: {reason}") if reason else calibrator
 
 
 def open_ranker_from_config(config: dict[str, Any]) -> Any:
@@ -161,8 +196,8 @@ def describe_graph(store: Any) -> str:
 def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> dict[str, Any]:
     """The pipeline as ``scripts/demo.py`` builds it, for the app and the dashboard.
 
-    The configured ranker and graph, the template explainer, no retrieval yet (Phase 3), and the
-    configured fusion weights.
+    The configured ranker and graph, the template explainer, no retrieval yet (Phase 3), the
+    configured fusion weights, and the configured calibrator, if any (2b).
 
     Returns:
         ``pipeline``, ``ranker``, ``graph``, ``labels`` (the real graph's node labels, for
@@ -185,6 +220,7 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
         retriever=EmptyRetriever(),
         explainer=TemplateExplainer(),
         **fusion_weights_from_config(config),
+        calibrator=calibrator_from_config(config),
     )
     return {
         "pipeline": pipeline,

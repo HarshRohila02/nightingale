@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import math
+from typing import Any
 
 from src.conditions import BY_ID, CONDITIONS
 from src.contracts import (
@@ -61,6 +62,7 @@ class DiagnosisPipeline:
         kg_weight: float = DEFAULT_KG_WEIGHT,
         enable_red_flags: bool = True,
         top_k_evidence: int = 3,
+        calibrator: Any | None = None,
     ) -> None:
         self.ranker = ranker
         self.graph = graph
@@ -70,6 +72,9 @@ class DiagnosisPipeline:
         self.kg_weight = kg_weight
         self.enable_red_flags = enable_red_flags
         self.top_k_evidence = top_k_evidence
+        # src/fusion/calibration.py (2b): fitted on validation to this system's fused score.
+        # None means the system is not calibrated yet, and no probability is shown.
+        self.calibrator = calibrator
 
     # -- public API -------------------------------------------------------- #
 
@@ -92,6 +97,8 @@ class DiagnosisPipeline:
             # A fallback store serves the graph (docs/02-architecture.md §7). The results are
             # complete, but the configured backend is not the one answering.
             degraded.append("graph_backend")
+        if self.calibrator is not None:
+            self._calibrate(candidates, fused, graph_ok, degraded)
 
         red_flags = evaluate_red_flags(case) if self.enable_red_flags else {}
         self._apply_red_flags(candidates, red_flags)
@@ -173,6 +180,32 @@ class DiagnosisPipeline:
                     logger.exception("Path extraction failed for %s", cid)
             candidates.append(candidate)
         return candidates
+
+    def _calibrate(
+        self,
+        candidates: list[Candidate],
+        fused: dict[str, float],
+        graph_ok: bool,
+        degraded: list[str],
+    ) -> None:
+        """Each candidate's calibrated probability, beside its rank (2b, EXP-007).
+
+        The calibrator was fitted to this system's fused score, model and graph together, so a
+        result whose score is not that one (no usable model, a failed graph) gets no probability
+        and says ``calibration``, as does a calibrator the configuration refused. The ranking is
+        never changed.
+        """
+        if getattr(self.calibrator, "degraded", False) or "ml" in degraded or not graph_ok:
+            degraded.append("calibration")
+            return
+        try:
+            probabilities = self.calibrator.calibrate({c: math.exp(v) for c, v in fused.items()})
+        except Exception:  # noqa: BLE001 - degradation is the contract
+            logger.exception("Calibration failed; continuing without probabilities")
+            degraded.append("calibration")
+            return
+        for candidate in candidates:
+            candidate.calibrated_probability = probabilities.get(candidate.condition_id)
 
     def _assess(
         self, case: PatientCase, condition_id: str, graph_ok: bool

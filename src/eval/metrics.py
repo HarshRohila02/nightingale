@@ -11,8 +11,9 @@ and probabilities. The functions follow the frozen protocol and its 2026-09-19 a
 * **§3.2 safety:** must-not-miss recall@3, the dangerous false-negative rate, and red-flag
   sensitivity, measured against the true condition (amendment 2). Red-flag precision is
   reported but has no target.
-* **§3.3 calibration:** expected calibration error over 10 bins, the Brier score, and the
-  reliability table behind a reliability diagram.
+* **§3.3 calibration:** expected calibration error over 10 bins (top-label, with a bootstrap
+  interval, and one-vs-rest per condition), the Brier score, and the reliability table behind a
+  reliability diagram.
 * **§6 statistics:** a 95% bootstrap confidence interval for every metric (1,000 resamples of the
   cases, seed 42), McNemar's test for paired top-3 correctness, and a paired bootstrap of the
   per-case difference for MRR (amendment 3a).
@@ -43,6 +44,8 @@ __all__ = [
     "Ratio",
     "bootstrap_ratio",
     "brier_score",
+    "calibration_error_by_condition",
+    "calibration_error_interval",
     "evaluate",
     "expected_calibration_error",
     "f1_by_condition",
@@ -379,6 +382,70 @@ def expected_calibration_error(
     table = reliability_table(outcomes, bins)
     total = sum(row["cases"] for row in table)
     return sum(row["cases"] / total * abs(row["confidence"] - row["accuracy"]) for row in table)
+
+
+def _binned_gap(confidence: np.ndarray, correct: np.ndarray, bins: int) -> float:
+    """ECE from arrays: Σ over equal-width bins of |Σ (confidence − correct)| / n, which is
+    :func:`expected_calibration_error`'s size-weighted gap written as one sum."""
+    edges = np.minimum((confidence * bins).astype(int), bins - 1)
+    gaps = np.bincount(edges, weights=confidence - correct, minlength=bins)
+    return float(np.abs(gaps).sum() / len(confidence))
+
+
+def calibration_error_interval(
+    outcomes: Sequence[CaseOutcome],
+    bins: int = CALIBRATION_BINS,
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    seed: int = DEFAULT_SEED,
+    level: float = DEFAULT_LEVEL,
+) -> tuple[float, float]:
+    """A percentile bootstrap interval for :func:`expected_calibration_error`: the cases resampled
+    with replacement, as :func:`bootstrap_ratio` resamples them, and the ECE recomputed."""
+    confidence, correct = _top_label(outcomes)
+    n = len(confidence)
+    if n == 0:
+        return (math.nan, math.nan)
+    edges = np.minimum((confidence * bins).astype(int), bins - 1)
+    gap = confidence - correct
+    rng = np.random.default_rng(seed)
+    values = np.empty(resamples)
+    done = 0
+    chunk = max(1, min(resamples, 20_000_000 // n))
+    while done < resamples:
+        size = min(chunk, resamples - done)
+        index = rng.integers(0, n, size=(size, n), dtype=np.int32)
+        cells = (np.arange(size)[:, None] * bins + edges[index]).ravel()
+        sums = np.bincount(cells, weights=gap[index].ravel(), minlength=size * bins)
+        values[done : done + size] = np.abs(sums.reshape(size, bins)).sum(axis=1) / n
+        done += size
+    tail = (1 - level) / 2
+    low, high = np.quantile(values, [tail, 1 - tail])
+    return (float(low), float(high))
+
+
+def calibration_error_by_condition(
+    outcomes: Sequence[CaseOutcome],
+    conditions: Sequence[str] | None = None,
+    bins: int = CALIBRATION_BINS,
+) -> dict[str, float]:
+    """docs/05 §3.3's "per condition": for each condition, one-vs-rest over every case, the gap
+    between the probability it was given and whether it was the true condition, over equal-width
+    bins weighted by size. A condition no case has is left out: there is nothing to compare its
+    probabilities with (aortic dissection on DDXPlus)."""
+    labels = list(conditions) if conditions is not None else [c.id for c in CONDITIONS]
+    for o in outcomes:
+        if o.probabilities is None:
+            raise ValueError(f"{o.case_id}: calibration needs probabilities")
+    truth = [o.true_condition for o in outcomes]
+    out = {}
+    for label in labels:
+        positive = np.array([t == label for t in truth], dtype=float)
+        if not positive.any():
+            continue
+        given = np.array([float(o.probabilities.get(label, 0.0)) for o in outcomes])  # type: ignore[union-attr]
+        out[label] = _binned_gap(np.clip(given, 0.0, 1.0), positive, bins)
+    return out
 
 
 def brier_score(outcomes: Sequence[CaseOutcome], conditions: Sequence[str] | None = None) -> Ratio:
