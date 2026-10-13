@@ -280,7 +280,8 @@ def test_open_ranker_opens_a_deep_bundle(tmp_path):
 
     ranker = open_ranker("deep", model_dir=bundle, **paths)
     assert isinstance(ranker, ModelRanker) and ranker.encoder.asked_channel
-    assert describe(ranker) == "ranker: deep over 13 conditions"
+    assert describe(ranker).startswith("ranker: the transformer B1-DL")
+    assert describe(ranker).endswith("(deep) over 13 conditions")
     assert open_ranker("deep", model_dir=tmp_path / "nowhere", **paths).degraded
 
 

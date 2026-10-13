@@ -290,10 +290,21 @@ def open_ranker(
     return ModelRanker(model, encoder, backend=backend, include_narrower=include_narrower)
 
 
+MODEL_NAMES = {
+    "deep": "the transformer B1-DL",
+    "logreg": "logistic regression B1-LR",
+    "xgboost": "XGBoost B1-XGB",
+}
+"""How a demo header names each backend (``docs/05`` §4's labels); ′ marks the "asked" channel."""
+
+
 def describe(ranker: Any) -> str:
     """One line naming what is ranking, for a report or a demo header."""
     if getattr(ranker, "degraded", False):
         return f"ranker: none ({getattr(ranker, 'reason', 'degraded')})"
     backend = getattr(ranker, "backend", type(ranker).__name__)
     labels: Sequence[str] = getattr(getattr(ranker, "model", None), "labels", ())
-    return f"ranker: {backend} over {len(labels)} conditions"
+    name = MODEL_NAMES.get(backend, backend)
+    if backend in MODEL_NAMES and getattr(getattr(ranker, "encoder", None), "asked_channel", False):
+        name += "′"
+    return f"ranker: {name} ({backend}) over {len(labels)} conditions"

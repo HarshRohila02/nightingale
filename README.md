@@ -427,7 +427,15 @@ python scripts/demo.py --list
 
 # 3. Run the tests, including the golden clinical cases
 pytest
+
+# 4. The working prototype: the dashboard, which re-ranks live as findings are entered
+#    (needs data/ and models/, which are not in git: docs/15 §2)
+python -m streamlit run app/streamlit_app.py      # http://127.0.0.1:8501
+python scripts/serve_api.py                       # optional: the API, http://127.0.0.1:8000/docs
 ```
+
+> **Presenting it?** [`docs/15-prototype-demo.md`](docs/15-prototype-demo.md) has the checklist for
+> the day before and a five-minute demo script over the golden cases.
 
 The skeleton runs on **stub components** (`src/stubs.py`), so the full pipeline is exercisable
 before any model is trained. Each stub is replaced independently — nothing downstream changes.
