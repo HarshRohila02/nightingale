@@ -114,6 +114,7 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 5. **3a:** retrieval: the corpus fetch (PMC Open Access, NCBI E-utilities) and the embedding in a Kaggle notebook; on the laptop, BM25 and the dense search over the embeddings in NumPy, with no installs.
 6. **Claude, meanwhile:** `notebooks/kaggle_exp021_reports.ipynb`, EXP-021's remaining reports (seeds 43–46, the full comparison table), on Kaggle as the owner chose.
 - *Done so far:* the records of the owner's choices (`9c2d3ef`); the five agents launched; `scripts/report_deep.py` and `notebooks/kaggle_exp021_reports.ipynb` with the 49 MB upload zip (`models/kaggle_upload/`), `docs/11` §4.5; the golden cases pass for all ten transformer networks; 863 pass, 15 skip (committed).
+- *2026-10-14:* every agent had stopped at the account's usage limit on 2026-10-13. 3e and the report draft left partial, uncommitted work in their worktrees and were resumed with their context; 1d, 3d and 3a had changed no file (their worktrees were cleaned up) and were relaunched with the same briefs.
 - *Next step:* the owner runs the EXP-021 notebook; Claude merges each agent's branch as it returns.
 
 ---
