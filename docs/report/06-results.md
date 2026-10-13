@@ -342,8 +342,8 @@ validation; full graph; the protocol's deterministic tie rule; **circular**).
    safe direction and the honest answer, since not mentioned is not denied; telling the two apart is
    the ML ranker's job (EXP-005).
 3. **The circular figures are high, which is the point of the caveat.** B2's Precision@3, 0.756,
-   nearly matches B1-XGB's 0.764 with no training at all, and its must-not-miss recall@3 is 1.000 at
-   100% (EXP-005, EXP-019). At 50% and 25% B2 has the best Precision@3 of any system and at every
+   nearly matches B1-XGB's 0.764 with no training at all, and its must-not-miss recall@3 at 100% is
+   0.9998 [0.9995, 1.0000] (EXP-005; 1.000 to three places in EXP-019). At 50% and 25% B2 has the best Precision@3 of any system and at every
    level the best Recall@5, except that at 100% B1-XGB's Precision@3 is higher (0.764 against 0.756)
    and its Recall@5 0.001 lower (EXP-019 point 8). None of this is skill.
 4. **At reduced evidence B2 degrades between the plain and the augmented B1:** at 25%, top-1 0.769
