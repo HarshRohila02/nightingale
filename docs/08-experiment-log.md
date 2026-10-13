@@ -589,7 +589,7 @@ At 100% both transformers reach must-not-miss recall@3 1.000 and a dangerous fal
 A-10): all ten networks pass all four, red flags on and off (`data/interim/exp021_golden.json`).
 So D-13's third check holds at every seed.
 
-**Still to report** (EXP-021's "every figure"; *2026-10-13: `scripts/report_deep.py` and
+~~**Still to report**~~ *Reported 2026-10-14, below* (EXP-021's "every figure"; *2026-10-13: `scripts/report_deep.py` and
 `notebooks/kaggle_exp021_reports.ipynb` are ready, on Kaggle, the owner's choice, `docs/11`
 §4.5*):
 - **The five seeds.** The safety targets hold at every seed on the cloud's own figures: at 25%,
@@ -599,6 +599,50 @@ So D-13's third check holds at every seed.
 - **The full comparison table:** McNemar and the paired MRR test against B1-LR(′)+aug and
   B1-XGB(′)+aug at every level and seed, about 20 minutes.
 - Both wait for the owner's choice of where (D-7).
+
+#### The full report (run 2026-10-13 on Kaggle by the owner; recorded 2026-10-14)
+
+**The run:** `notebooks/kaggle_exp021_reports.ipynb` (`scripts/report_deep.py --no-golden`), on
+Kaggle's CPU.
+- The models came from the owner's private dataset; validate only; both digests reproduced.
+- 40 minutes. `data/interim/exp021_reports/exp021_report.json`.
+- **Seed 42 reproduces the laptop's D-13 run exactly**, e.g. MRR +0.0018 [+0.0009, +0.0026].
+- The golden cases were run on the laptop for all ten networks; all pass (above).
+
+**D-13 holds at all five seeds, for both arms.** Every network meets the safety targets at 100% and
+25%, is non-inferior to the logistic regression trained like it at 25%, and passes the golden cases.
+At 25% of the history, paired against that logistic regression (transformer − logistic
+regression):
+
+| Seed | Arm | Top-1 | MRR | Must-not-miss recall@3 | Dangerous FN | Must-not-miss Δ | MRR Δ |
+|---|---|---|---|---|---|---|---|
+| 42 | B1-DL′+aug | 0.9487 | 0.9728 | 0.9981 | 0.0004 | +0.0006 [−0.0001, +0.0013] | +0.0018 [+0.0009, +0.0026] |
+| 43 | B1-DL′+aug | 0.9493 | 0.9732 | 0.9988 | 0.0002 | +0.0011 [+0.0005, +0.0018] | +0.0025 [+0.0016, +0.0034] |
+| 44 | B1-DL′+aug | 0.9476 | 0.9721 | 0.9982 | 0.0004 | +0.0002 [−0.0005, +0.0009] | +0.0005 [−0.0004, +0.0013] |
+| 45 | B1-DL′+aug | 0.9506 | 0.9737 | 0.9983 | 0.0004 | +0.0012 [+0.0006, +0.0019] | +0.0033 [+0.0025, +0.0042] |
+| 46 | B1-DL′+aug | 0.9485 | 0.9728 | 0.9983 | 0.0003 | +0.0009 [+0.0002, +0.0015] | +0.0014 [+0.0004, +0.0022] |
+| 42 | B1-DL+aug | 0.9347 | 0.9649 | 0.9976 | 0.0004 | +0.0018 [+0.0011, +0.0026] | +0.0022 [+0.0016, +0.0029] |
+| 43 | B1-DL+aug | 0.9329 | 0.9637 | 0.9969 | 0.0007 | +0.0011 [+0.0003, +0.0018] | +0.0012 [+0.0004, +0.0021] |
+| 44 | B1-DL+aug | 0.9355 | 0.9652 | 0.9973 | 0.0004 | +0.0014 [+0.0006, +0.0022] | +0.0022 [+0.0015, +0.0030] |
+| 45 | B1-DL+aug | 0.9356 | 0.9652 | 0.9973 | 0.0005 | +0.0014 [+0.0008, +0.0021] | +0.0025 [+0.0016, +0.0033] |
+| 46 | B1-DL+aug | 0.9336 | 0.9642 | 0.9969 | 0.0005 | +0.0009 [+0.0002, +0.0017] | +0.0014 [+0.0008, +0.0022] |
+
+- **Against the logistic regression:** the transformer's MRR is higher at nine of ten networks. The
+  exception is seed 44's B1-DL′+aug, where the interval includes 0.
+- **Against XGBoost trained like it, the transformer is level, not better** (25%, paired MRR
+  difference):
+  - B1-DL′+aug against B1-XGB′+aug: higher at seeds 43, 45 and 46 (+0.0013, +0.0018, +0.0010,
+    intervals above 0), level at 42 and 44. McNemar on top-3 finds no difference at any seed
+    (p ≥ 0.17).
+  - B1-DL+aug against B1-XGB+aug: level at four seeds. **At seed 46 it is worse:** top-3 at 25%,
+    16 patients only it ranks in the top 3 against 40 only XGBoost does, p = 0.0021; and MRR at 50%,
+    −0.0008 [−0.0011, −0.0004].
+  - At 50%, top-3 is saturated: zero or one discordant patient at every seed.
+- **What it means:** the transformer earns its place as A0's component over the logistic
+  regression it replaced, as D-13 required, but it is no better than XGBoost trained the same way.
+  That is the expected result where the headroom is this small (R-19), and these are validation
+  figures. H6 is judged on the test split (EXP-012), with seed 42's model; every seed's figures are
+  reported beside it.
 
 #### The run, received and checked (2026-10-13)
 
@@ -2219,5 +2263,5 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-018 | B1 retrained for R-18: masked copies (+aug), with and without the "asked" channel (′) | 1–2 | Whether the channel removes the atrial-fibrillation answer to short input. *Run 2026-09-25 on Colab by the owner; logged.* The masked copies alone remove it; full evidence is unchanged; the retrained models are ~~overconfident on short input~~ near-certain on hand-written input (narrowed by EXP-019). The reduced levels wait for amendment 3 |
 | EXP-019 | Every system at 100%, 50% and 25% evidence *(amendment 3, run 2026-09-25)* | 1–2 | The masks' digests recorded before scoring; the original B1 misses the safety targets at 25%, the `+aug` models meet them, the channel adds a small significant gain, the red flags collapse. The configured ranker becomes B1-LR′+aug |
 | EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used. *Run 2026-10-01 on Colab by the owner; logged 2026-10-11, at full evidence; the 50%/25% scoring waits for a code change* |
-| EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup. *Run 2026-10-13 on Kaggle by the owner (all ten networks, 2 h 10 min); received and checked: it reproduces on the laptop; D-13 next* |
+| EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup. *Run 2026-10-13 on Kaggle by the owner (all ten networks, 2 h 10 min); received and checked: it reproduces on the laptop. **D-13 passed** (2026-10-13), and holds at all five seeds (the full report, Kaggle, 2026-10-14): better than the logistic regression on MRR at nine of ten networks, level with XGBoost* |
 | EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11; the baseline done 2026-10-12, with the transformer untrained: the whole ranking p95 ≈ 1–2 ms, so live re-ranking is feasible)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |
