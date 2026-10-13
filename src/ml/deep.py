@@ -40,6 +40,7 @@ implementations disagree.
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import math
 import time
@@ -60,6 +61,8 @@ __all__ = [
 ]
 
 MODEL_NAME = "B1-DL transformer"
+SMALL_BATCH = 64
+"""At most this many rows are scored with BLAS held to one thread (:func:`_one_blas_thread`)."""
 LAYER_NORM_EPS = 1e-5
 """PyTorch's default, so the two implementations normalise alike."""
 
@@ -164,6 +167,24 @@ def _decode_array(name: str, entry: Mapping[str, Any]) -> np.ndarray:
 # The NumPy forward pass
 # --------------------------------------------------------------------------- #
 
+_BLAS: Any = None
+"""A threadpoolctl controller once looked up, or False when threadpoolctl is not installed."""
+
+
+def _one_blas_thread() -> Any:
+    """Hold BLAS to one thread, for a few rows: starting 24 threads for 87 × 96 products takes
+    ~18 ms per patient on the owner's laptop, against 0.78 ms on one thread. threadpoolctl comes
+    with scikit-learn; without it this does nothing, and the answer is the same either way."""
+    global _BLAS
+    if _BLAS is None:
+        try:
+            from threadpoolctl import ThreadpoolController
+
+            _BLAS = ThreadpoolController()
+        except ImportError:
+            _BLAS = False
+    return _BLAS.limit(limits=1, user_api="blas") if _BLAS else contextlib.nullcontext()
+
 
 def _layer_norm(x: np.ndarray, weight: np.ndarray, bias: np.ndarray) -> np.ndarray:
     mean = x.mean(axis=-1, keepdims=True)
@@ -172,7 +193,14 @@ def _layer_norm(x: np.ndarray, weight: np.ndarray, bias: np.ndarray) -> np.ndarr
 
 
 def _linear(x: np.ndarray, w: Mapping[str, np.ndarray], name: str) -> np.ndarray:
-    return x @ w[f"{name}.weight"].T + w[f"{name}.bias"]
+    """``x @ W.T + b`` over the last axis, as one 2-D product.
+
+    A 3-D ``x`` times a transposed weight sends NumPy's matmul down its slow non-BLAS loop
+    (9 s instead of milliseconds for a 1,024-row chunk); one flat product goes to BLAS.
+    """
+    flat = np.ascontiguousarray(x).reshape(-1, x.shape[-1])
+    out = flat @ w[f"{name}.weight"].T + w[f"{name}.bias"]
+    return out.reshape(*x.shape[:-1], out.shape[-1])
 
 
 def _attention(
@@ -183,10 +211,11 @@ def _attention(
     v = _linear(x_kv, w, f"{block}.attention.W_v")
     batch, n_query, d = q.shape
     n_kv, d_head = k.shape[1], d // heads
-    q = q.reshape(batch, n_query, heads, d_head).transpose(0, 2, 1, 3)
-    k = k.reshape(batch, n_kv, heads, d_head).transpose(0, 2, 1, 3)
-    v = v.reshape(batch, n_kv, heads, d_head).transpose(0, 2, 1, 3)
-    logits = q @ k.transpose(0, 1, 3, 2) / math.sqrt(d_head)
+    # Contiguous per-head arrays, so each stacked product below goes to BLAS (see _linear).
+    q = np.ascontiguousarray(q.reshape(batch, n_query, heads, d_head).transpose(0, 2, 1, 3))
+    k = np.ascontiguousarray(k.reshape(batch, n_kv, heads, d_head).transpose(0, 2, 3, 1))
+    v = np.ascontiguousarray(v.reshape(batch, n_kv, heads, d_head).transpose(0, 2, 1, 3))
+    logits = q @ k / math.sqrt(d_head)
     logits -= logits.max(axis=-1, keepdims=True)
     probabilities = np.exp(logits)
     probabilities /= probabilities.sum(axis=-1, keepdims=True)
@@ -331,10 +360,11 @@ class DeepRanker:
         """Logits, ``chunk`` rows at a time. Takes a dense array or any SciPy sparse matrix."""
         rows = X.shape[0]
         out = np.empty((rows, len(self.labels)), dtype=np.float64)
-        for start in range(0, rows, chunk):
-            block = X[start : start + chunk]
-            dense = block.toarray() if hasattr(block, "toarray") else np.asarray(block)
-            out[start : start + chunk] = self._forward(dense.astype(np.float32))
+        with _one_blas_thread() if rows <= SMALL_BATCH else contextlib.nullcontext():
+            for start in range(0, rows, chunk):
+                block = X[start : start + chunk]
+                dense = block.toarray() if hasattr(block, "toarray") else np.asarray(block)
+                out[start : start + chunk] = self._forward(dense.astype(np.float32))
         return out
 
     def predict_proba(self, X: Any) -> np.ndarray:

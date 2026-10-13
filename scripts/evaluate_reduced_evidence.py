@@ -309,14 +309,22 @@ def main(argv: list[str] | None = None) -> int:
         "comparisons": [],
     }
     critical = must_not_miss_ids()
-    prior = PrevalencePrior.from_json(
-        json.loads((B1 / "b0_prevalence.json").read_text(encoding="utf-8"))
+    prior_path = B1 / "b0_prevalence.json"
+    # B0 comes from EXP-004's bundle, which only the laptop has; a cloud run scoring other bundles
+    # goes without it (B0 is the same at every level, and its figures are in EXP-019).
+    prior = (
+        PrevalencePrior.from_json(json.loads(prior_path.read_text(encoding="utf-8")))
+        if prior_path.exists()
+        else None
     )
+    if prior is None:
+        print(f"  B0 skipped: no {prior_path}")
     cases: dict[tuple[str, float], list[CaseOutcome]] = {}
     for level, frame in frames.items():
         key = str(level)
-        report, cases[("B0", level)] = score("B0", frame, prior.predict_proba(len(frame)))
-        results["systems"].setdefault("B0", {})[key] = report
+        if prior is not None:
+            report, cases[("B0", level)] = score("B0", frame, prior.predict_proba(len(frame)))
+            results["systems"].setdefault("B0", {})[key] = report
         for label, bundle, backend in models:
             ranker = open_ranker(
                 backend, model_dir=bundle, evidences_path=evidences, conditions_path=conditions
@@ -370,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
     out = args.out or args.interim / "exp019_reduced_evidence.json"
     out.write_text(json.dumps(results, indent=1, ensure_ascii=False), encoding="utf-8")
 
-    names = ["B0", *labels, *([] if args.no_graph else ["B2"])]
+    names = [*(["B0"] if prior is not None else []), *labels, *([] if args.no_graph else ["B2"])]
     for level in frames:
         print(f"\nEvidence {level:.0%}:")
         print(f"  {'system':<13}" + "".join(f"{n[:14]:>16}" for n in SHOWN))

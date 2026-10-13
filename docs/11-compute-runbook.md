@@ -258,32 +258,43 @@ rows are in the zip.
 
 ---
 
-### 4.4 The deep ranker B1-DL, a small transformer (EXP-021) · *ready 2026-10-12 · a Colab GPU, the owner's choice of 2026-10-12*
+### 4.4 The deep ranker B1-DL, a small transformer (EXP-021) · *ready 2026-10-12 · ~~a Colab GPU, the owner's choice of 2026-10-12~~ **Kaggle**, the owner's choice of 2026-10-13*
 
-**Wait for one thing first:** the outcome of A-8's clinical review must be recorded in
-`PROGRESS.md` §6. The team made it the last gate before anything deep is trained. Tell Claude the
-outcome; Claude records it and names the commit to run.
+**Why Kaggle** (the owner, 2026-10-13): a Kaggle *commit* (**Save & Run All**) runs the whole
+notebook in the background, so the browser can be closed once it has started. Colab needs the tab
+open for the 2–4 hours. The notebook is `notebooks/kaggle_b1_dl.ipynb`; it runs the same
+`scripts/train_deep.py` as the Colab one, and when Kaggle gives two GPUs (T4 x2) it trains two
+seeds at once. ~~**Wait for one thing first:** the outcome of A-8's clinical review~~ (A-8 approved
+2026-10-12, so nothing waits).
 
-1. Open
-   <https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b1_dl.ipynb>.
-2. **Runtime → Change runtime type → T4 GPU.** A transformer on a CPU would take days, so the
-   notebook stops if there is no GPU.
-3. Set `COMMIT` to the commit Claude names. `USE_DRIVE = True` saves every finished model to your
-   Google Drive (`MyDrive/nightingale_b1_dl`). Allow the prompt; a disconnect then loses at most
-   the arm in progress.
-4. **Runtime → Run all**, and keep the tab open.
-   - The **smoke cell** trains one epoch on 1% of the patients, in a few minutes, and prints how
-     long a full arm should take. If that projection is far above 30 minutes an arm, stop and tell
-     Claude.
-   - The **real run** trains both arms at seeds 42, 43, 44, 45 and 46, seed 42 first. That is ten
-     arms, roughly **2–4 hours** in all, plus about 20 minutes to download and decode the data.
-   - If Colab stops you (its free GPU time is limited), reconnect, choose the T4 again and **Run
-     all**: finished arms are skipped. Kaggle Notebooks (30 free GPU hours a week) work the same
-     way. Hugging Face's GPU hardware is paid, so it is not the default.
-5. Your browser downloads **`nightingale_b1_dl.zip`**. Unzip it into `models/nightingale_b1_dl/`
-   and tell Claude.
-6. *Optional:* the last cell scores every seed at 50% and 25% on the CPU (15–30 minutes) and
-   downloads a second zip. The laptop scores seed 42 anyway.
+1. **Once:** a Kaggle account with a verified phone number (*Settings → Phone verification*).
+   Kaggle allows GPUs and internet only on verified accounts.
+2. **Create → New Notebook**, then **File → Import Notebook**: upload
+   `notebooks/kaggle_b1_dl.ipynb` (or paste its GitHub link).
+3. In the right-hand panel, under **Session options**: **Accelerator → GPU T4 x2**, and **Internet →
+   on**. Not P100: recent PyTorch builds no longer support it.
+4. Leave `COMMIT = "master"`, or set the commit Claude names. Every `run.json` records the exact
+   commit either way.
+5. **Save Version → Save & Run All (Commit) → Save.** The run starts in the background; **close the
+   browser**.
+   - The **smoke cell** trains one epoch on 1% of the patients, then the real run starts. If the
+     smoke test fails, the version stops there, before it spends GPU time.
+   - The **real run** trains both arms at seeds 42–46: ten networks, roughly **2–4 hours** on two
+     T4s, plus about 20 minutes to download and decode the data. Then it scores every network at
+     50% and 25% on the recorded masks, on the CPU (about 30–60 minutes). Kaggle's limits are
+     12 hours a session and about 30 GPU hours a week.
+6. Come back when Kaggle emails that the version has finished. Open the notebook, then **the latest
+   version → Output**, and download **`nightingale_b1_dl.zip`**. `STATUS.txt` inside it says which
+   arms finished. Unzip it into `models/nightingale_b1_dl/` and tell Claude.
+
+**If the version stops early** (a limit, an error): open the notebook, choose **Add Input → Your
+Work → Notebook Output Files** and pick its last version, then **Save & Run All** again. Finished
+arms are copied from that output and skipped; the per-seed logs are in the output's `logs/`.
+
+**Colab instead:** `notebooks/colab_b1_dl.ipynb` does the same with one GPU, saving to Google
+Drive, but the browser tab must stay open: open
+<https://colab.research.google.com/github/HarshRohila02/nightingale/blob/master/notebooks/colab_b1_dl.ipynb>,
+**Runtime → Change runtime type → T4 GPU**, then **Run all**. Hugging Face's GPU hardware is paid.
 
 The laptop then:
 - re-scores seed 42 at 100%, 50% and 25% with the NumPy forward pass;
@@ -291,8 +302,8 @@ The laptop then:
 - runs the golden cases with the transformer;
 - and, only if it passes, switches `configs/config.yaml` to `backend: deep`.
 
-No patient rows are in the zip. **Keep the notebook and its outputs private** (models trained on
-DDXPlus are never published).
+No patient rows are in the zip: the data is downloaded to `/tmp`, outside Kaggle's saved output.
+**Keep the notebook private** (Kaggle's default; models trained on DDXPlus are never published).
 
 ---
 

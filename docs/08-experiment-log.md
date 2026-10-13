@@ -121,6 +121,10 @@ to within 6%.
   follows the ranking in seconds (NFR-1 allows 20 s).
 - Aura is not timed: the graph is read once at start-up and scored in memory, as NetworkX does.
 - The transformer is untrained here. Re-run with `--deep` on the trained model to confirm.
+- *2026-10-13:* the NumPy pass was made ~10× faster for bulk scoring (products kept 2-D or
+  contiguous, so they reach BLAS). The batch-1 figure above (0.78 ms on one thread) is unchanged.
+  With the default 24 BLAS threads one patient had cost ~7–18 ms; a batch of up to 64 rows now
+  holds BLAS to one thread, which restores 0.78 ms in the dashboard and the API.
 
 ---
 
@@ -130,7 +134,7 @@ to within 6%.
 |---|---|
 | Date | 2026-10-12: this entry, the model, the training job and the rule, **before any B1-DL model existed**. The run and its results are added below it when they arrive |
 | Author | P2 (Claude; the training run is the owner's, on Colab, D-7) |
-| Config / ablation | **B1-DL′+aug** (with the "asked" channel, 691 columns, `ddd14019c66eff10`) and **B1-DL+aug** (607 columns, `3a0d5a5e01d7f427`): `src/ml/deep.py`, `scripts/train_deep.py`, `notebooks/colab_b1_dl.ipynb` (`docs/11` §4.4) |
+| Config / ablation | **B1-DL′+aug** (with the "asked" channel, 691 columns, `ddd14019c66eff10`) and **B1-DL+aug** (607 columns, `3a0d5a5e01d7f427`): `src/ml/deep.py`, `scripts/train_deep.py`, ~~`notebooks/colab_b1_dl.ipynb`~~ `notebooks/kaggle_b1_dl.ipynb` (Kaggle, the owner's choice of 2026-10-13; `docs/11` §4.4) |
 | Split used | validation only: full evidence in the run, then 50% and 25% on `docs/05` §3.7's masks, whose two digests (`e99a7a8fbf792675`, `af3a357f6454838a`) must reproduce. The test split is not read |
 | Git commit | the commit that adds this entry; each run records its own in `run.json` |
 | Seed | 42–46 for both arms (`docs/05` §6); **seed 42 is the model used** |
