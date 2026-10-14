@@ -1,0 +1,8 @@
+DATE,PATIENT,ENCOUNTER,CATEGORY,CODE,DESCRIPTION,VALUE,UNITS,TYPE
+2019-01-01T09:00:00Z,p-0001,e-14,social-history,72166-2,Tobacco smoking status,Smokes tobacco daily (finding),,text
+2023-01-01T09:00:00Z,p-0001,e-15,social-history,72166-2,Tobacco smoking status,Ex-smoker (finding),,text
+2027-01-01T09:00:00Z,p-0001,e-16,social-history,72166-2,Tobacco smoking status,Smokes tobacco daily (finding),,text
+2023-01-01T09:00:00Z,p-0001,e-15,vital-signs,8302-2,Body Height,178.0,cm,numeric
+2024-01-01T09:00:00Z,p-0001,e-17,vital-signs,8302-2,Body Height,177.5,cm,numeric
+2024-02-02T09:00:00Z,p-0002,e-18,social-history,72166-2,Tobacco smoking status,Never smoked tobacco (finding),,text
+2024-03-03T09:00:00Z,p-0004,e-19,social-history,72166-2,Tobacco smoking status,Ex-smoker (finding),,text

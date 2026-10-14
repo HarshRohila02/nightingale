@@ -411,6 +411,40 @@ articles already fetched are copied from that output's `retrieval_cache/` and no
 never committed or republished. A CC BY-NC article is used only for this non-commercial coursework,
 and the dashboard shows each excerpt's attribution and licence.
 
+
+### 4.7 Synthea's synthetic patients and their patient knowledge graphs (task 1d) · *ready 2026-10-14 (`docs/17` T7) · Kaggle, the owner's choice of 2026-10-13*
+
+This job runs **Synthea**, the open-source synthetic patient generator, at the **pinned release
+v4.0.0** with **seed 42**, then builds each patient's knowledge graph with the repository's own
+code (`scripts/build_patient_kg.py`, `src/patient_kg/`). Every patient is synthetic. **Nothing in it
+feeds the ranking:** whether a patient's history feeds a case is a design choice still to be made.
+
+The notebook is `notebooks/kaggle_synthea.ipynb`:
+- **Java 17 or newer** is needed (Synthea v4's README). The setup cell checks, and installs OpenJDK
+  17 with apt if Kaggle's image lacks it.
+- **The release jar** comes from Synthea's GitHub release for v4.0.0, and its SHA-256 goes into
+  `STATUS.txt`. `src/patient_kg/mapping.py`'s SNOMED table was checked against that release's
+  module files, and the notebook stops if the two versions differ.
+- **The run:** `-s 42 -cs 42 -r 20260101 -p 1000 -a 25-90 Massachusetts`, CSV export on, FHIR off.
+- **The build** writes each living patient's `RF:*` findings as of 2026-01-01, and a summary that
+  lists **every active condition code the table does not map**, with its reason, for review.
+
+1. **Create → New Notebook → File → Import Notebook**: `notebooks/kaggle_synthea.ipynb`.
+2. **Session options:** Accelerator **None** (the CPU only), Internet **on**.
+3. In the first code cell, leave the settings, or set `COMMIT` to the commit Claude names.
+4. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+   - The **smoke cell** generates 5 patients and builds their graphs first; a broken setup stops
+     there within minutes.
+   - The **real run** should take **10–30 minutes**. This is an estimate, not a measurement: the
+     first run is the measurement.
+5. From the version's **Output**, download **`synthea_patient_kg.zip`**. `STATUS.txt` inside it
+   should start with `DONE`.
+6. **On the laptop:** unzip it into `data/raw/synthea/`. `data/` is gitignored, so nothing is
+   committed. To rebuild the graphs, run
+   `./.venv/Scripts/python.exe scripts/build_patient_kg.py --synthea data/raw/synthea/synthea_patient_kg/csv --as-of 2026-01-01`.
+   Then tell Claude what `patient_kg/summary.json` lists as unmapped, so that the table can be
+   reviewed.
+
 ---
 
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
