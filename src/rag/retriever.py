@@ -389,8 +389,8 @@ def mix_fidelity(retriever: HybridRetriever, depth: int | None = None) -> list[d
 
     Returns one record per check row: ``case``, ``condition``, ``cosine`` between the two query
     vectors, and ``overlap``, the share of the dense search's top ``depth`` passages (one per
-    article, eligible passages only) that the two queries have in common. Empty for a bundle
-    without check rows.
+    article, eligible passages only) that the two queries have in common, None when no passage
+    may be shown under the condition. Empty for a bundle without check rows.
     """
     depth = depth or retriever.depth
     bundle = retriever.bundle
@@ -417,7 +417,8 @@ def mix_fidelity(retriever: HybridRetriever, depth: int | None = None) -> list[d
                 "case": row["id"].split("|", 1)[0],
                 "condition": cid,
                 "cosine": float(np.dot(mixed, real)),
-                "overlap": shared / max(len(real_top), 1),
+                # None when no passage may be shown under the condition: nothing to compare.
+                "overlap": shared / len(real_top) if real_top else None,
             }
         )
     return out
