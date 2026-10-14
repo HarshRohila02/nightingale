@@ -109,11 +109,23 @@ safety:
   must_not_miss_recall_target: 0.95
 
 retrieval:
-  embedding_model: pritamdeka/S-PubMedBert-MS-MARCO
-  chunk_size: 512
+  # Task 3a (src/rag/, EXP-011): evidence from PMC Open Access articles, shown beside the top
+  # candidates, never used to rank them, and about diagnosis only: no passage or title with
+  # treatment language is stored or shown (src/rag/screening.py, FR-6.5). The corpus is fetched and
+  # embedded on Kaggle (notebooks/kaggle_retrieval_corpus.ipynb, docs/11 §4.6); the laptop only
+  # reads the bundle, in NumPy, with no model. bundle: the unzipped bundle, e.g.
+  # data/raw/retrieval_corpus (gitignored, never committed, docs/03 §1.4). null switches retrieval
+  # off, and every result then reports degraded_components: ["rag"], as does a missing bundle or
+  # one that fails its manifest's SHA-256 checks.
+  bundle: null
+  embedding_model: pritamdeka/S-PubMedBert-MS-MARCO # the notebook's; the laptop runs no model
+  chunk_size: 512 # tokens per passage, [CLS] and [SEP] included (capped at the model's maximum)
   chunk_overlap: 64
-  top_k: 10
-  rerank_top_k: 5
+  articles_per_condition: 150 # the notebook's quota per condition
+  top_k: 10 # how far down BM25's and the dense search's lists enter the fusion
+  rrf_k: 60 # reciprocal rank fusion's constant (Cormack et al. 2009)
+  passages_per_candidate: 3 # shown for each of the first ranking.top_k_evidence candidates
+  rerank_top_k: 5 # unused: a cross-encoder rerank needs a model at query time (src/rag/retriever.py)
 
 llm:
   provider: ollama

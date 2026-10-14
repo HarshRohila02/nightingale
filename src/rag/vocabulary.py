@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
+from typing import Any
 
 from src.conditions import BY_ID, CONDITIONS
 
@@ -171,16 +173,21 @@ def concept_query_texts() -> dict[str, str]:
     vocabulary cell is re-run; the retriever then names it in ``missing_concepts`` and searches
     without it.
     """
+    return dict(_concept_labels())
+
+
+@lru_cache(maxsize=1)
+def _concept_labels() -> tuple[tuple[str, str], ...]:
     from src.medical_kg.crosswalk import BY_CONCEPT
 
-    return {cid: entry.label for cid, entry in BY_CONCEPT.items()}
+    return tuple((cid, entry.label) for cid, entry in BY_CONCEPT.items())
 
 
 def compose_query_text(condition_id: str, concept_ids: Iterable[str] = ()) -> str:
     """The keyword query for ``condition_id`` and a case's present findings: the condition's name,
     then each finding's label. BM25 reads it; the notebook also embeds it for a few cases, so that
     EXP-011 can measure how far the laptop's mixed query vector is from the real one."""
-    labels = concept_query_texts()
+    labels = dict(_concept_labels())
     words = [CONDITION_TERMS[condition_id].name]
     words += [labels[c] for c in dict.fromkeys(concept_ids) if c in labels]
     return " ".join(words)
@@ -200,24 +207,32 @@ def esearch_terms(condition_id: str) -> list[tuple[str, str]]:
     return out
 
 
-def query_vocabulary(checks: Mapping[str, Sequence[str]] | None = None) -> list[dict[str, str]]:
+def query_vocabulary(checks: Mapping[str, Sequence[str]] | None = None) -> list[dict[str, Any]]:
     """The fixed list of query texts the notebook embeds, one row per vector, in this order:
 
     * ``condition`` rows: :func:`condition_query_texts` for each condition;
     * ``concept`` rows: :func:`concept_query_texts`;
     * ``check`` rows: for each named case in ``checks`` ({case id: present concept ids}) and each
-      condition, :func:`compose_query_text`. They are never searched with; EXP-011 compares them
-      with the mixed vectors the laptop builds for the same case.
+      condition, :func:`compose_query_text`, with the ``condition`` and the ``concepts`` it was
+      composed from. They are never searched with; EXP-011 compares them with the mixed vectors
+      the laptop builds for the same case (``mix_fidelity`` in src/rag/retriever.py).
     """
-    rows = [
+    rows: list[dict[str, Any]] = [
         {"kind": "condition", "id": cid, "text": text}
         for cid in CONDITION_TERMS
         for text in condition_query_texts(cid)
     ]
     rows += [{"kind": "concept", "id": cid, "text": t} for cid, t in concept_query_texts().items()]
     for case_id, concepts in (checks or {}).items():
+        concepts = list(dict.fromkeys(concepts))
         rows += [
-            {"kind": "check", "id": f"{case_id}|{cid}", "text": compose_query_text(cid, concepts)}
+            {
+                "kind": "check",
+                "id": f"{case_id}|{cid}",
+                "text": compose_query_text(cid, concepts),
+                "condition": cid,
+                "concepts": concepts,
+            }
             for cid in CONDITION_TERMS
         ]
     return rows

@@ -128,11 +128,11 @@ def open_retriever_from_config(config: dict[str, Any]) -> Any:
     """The evidence retriever the ``retrieval:`` block asks for (src/rag/retriever.py, task 3a).
 
     ``retrieval.bundle`` names the unzipped bundle the Kaggle notebook writes
-    (``notebooks/kaggle_retrieval_corpus.ipynb``); null switches retrieval off. ``top_k`` is how
-    far down each of BM25's and the dense search's lists enters the fusion, and ``rrf_k`` the
-    fusion's constant. Returns a retriever that gives no evidence and reports ``rag``, never an
-    exception, when the bundle is absent — the ordinary case, since ``data/`` is gitignored — or
-    fails its manifest's checks.
+    (``notebooks/kaggle_retrieval_corpus.ipynb``, docs/11 §4.6); null switches retrieval off.
+    ``top_k`` is how far down each of BM25's and the dense search's lists enters the fusion, and
+    ``rrf_k`` the fusion's constant. Returns a retriever that gives no evidence and reports
+    ``rag``, never an exception, when the bundle is null, absent — the ordinary case, since
+    ``data/`` is gitignored — or fails its manifest's checks.
     """
     from src.rag.retriever import DEPTH, RRF_K, open_retriever
 
@@ -221,7 +221,8 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
     The configured ranker and graph, the configured evidence retriever (3a; without its bundle it
     gives no evidence and every result reports ``rag``), the template explainer (with the model's
     reasons, 2b), the configured fusion weights, how many candidates get evidence
-    (``ranking.top_k_evidence``), and the configured calibrator, if any (2b).
+    (``ranking.top_k_evidence``) and how many passages each (``retrieval.passages_per_candidate``),
+    and the configured calibrator, if any (2b).
 
     Returns:
         ``pipeline``, ``ranker``, ``graph``, ``retriever``, ``labels`` (the real graph's node
@@ -247,6 +248,9 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
         explainer=TemplateExplainer(ranker=ranker),
         **fusion_weights_from_config(config),
         top_k_evidence=int((config.get("ranking") or {}).get("top_k_evidence", 3)),
+        evidence_per_candidate=int(
+            (config.get("retrieval") or {}).get("passages_per_candidate", 3)
+        ),
         calibrator=calibrator_from_config(config),
     )
     return {

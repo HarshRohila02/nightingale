@@ -2,19 +2,22 @@
 
 The notebook (``notebooks/kaggle_retrieval_corpus.ipynb``) fetches the corpus, embeds it and
 writes one folder, zipped; the owner unzips it into ``data/raw/retrieval_corpus/`` (gitignored:
-the corpus and its embeddings are never committed, docs/03 §5). Its files:
+the corpus and its embeddings are never committed, docs/03 §1.4). Its files:
 
 ==========================  ======================================================================
 ``manifest.json``           What made the bundle (commit, model id and revision, versions, chunking,
-                            the date), its counts, and every other file's SHA-256 and size.
+                            the treatment screen's digest, the date), its counts, and every other
+                            file's SHA-256 and size.
 ``articles.jsonl``          One article per line: PMCID, PMID, DOI, title, journal, year, first
                             author, licence and its URL, article type, PMC link, and which
                             conditions' searches found it (``conditions``, ``focus``).
 ``passages.jsonl``          One passage per line, ``{"pmcid", "section", "text"}``; line i is row i
-                            of the embeddings.
+                            of the embeddings. Each text is a run of whole sentences free of
+                            treatment language (src/rag/screening.py).
 ``passage_embeddings.npy``  float16 or float32, (passages, dimension), each row L2-normalised.
 ``query_vocabulary.json``   ``{"rows": [{"kind", "id", "text"}, …]}`` (src/rag/vocabulary.py); row
-                            i is row i of the query embeddings.
+                            i is row i of the query embeddings. ``check`` rows also name their
+                            ``condition`` and ``concepts``.
 ``query_embeddings.npy``    The query texts' vectors, normalised like the passages'.
 ``search.json``             Every PMC search: the term, NCBI's translation of it, its hit count and
                             the ids it returned, with the date (a record; the laptop only checks
@@ -25,7 +28,9 @@ the corpus and its embeddings are never committed, docs/03 §5). Its files:
 **The laptop refuses a bundle whose files do not match the manifest** (:func:`load_bundle`
 raises :class:`BundleError`, and ``open_retriever`` then degrades to no evidence, reporting
 ``rag``): a file changed or truncated after the notebook wrote it would otherwise show passages
-under citations they did not come from. Arrays are read with ``allow_pickle=False``.
+under citations they did not come from. Arrays are read with ``allow_pickle=False``, and the
+passage vectors kept as stored (float16 halves them) and widened to float32 a chunk at a time. They
+are not memory-mapped: on Windows a mapped file cannot be replaced while the dashboard runs.
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ from typing import Any
 import numpy as np
 
 __all__ = [
+    "CHUNK_ROWS",
     "FORMAT",
     "FORMAT_VERSION",
     "REQUIRED_FILES",
@@ -61,6 +67,9 @@ REQUIRED_FILES = (
     "query_vocabulary.json",
     "query_embeddings.npy",
 )
+CHUNK_ROWS = 4096
+"""Passage vectors are read and scored this many rows at a time, so a float16 file is never
+expanded to float32 all at once."""
 
 
 class BundleError(ValueError):
@@ -115,58 +124,84 @@ def write_manifest(bundle_dir: Path | str, info: Mapping[str, Any]) -> dict[str,
 
 @dataclass
 class Bundle:
-    """A loaded bundle; the embeddings are float32 and normalised."""
+    """A loaded bundle.
+
+    ``passage_vectors`` is the array as stored (float16 or float32); ``passage_norms`` holds each
+    row's length, which :meth:`passage_scores` divides by, so the
+    scores are cosines whatever the file's rounding. ``query_vectors`` are float32 and normalised.
+    """
 
     path: Path
     manifest: dict[str, Any]
     articles: dict[str, dict[str, Any]]
     passages: list[dict[str, Any]]
     passage_vectors: np.ndarray
-    query_rows: list[dict[str, str]]
+    passage_norms: np.ndarray
+    query_rows: list[dict[str, Any]]
     query_vectors: np.ndarray
+
+    def passage_scores(self, queries: np.ndarray) -> np.ndarray:
+        """The cosine of every passage with every query: ``(len(queries), passages)``, float32.
+
+        ``queries`` are unit vectors, (n, dimension). The product is taken :data:`CHUNK_ROWS`
+        passages at a time, in float32.
+        """
+        queries = np.atleast_2d(np.asarray(queries, dtype=np.float32))
+        out = np.empty((queries.shape[0], len(self.passages)), dtype=np.float32)
+        for lo in range(0, len(self.passages), CHUNK_ROWS):
+            hi = min(lo + CHUNK_ROWS, len(self.passages))
+            block = np.asarray(self.passage_vectors[lo:hi], dtype=np.float32)
+            out[:, lo:hi] = (queries @ block.T) / self.passage_norms[lo:hi]
+        return out
 
 
 def _normalised(array: np.ndarray, name: str) -> np.ndarray:
+    norms = _row_norms(array, name)
+    return np.asarray(array, dtype=np.float32) / norms[:, None]
+
+
+def _row_norms(array: np.ndarray, name: str) -> np.ndarray:
+    """Each row's length, checked finite and non-zero, read :data:`CHUNK_ROWS` rows at a time."""
     if array.ndim != 2 or array.shape[1] == 0:
         raise BundleError(f"{name} should be a 2-D array, not of shape {array.shape}")
-    vectors = array.astype(np.float32)
-    if not np.all(np.isfinite(vectors)):
-        raise BundleError(f"{name} holds values that are not finite")
-    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    if np.any(norms == 0):
-        raise BundleError(f"{name} holds a zero vector")
-    return vectors / norms
+    if array.dtype not in (np.float16, np.float32, np.float64):
+        raise BundleError(f"{name} should hold floats, not {array.dtype}")
+    norms = np.empty(array.shape[0], dtype=np.float32)
+    for lo in range(0, array.shape[0], CHUNK_ROWS):
+        block = np.asarray(array[lo : lo + CHUNK_ROWS], dtype=np.float32)
+        if not np.all(np.isfinite(block)):
+            raise BundleError(f"{name} holds values that are not finite")
+        norms[lo : lo + CHUNK_ROWS] = np.linalg.norm(block, axis=1)
+    if np.any(norms == 0) or not np.all(np.isfinite(norms)):
+        raise BundleError(f"{name} holds a zero vector, or one too long for float32")
+    return norms
 
 
-def load_bundle(bundle_dir: Path | str) -> Bundle:
-    """The bundle at ``bundle_dir``, every file checked against the manifest first.
+def _check_records(rows: list[Any], name: str, fields: tuple[str, ...]) -> None:
+    for line, row in enumerate(rows, start=1):
+        if not isinstance(row, dict) or not all(isinstance(row.get(f), str) for f in fields):
+            raise BundleError(f"{name} line {line} lacks {', '.join(fields)} as text")
 
-    Raises:
-        BundleError: for a missing folder or manifest, an unknown format, a file the manifest
-            lists that is missing or whose SHA-256 differs, a required file the manifest does not
-            list, or contents that do not fit together (row counts, dimensions, unknown articles).
-    """
-    bundle_dir = Path(bundle_dir)
-    manifest_path = bundle_dir / "manifest.json"
-    if not manifest_path.is_file():
-        raise BundleError(f"no retrieval bundle at {bundle_dir} (no manifest.json)")
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
-        raise BundleError(f"{manifest_path} is unreadable: {error}") from error
+
+def _check_files(bundle_dir: Path, manifest: Any) -> None:
+    """The manifest's format, and every file it lists present with its SHA-256."""
+    if not isinstance(manifest, dict):
+        raise BundleError(f"{bundle_dir / 'manifest.json'} is not a JSON object")
     if manifest.get("format") != FORMAT or manifest.get("format_version") != FORMAT_VERSION:
         raise BundleError(
-            f"{manifest_path} is not a {FORMAT} v{FORMAT_VERSION} manifest "
+            f"{bundle_dir / 'manifest.json'} is not a {FORMAT} v{FORMAT_VERSION} manifest "
             f"({manifest.get('format')!r} v{manifest.get('format_version')!r})"
         )
-    files = manifest.get("files") or {}
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not all(isinstance(v, dict) for v in files.values()):
+        raise BundleError("the manifest's files should map each name to its sha256 and size")
     unlisted = [name for name in REQUIRED_FILES if name not in files]
     if unlisted:
         raise BundleError(f"the manifest does not list {', '.join(unlisted)}")
     for name, expected in files.items():
-        path = bundle_dir / name
-        if Path(name).name != name:
+        if Path(name).name != name or name in ("", ".", ".."):
             raise BundleError(f"the manifest names a file outside the bundle: {name!r}")
+        path = bundle_dir / name
         if not path.is_file():
             raise BundleError(f"{name} is missing from {bundle_dir}")
         actual = sha256_of(path)
@@ -176,13 +211,42 @@ def load_bundle(bundle_dir: Path | str) -> Bundle:
                 f"{str(expected.get('sha256'))[:12]}…): the bundle was changed after it was written"
             )
 
-    articles = {a["pmcid"]: a for a in read_jsonl(bundle_dir / "articles.jsonl")}
-    passages = read_jsonl(bundle_dir / "passages.jsonl")
-    vocabulary = json.loads((bundle_dir / "query_vocabulary.json").read_text(encoding="utf-8"))
-    query_rows = vocabulary.get("rows") or []
-    passage_vectors = _normalised(
-        np.load(bundle_dir / "passage_embeddings.npy", allow_pickle=False), "passage_embeddings"
-    )
+
+def load_bundle(bundle_dir: Path | str) -> Bundle:
+    """The bundle at ``bundle_dir``, every file checked against the manifest first.
+
+    Raises:
+        BundleError: for a missing folder or manifest, an unknown format, a file the manifest
+            lists that is missing or whose SHA-256 differs, a required file the manifest does not
+            list, or contents that do not fit together (row counts, dimensions, unknown articles,
+            records without their fields, vectors that are not finite floats).
+    """
+    bundle_dir = Path(bundle_dir)
+    manifest_path = bundle_dir / "manifest.json"
+    if not manifest_path.is_file():
+        raise BundleError(f"no retrieval bundle at {bundle_dir} (no manifest.json)")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise BundleError(f"{manifest_path} is unreadable: {error}") from error
+    _check_files(bundle_dir, manifest)
+
+    try:
+        article_rows = read_jsonl(bundle_dir / "articles.jsonl")
+        passages = read_jsonl(bundle_dir / "passages.jsonl")
+        vocabulary = json.loads((bundle_dir / "query_vocabulary.json").read_text(encoding="utf-8"))
+    except ValueError as error:
+        raise BundleError(f"a bundle file is not valid JSON: {error}") from error
+    _check_records(article_rows, "articles.jsonl", ("pmcid", "title"))
+    _check_records(passages, "passages.jsonl", ("pmcid", "text"))
+    query_rows = vocabulary.get("rows") if isinstance(vocabulary, dict) else None
+    if not isinstance(query_rows, list):
+        raise BundleError("query_vocabulary.json should hold {'rows': [...]}")
+    _check_records(query_rows, "query_vocabulary.json", ("kind", "id", "text"))
+    articles = {a["pmcid"]: a for a in article_rows}
+
+    passage_vectors = np.load(bundle_dir / "passage_embeddings.npy", allow_pickle=False)
+    passage_norms = _row_norms(passage_vectors, "passage_embeddings")
     query_vectors = _normalised(
         np.load(bundle_dir / "query_embeddings.npy", allow_pickle=False), "query_embeddings"
     )
@@ -201,5 +265,12 @@ def load_bundle(bundle_dir: Path | str) -> Bundle:
     if orphans:
         raise BundleError(f"{len(orphans)} passages cite an article not in articles.jsonl")
     return Bundle(
-        bundle_dir, manifest, articles, passages, passage_vectors, query_rows, query_vectors
+        path=bundle_dir,
+        manifest=manifest,
+        articles=articles,
+        passages=passages,
+        passage_vectors=passage_vectors,
+        passage_norms=passage_norms,
+        query_rows=query_rows,
+        query_vectors=query_vectors,
     )

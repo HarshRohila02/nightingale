@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Sequence
+from functools import lru_cache
 
 __all__ = [
     "STOPWORDS",
@@ -39,19 +40,26 @@ __all__ = [
 _WORD = re.compile(r"[a-z0-9]+")
 _FOLD = re.compile(r"[oa]e")
 
-STOPWORDS: frozenset[str] = frozenset(
-    """
+_STOPWORD_TEXT = """
     an and are as at be been being but by can could did do does for from had has have he her
     his how if in into is it its may might more most no nor not of on or our she should so such
     than that the their them then there these they this those to was we were what when where
     which while who whom why will with would you your
-    """.split()
-)
+"""
+STOPWORDS: frozenset[str] = frozenset(_STOPWORD_TEXT.split())
 """Function words dropped by :func:`tokenize`. Negations ("no", "not") go too: BM25 counts words
 and cannot read a negation anyway, so keeping them would only reward passages that negate."""
 
 
-def _normalise(word: str) -> str:
+@lru_cache(maxsize=1 << 18)
+def _term(word: str) -> str | None:
+    """One casefolded word as its BM25 term, or None for a dropped word (rules 2–4).
+
+    Cached: a corpus repeats a few tens of thousands of distinct words millions of times, and the
+    cache turns the per-word rules into one dictionary lookup (the retriever's start-up, EXP-011).
+    """
+    if word in STOPWORDS or (len(word) == 1 and not word.isdigit()):
+        return None
     word = _FOLD.sub("e", word)
     if len(word) >= 4 and word.endswith("s") and word[-2] not in "sui":
         word = word[:-1]
@@ -60,12 +68,7 @@ def _normalise(word: str) -> str:
 
 def tokenize(text: str) -> list[str]:
     """The text as BM25 terms, in order (the rules are in the module docstring)."""
-    out = []
-    for word in _WORD.findall(text.casefold()):
-        if word in STOPWORDS or (len(word) == 1 and not word.isdigit()):
-            continue
-        out.append(_normalise(word))
-    return out
+    return [term for word in _WORD.findall(text.casefold()) if (term := _term(word)) is not None]
 
 
 def phrase_tokens(phrase: str) -> tuple[str, ...]:

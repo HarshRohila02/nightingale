@@ -15,13 +15,15 @@ before the notebook ever runs.
 * :func:`chunk_spans` cuts a section into the configured windows (``retrieval.chunk_size`` 512,
   ``chunk_overlap`` 64), counted in the embedding model's own WordPiece tokens. It works on the
   tokenizer's character offsets, so every passage is an exact substring of its section.
+* :func:`article_passages` chunks only the runs of sentences free of treatment language
+  (src/rag/screening.py): **no passage holds a treatment sentence** (FR-6.5).
 """
 
 from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -29,6 +31,7 @@ __all__ = [
     "DROPPED_ARTICLE_TYPES",
     "DROPPED_SECTIONS",
     "Article",
+    "article_passages",
     "article_url",
     "chunk_spans",
     "licence_code",
@@ -39,12 +42,17 @@ __all__ = [
 DROPPED_SECTIONS = re.compile(
     r"method|material|statistic|acknowledg|funding|financial|author.{0,3}contribution|conflict|"
     r"competing|disclosure|ethic|consent|data.{0,3}availab|availability|supplementa|abbreviation|"
-    r"reference|declaration|limitation",
+    r"reference|declaration|limitation|"
+    r"treat|therap|manag|surg|intervention|pharmacolog|medication|prophyla|prevention|"
+    r"follow.{0,3}up|outcome",
     re.IGNORECASE,
 )
 """Section titles whose text is dropped. A methods section describes a study, not a condition;
-the rest describe the paper. "Limitations" goes too: it is about the study, and reads as a claim
-about the condition when quoted alone."""
+the administrative ones describe the paper. "Limitations" goes too: it is about the study, and
+reads as a claim about the condition when quoted alone. **So do the sections about treatment,
+prevention and outcome** ("Management", "Treatment and follow-up"…): evidence is about diagnosis
+only (FR-6.5), and what the remaining sections say about treatment is screened sentence by
+sentence (src/rag/screening.py)."""
 
 DROPPED_ARTICLE_TYPES: frozenset[str] = frozenset(
     {"correction", "retraction", "expression-of-concern", "addendum", "erratum", "removal-notice"}
@@ -113,7 +121,7 @@ def article_url(pmcid: str) -> str:
 
 
 def normalise_pmcid(value: str) -> str | None:
-    """"PMC1234567" from "PMC1234567", "pmc1234567" or the bare "1234567", else None."""
+    """ "PMC1234567" from "PMC1234567", "pmc1234567" or the bare "1234567", else None."""
     digits = value.strip().upper().removeprefix("PMC")
     return f"PMC{digits}" if digits.isdigit() else None
 
@@ -252,7 +260,7 @@ def _year(meta: ET.Element) -> int | None:
 
 
 def _authors(meta: ET.Element) -> str | None:
-    """"Surname AB" for the first author, "et al." after it when there are more."""
+    """ "Surname AB" for the first author, "et al." after it when there are more."""
     names = []
     for contrib in meta.iter():
         if _local(contrib.tag) == "contrib" and contrib.get("contrib-type", "author") == "author":
@@ -361,9 +369,11 @@ def parse_articles(
             fetches the batch one article at a time.
     """
     root = ET.fromstring(xml)
-    articles = [root] if _local(root.tag) == "article" else [
-        child for child in root if _local(child.tag) == "article"
-    ]
+    articles = (
+        [root]
+        if _local(root.tag) == "article"
+        else [child for child in root if _local(child.tag) == "article"]
+    )
     kept: list[Article] = []
     dropped: list[dict[str, str]] = []
     for element in articles:
@@ -461,3 +471,40 @@ def chunk_spans(
         nxt = max(end - overlap, start + 1)
         nxt = next((j for j in range(nxt, end) if begins_word(j)), nxt)
         start = nxt
+
+
+def article_passages(
+    article: Article,
+    offsets_of: Callable[[str], Sequence[tuple[int, int]]],
+    window: int,
+    overlap: int,
+    min_chars: int | None = None,
+) -> list[dict[str, str]]:
+    """The article's passages: ``{"pmcid", "section", "text"}``, in reading order.
+
+    Each section is first cut into its runs of consecutive sentences free of treatment language
+    (:func:`src.rag.screening.diagnostic_spans`), and only those runs are chunked
+    (:func:`chunk_spans`), so **every passage is a verbatim, contiguous piece of one section and
+    holds no treatment sentence** (FR-6.5).
+
+    Args:
+        article: A kept article.
+        offsets_of: A text's token character offsets, without special tokens: in the notebook the
+            embedding model's fast tokenizer (``return_offsets_mapping``); in the tests a
+            whitespace split.
+        window, overlap: As for :func:`chunk_spans`.
+        min_chars: The shortest run kept (default
+            :data:`src.rag.screening.MIN_SEGMENT_CHARS`).
+    """
+    from src.rag.screening import MIN_SEGMENT_CHARS, diagnostic_spans
+
+    floor = MIN_SEGMENT_CHARS if min_chars is None else min_chars
+    out = []
+    for section, text in article.sections:
+        for start, end in diagnostic_spans(text, floor):
+            segment = text[start:end]
+            for lo, hi in chunk_spans(offsets_of(segment), window, overlap):
+                piece = segment[lo:hi].strip()
+                if piece:
+                    out.append({"pmcid": article.pmcid, "section": section, "text": piece})
+    return out
