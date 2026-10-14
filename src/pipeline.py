@@ -35,6 +35,7 @@ from src.fusion import (
     fuse_scores,
     valid_model_scores,
 )
+from src.reasoning.guardrails import check_explanation
 from src.reasoning.investigations import TESTS_FOR_TOP, suggested_tests
 from src.reasoning.red_flags import evaluate_red_flags
 from src.reasoning.safety import safety_check
@@ -127,9 +128,11 @@ class DiagnosisPipeline:
             explanation=explanation,
             degraded_components=degraded,
         )
-        # The last step, whatever produced the result: the disclaimer, flags first, and no
-        # treatment advice (FR-6.2, FR-6.4, FR-6.5; src/reasoning/safety.py).
-        return safety_check(result, case)
+        # Every sentence of the explanation must trace to something the result holds, and it may
+        # cite only the passages retrieved (3c; src/reasoning/guardrails.py). Then the last step,
+        # whatever produced the result: the disclaimer, flags first, and no treatment advice
+        # (FR-6.2, FR-6.4, FR-6.5; src/reasoning/safety.py).
+        return safety_check(check_explanation(result, case), case)
 
     # -- internals --------------------------------------------------------- #
 

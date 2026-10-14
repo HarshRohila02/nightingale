@@ -93,10 +93,25 @@ sequenceDiagram
         P->>G: retrieve + explain (grounded)
         G-->>P: Explanation + Evidence[]
     end
+    P->>R: check_explanation() (3c)
     P->>R: safety_check()
     P-->>A: DiagnosisResult
     A-->>C: ranked differential + disclaimer
 ```
+
+*2026-10-14 (3c, guardrails v1, `docs/17` T5).* Before `safety_check()`, `check_explanation()`
+(`src/reasoning/guardrails.py`) checks the explanation, whoever wrote it.
+- **Claim support.** Each sentence must trace to one thing the result holds: a candidate (its
+  label, graph assessments and paths), the red flags, the model's reasons (a candidate and the
+  case's recorded findings), a suggested test or a cited passage. A sentence that traces to none is
+  listed in `unsupported_claims` (`not traced to the result (3c): …`) and `grounded` becomes False.
+  The text is left in place: the claim is flagged, not suppressed.
+- **Citations.** An explanation may cite only the retrieved passages; any other citation is removed
+  and listed. One formatter, `citation_link`, gives a citation's PMC page or no link, and the
+  dashboard uses it too.
+- **Lexical, like the safety layer v1.** It catches a word the result does not hold, not a wrong
+  relation between words it does. The template's sentences always trace (tested on every golden
+  case); an LLM's that do not will send the explainer back to the template (3b).
 
 ---
 
