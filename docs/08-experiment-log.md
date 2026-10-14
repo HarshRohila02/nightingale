@@ -63,6 +63,140 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-011 — Evidence retrieval: BM25, dense search and their hybrid, over PMC Open Access (3a) · *design pre-registered 2026-10-14, before any corpus existed*
+
+| Field | Value |
+|---|---|
+| Date | 2026-10-14: this design, with the code and the Kaggle notebook, **before the corpus was fetched**. Nothing has been retrieved from a real passage, and nothing is scored |
+| Author | P3 (Claude) |
+| Config / ablation | `src/rag/` (the retriever, the treatment screen, the bundle); `configs/config.yaml` `retrieval:`; the bundle from `notebooks/kaggle_retrieval_corpus.ipynb` (`docs/11` §4.6) |
+| Split used | **no DDXPlus patient**: the queries are the conditions and the hand-written golden cases. No validation or test patient is read, and no fused ranking over validation is made (E-2 is open) |
+| Git commit | the commit that adds this entry; the bundle's manifest records the commit that built it |
+| Seed | retrieval is deterministic; 42 for shuffling the judging pool and for the bootstrap |
+
+**Question.** FR-7.1–7.3 and FR-9.4. Does the evidence shown beside a candidate bear on the
+diagnosis of that condition in that patient? Is the hybrid better than BM25 alone or dense search
+alone? How close does the laptop's mixed query vector come to embedding the whole query? What does
+retrieval cost on the laptop? **No ranking depends on it**: evidence is attached after ranking, and
+a test checks that it never changes the order (`tests/test_retrieval.py`).
+
+**What was known when this was written.**
+- No bundle existed and no real passage had been retrieved.
+- The design was fixed by the owner and `docs/16` §2:
+  - PMC Open Access only;
+  - `pritamdeka/S-PubMedBert-MS-MARCO`;
+  - the query vector as a mix of precomputed vectors;
+  - reciprocal rank fusion with k = 60;
+  - NumPy only on the laptop.
+- These constants were fixed before any real passage was seen: the condition's 0.6 share of the
+  dense query, a depth of 10, BM25's k1 = 1.2 and b = 0.75, 320-character excerpts, 150 articles
+  per condition, and the treatment screen's rules (`src/rag/screening.py`, digest in each
+  manifest).
+- **None of them is tuned on the judged queries.** If this experiment leads to changing one, the
+  change is reported as post hoc, and its effect is judged on a fresh set of queries.
+- What has run: the unit tests on an invented corpus, and the timings on synthetic bundles below.
+
+**The corpus**, reported from the bundle's manifest and `skipped.jsonl` once it is built:
+- articles and passages per condition, and the licences;
+- articles dropped, by reason: no Creative Commons licence in the XML, a title naming a treatment,
+  no passage left after the screen, a failed fetch;
+- each condition's share of its planned articles that survived.
+
+**The queries**, fixed now (26):
+- **Q-cond**, one per condition (14): the condition with no findings, `rank(condition, [])`. What
+  the corpus says about each condition's diagnosis.
+- **Q-case**, the golden cases (GC-001 to GC-004, and any added before judging begins) × the three
+  candidates the configured pipeline ranks first for each, red flags on, with the case's present
+  findings (12). Hand-written cases only.
+
+**Pooling and judging.**
+- **The pool.** For each query, the top 10 of each method, one passage per article, are pooled:
+  BM25 alone, dense alone and the hybrid (`rank(..., methods=)`), at most 30 distinct passages. The
+  pool is shuffled (seed 42) and shown without the method's name.
+- **The judges.** Each passage is judged against its query by **two team members, independently**,
+  both blind to the method. Claude does not judge. Disagreements are settled by discussion, and
+  the weighted Cohen's κ before discussion is reported.
+- **The scale**, graded:
+  - **2**: it says something about diagnosing this condition that bears on this patient's
+    findings, such as a finding's value, the presentation, or an investigation's diagnostic role;
+  - **1**: it is about diagnosing this condition, but not these findings;
+  - **0**: it is not about diagnosing this condition: another condition, epidemiology alone, a
+    study's logistics, or treatment.
+- **Treatment that reached a judge** is also counted on its own as a failure of the screen. The
+  target is none. Any one found extends the screen's pattern, and the bundle is rebuilt.
+- The judgements hold PMCIDs and labels only, no article text, in `data/interim/exp011_judgements.csv`.
+
+**The metrics**, for each method, over the 26 queries, each with its 95% bootstrap interval over
+queries (1,000 resamples, seed 42):
+- **Precision@3**, the operational figure: the share of the passages the dashboard shows (3) judged
+  at least 1, and, strictly, 2.
+- **nDCG@3 and nDCG@10**, gains 0/1/2, the ideal ordering taken from the judged pool.
+- **Recall@10** of the pool's passages judged at least 1. This is pooled recall, relative to what
+  the three methods found, not to the corpus.
+
+**The comparison.**
+- The hybrid against each method alone, on nDCG@10: the paired bootstrap of the per-query
+  difference (`paired_bootstrap_difference`, `src/eval/metrics.py`).
+- With 26 queries the intervals will be wide. This is a check of the design, not a hypothesis of
+  `docs/05`.
+
+**The rule**, fixed now:
+- The hybrid stays configured unless BM25 alone or dense alone is better on nDCG@10 with a paired
+  interval that excludes 0. Then the better method alone is configured, which needs a small change
+  to the code (a `retrieval.methods` key).
+- If the configured method's Precision@3 (judged at least 1) is under 0.5, the team decides whether
+  evidence stays in the prototype. It is reported either way.
+
+**The mix's fidelity.** `mix_fidelity.json` comes with the bundle (`mix_fidelity` in
+`src/rag/retriever.py`). The notebook embeds, for each golden case and condition (4 × 14), the full
+keyword query `compose_query_text`, so the laptop can compare it with its own mixed vector without
+running a model. Reported:
+- the median and range of the cosine between the two vectors;
+- the median and range of the overlap of their dense top 10 (eligible passages, one per article);
+- for Q-case, nDCG@10 of dense search with the mixed vector against dense search with the embedded
+  query, on the same judgements.
+- **A median overlap under 0.5 counts as a poor stand-in**, and is disclosed as a limit of the
+  laptop design. There is no remedy that keeps the model off the laptop for an arbitrary case.
+
+**The cost**, measured 2026-10-14 on the laptop CPU with `scripts/measure_retrieval.py
+--synthetic N` (seed 42): random words, each passage naming one condition, and random
+768-dimensional float16 vectors, at a real bundle's size. The real bundle is re-measured with
+`--bundle` once it exists.
+
+| Passages | Load (hashes, JSON, norms) | Start-up (tokenize, BM25, filters, score rows) | `retrieve`, one candidate, 3 passages | Stub pipeline with evidence for 3 candidates, against without | Memory |
+|---|---|---|---|---|---|
+| 20,000 | 0.23 s | 3.9 s | p50 1.02 ms, p95 1.22 ms | p50 4.07 against 0.27 ms; p95 4.53 against 0.31 ms | 6.5 MB of score rows, 31 MB of vectors |
+| 50,000 | 0.56 s | 9.9 s | p50 1.33 ms, p95 1.69 ms | p50 4.94 against 0.26 ms; p95 5.91 against 0.28 ms | 16 MB, 77 MB |
+
+- Live re-ranking stays possible: the transformer's pipeline is 10–13 ms at p95 (EXP-022), so with
+  evidence it would be about 15–19 ms. The evidence's share includes `safety_check` reading every
+  excerpt.
+- The dense half costs almost nothing. The query vector is a linear mix of precomputed vectors, so
+  each passage's cosine with it is the same mix of cosines computed once on load. That is exact,
+  not approximate.
+- Most of the time goes to BM25 over every passage, and to the excerpts.
+- Re-screening every passage's text for treatment language on load would add about 25 s at
+  20,000 passages (0.3 µs a character). It is done only for a bundle screened under other rules
+  than the code's.
+
+**Limits, stated in advance.**
+- **Closed world (R-13):** only the 14 conditions have evidence.
+- The corpus is what PMC's title searches and their relevance order return, at one date, in
+  English, from the Open Access subset only.
+- **Pooling misses relevant passages no method found.** The judges know the condition they judge
+  against.
+- **The screen is lexical.** It drops some diagnostic sentences: "recent surgery" survives, but
+  a D-dimer threshold written in mg/L does not, because a dose pattern matches it. It can miss a
+  treatment written in words it does not list.
+- **Independent of DDXPlus.** Unlike the graph's figures, no result here is circular (R-12). The
+  query texts do come from the crosswalk's labels.
+
+**Next action.**
+1. The owner runs the notebook (`docs/11` §4.6) and unzips the bundle on the laptop.
+2. Claude reports the corpus and the mix's fidelity, re-measures the cost, and prepares the pool.
+3. Two team members judge it.
+4. The metrics and the rule are applied as written here.
+
 ### EXP-007 — Calibration: Platt scaling against isotonic regression, and when a score may be shown as a probability (2b) (validation split) · *pre-registered 2026-10-13, before any calibrator was fitted on project data*
 
 | Field | Value |
@@ -2253,7 +2387,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only | 3 | H3 |
 | EXP-010 | B4 text-RAG + LLM | 3 | H3 |
-| EXP-011 | Retrieval quality sweep | 3 | Chunking/embedding choice |
+| EXP-011 | ~~Retrieval quality sweep~~ **Evidence retrieval: BM25, dense and the hybrid over PMC Open Access** *(3a; design pre-registered 2026-10-14, before any corpus existed; the chunking and the model fixed by the owner, so nothing is swept; waits for the owner's Kaggle run, `docs/11` §4.6)* | 3 | ~~Chunking/embedding choice~~ Whether the hybrid stays configured, by the rule recorded; how far the precomputed-vector mix is from embedding the query; retrieval's cost on the laptop |
 | EXP-012 | **Full ablation ~~A0–A6~~ A0–A7 and A1b** (`docs/05` §5 as amended) `[TEST]` | 4 | H1, H2, H4 (and H1-R, H2-R, H6) |
 | EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |
 | EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |

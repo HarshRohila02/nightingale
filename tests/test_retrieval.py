@@ -749,6 +749,19 @@ def test_describe_names_the_corpus(retriever):
     )
 
 
+def test_the_timing_script_measures_a_small_synthetic_bundle(tmp_path):
+    """scripts/measure_retrieval.py (EXP-011's cost figures), on 120 synthetic passages."""
+    import measure_retrieval
+
+    out = tmp_path / "timings.json"
+    assert measure_retrieval.main(["--synthetic", "120", "--out", str(out)]) == 0
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["passages"] == 120 and report["vector_dtype"] == "float16"
+    assert report["rescreened"] is False  # screened under today's rules, as the notebook's are
+    assert report["retrieve_one_candidate"]["p50_ms"] > 0
+    assert set(report["pipeline"]) == {"with_evidence", "without"}
+
+
 # --------------------------------------------------------------------------- #
 # The pipeline
 # --------------------------------------------------------------------------- #
