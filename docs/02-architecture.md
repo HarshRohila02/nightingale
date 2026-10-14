@@ -526,9 +526,10 @@ out a must-not-miss condition is not preferred for its danger; the red-flag rule
 matter only together each look weak. (4) Naive Bayes treats findings as independent given the
 condition, so a finding correlated with one recorded can look more informative than it is. (5)
 Where the crosswalk carries a finding one way only (a denied *exertional* denies `E_218`, an
-asserted one implies nothing), P(present | c) is a normalised reading of the scorer's two
-increments, not its exact posterior; likewise LEAK / (1 + LEAK) for a condition with no edge to a
-finding. (6) The model is not consulted. (7) The stub graph has no likelihoods; its questions come
+asserted one implies nothing), or an answer replaces questions the case already counts,
+P(present | c) is a normalised reading of the scorer's two increments, keeping each condition's
+likelihood ratio between the answers but not its exact posterior; likewise LEAK / (1 + LEAK) for a
+condition with no edge to a finding. (6) The model is not consulted. (7) The stub graph has no likelihoods; its questions come
 from a naive-Bayes view of the stub map (`InMemoryGraphStore.scorer`), a toy like the map. (8) A
 graph that fails, or a store without a likelihood view, gives no questions rather than a guess.
 

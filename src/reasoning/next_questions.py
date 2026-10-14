@@ -27,14 +27,17 @@ it: the questions it implies, the entailed questions counted once, contradiction
 scores' increments are the likelihoods of the two answers, L⁺(c) and L⁻(c), and
 θ(c) = L⁺(c) / (L⁺(c) + L⁻(c)). **In the usual case, a finding that lands on one graph node the
 condition has an edge to, L⁺ + L⁻ = 1, so θ is the scorer's own P(finding | c) and the posterior
-after either answer is the one the graph would then show.** Two cases are not usual, and there the
-model is the closest coherent reading of the scorer, not the scorer itself:
+after either answer is the one the graph would then show.** Three cases are not usual, and there
+the model is the closest coherent reading of the scorer, not the scorer itself: θ keeps, for each
+condition, the scorer's likelihood ratio between the two answers, but not its exact posterior
+after them.
 
-* a condition with no edge to the finding: the scorer charges LEAK for "present" and nothing for
-  "denied", so θ = LEAK / (1 + LEAK) ≈ 0.0099 instead of LEAK;
-* a finding the crosswalk carries one way only (``SYM:exertional`` without a node of its own:
-  denying it denies DDXPlus's ``E_218``, asserting it implies nothing): θ keeps, for each condition,
-  the scorer's likelihood ratio between the two answers, but not its exact posterior after them.
+* A condition with no edge to the finding: the scorer charges LEAK for "present" and nothing for
+  "denied", so θ = LEAK / (1 + LEAK) ≈ 0.0099 instead of LEAK.
+* A finding the crosswalk carries one way only (``SYM:exertional`` without a node of its own:
+  denying it denies DDXPlus's ``E_218``, asserting it implies nothing).
+* An answer that replaces questions the case already counts: chest pain entails "pain anywhere?",
+  which a back-pain answer without a node of its own had counted, so the increment is a ratio.
 
 **What is never asked.** A concept the case records, present or denied; and one the record already
 settles through the crosswalk: unilateral leg swelling settles leg swelling, a denied leg swelling
@@ -42,8 +45,7 @@ settles both of its kinds, epigastric pain settles abdominal pain (:func:`settle
 inferences the crosswalk's match types allow are drawn, as in ``expand_case``.
 
 **Fixed before any data was looked at; nothing is tuned.** The measure, the units (bits), the order
-(gain to 10 significant digits, then concept id), and the display
-constants below. It reads no validation data, and no model: the ML ranker is not consulted, so a
+(gain to 10 significant digits, then concept id), and the display constants below. It reads no validation data, and no model: the ML ranker is not consulted, so a
 question that would only separate what the model already separates scores as the graph sees it.
 
 **Limits.** (1) The posterior is the graph's alone, a naive Bayes over question-level knowledge
