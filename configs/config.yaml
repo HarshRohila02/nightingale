@@ -128,6 +128,10 @@ retrieval:
   rerank_top_k: 5 # unused: a cross-encoder rerank needs a model at query time (src/rag/retriever.py)
 
 llm:
+  # 3b: the grounded LLM explainer (src/llm/), off. False builds the template explainer exactly as
+  # before. True asks the model below through Ollama, and the template stands in, reporting llm,
+  # whenever the answer is late, fails, or holds anything the result does not (docs/17 T6).
+  enabled: false
   provider: ollama
   model: llama3.1:8b # quantised (~4.9 GB); pulled where it runs (D-5, Phase 3)
   # Ollama puts the model on a GPU automatically. On the owner's laptop it runs only

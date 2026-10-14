@@ -25,6 +25,7 @@ __all__ = [
     "build_pipeline",
     "calibrator_from_config",
     "describe_graph",
+    "explainer_from_config",
     "fusion_weights_from_config",
     "load_config",
     "open_graph_from_config",
@@ -100,6 +101,39 @@ def calibrator_from_config(config: dict[str, Any]) -> Any:
         }
     )
     return RefusedCalibrator(f"{name}: {reason}") if reason else calibrator
+
+
+def explainer_from_config(config: dict[str, Any], ranker: Any = None) -> Any:
+    """The explainer the ``llm:`` block asks for (task 3b).
+
+    With ``llm.enabled`` false, the default, the template explainer (with the model's reasons,
+    2b), exactly as before. With it true, :class:`~src.llm.explainer.LLMExplainer` over an
+    :class:`~src.llm.client.OllamaClient` for ``llm.model``, with ``temperature``, ``max_tokens``
+    and ``timeout_seconds`` from the block, and the template explainer standing in for it.
+    Building it contacts nothing: the model is asked only when a case is explained. Which model
+    (D-5), and where it runs (D-7, D-9), are the owner's.
+
+    Raises:
+        ValueError: for a provider other than ollama, or no model named.
+    """
+    from src.stubs import TemplateExplainer
+
+    llm = config.get("llm") or {}
+    if not llm.get("enabled", False):
+        return TemplateExplainer(ranker=ranker)
+    if llm.get("provider", "ollama") != "ollama":
+        raise ValueError(f"llm.provider {llm.get('provider')!r}: only ollama is implemented")
+    from src.llm.client import OllamaClient
+    from src.llm.explainer import LLMExplainer
+
+    client = OllamaClient(
+        str(llm.get("model") or ""),
+        temperature=float(llm.get("temperature", 0.1)),
+        max_tokens=int(llm.get("max_tokens", 512)),
+    )
+    return LLMExplainer(
+        client, ranker=ranker, timeout_seconds=float(llm.get("timeout_seconds", 30))
+    )
 
 
 def open_ranker_from_config(config: dict[str, Any]) -> Any:
@@ -219,10 +253,11 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
     """The pipeline as ``scripts/demo.py`` builds it, for the app and the dashboard.
 
     The configured ranker and graph, the configured evidence retriever (3a; without its bundle it
-    gives no evidence and every result reports ``rag``), the template explainer (with the model's
-    reasons, 2b), the configured fusion weights, how many candidates get evidence
-    (``ranking.top_k_evidence``) and how many passages each (``retrieval.passages_per_candidate``),
-    and the configured calibrator, if any (2b).
+    gives no evidence and every result reports ``rag``), the configured explainer (the template,
+    with the model's reasons, 2b, unless ``llm.enabled``: :func:`explainer_from_config`), the
+    configured fusion weights, how many candidates get evidence (``ranking.top_k_evidence``) and
+    how many passages each (``retrieval.passages_per_candidate``), and the configured calibrator,
+    if any (2b).
 
     Returns:
         ``pipeline``, ``ranker``, ``graph``, ``retriever``, ``labels`` (the real graph's node
@@ -235,7 +270,6 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
     from src.ml.ranker import describe
     from src.pipeline import DiagnosisPipeline
     from src.rag.retriever import describe as describe_retriever
-    from src.stubs import TemplateExplainer
 
     ranker = open_ranker_from_config(config)
     graph = open_graph_from_config(config, graph_backend)
@@ -245,7 +279,7 @@ def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> 
         ranker=ranker,
         graph=graph,
         retriever=retriever,
-        explainer=TemplateExplainer(ranker=ranker),
+        explainer=explainer_from_config(config, ranker),
         **fusion_weights_from_config(config),
         top_k_evidence=int((config.get("ranking") or {}).get("top_k_evidence", 3)),
         evidence_per_candidate=int(

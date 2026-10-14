@@ -619,6 +619,7 @@ result and repairs rather than fails.
 | Neo4j unavailable | Fall back to NetworkX in-memory graph | `degraded_components: ["graph_backend"]` |
 | Retrieval fails | Skip evidence; KG-only explanation | `["rag"]` |
 | LLM unavailable | Templated explanation from KG paths | `["llm"]` |
+| LLM answer late, failed, ungrounded, with an unretrieved citation or with treatment language *(3b, 2026-10-14; only with `llm.enabled`)* | The template explanation stands in (`src/llm/explainer.py`) | `["llm"]` |
 | Model not loaded, or trained on other features | KG-only ranking, flat ML scores | `["ml"]` |
 | Case the feature space cannot hold (`Sex.OTHER`) | KG-only ranking | `["ml"]` |
 | Calibrator configured but unusable (missing, or fitted for another model or α), or the result's score is not the one it was fitted to (no model, no graph) *(2b, 2026-10-13)* | Ranks only; `calibrated_probability` stays None | `["calibration"]` |
@@ -626,6 +627,14 @@ result and repairs rather than fails.
 
 The UI must always render `degraded_components` — a silently degraded medical tool is a safety
 problem.
+
+*2026-10-14 (3b scaffolding, `docs/17` T6).* `LLMExplainer` (`src/llm/`) asks a model, through
+Ollama's `/api/generate`, to phrase the explanation from a prompt holding only what the result
+holds (the template's sentences, the leading and flagged candidates, the tests, the fenced
+passages). It keeps the answer only if guardrails v1 (§3) traces every sentence and the safety
+layer's lexicon finds no treatment; otherwise the template stands in, and `explain_with_status`
+tells the pipeline to report `llm`. `llm.enabled` is false, so the pipeline builds the template
+explainer exactly as before. No model is chosen (D-5) or run here.
 
 *Built 2026-09-23.* `open_ranker()` (`src/ml/ranker.py`) is the same pattern for the model.
 Without the release files, without a trained model, or with a model whose feature fingerprint

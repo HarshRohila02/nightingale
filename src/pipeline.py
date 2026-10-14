@@ -291,7 +291,15 @@ class DiagnosisPipeline:
             degraded.append("llm")
             return None
         try:
-            return self.explainer.explain(case, candidates)
+            # An explainer that can stand in for itself (src/llm/explainer.py, 3b) says when it
+            # did: the template explanation then stands, and the result reports "llm" (§7).
+            explain_with_status = getattr(self.explainer, "explain_with_status", None)
+            if explain_with_status is None:
+                return self.explainer.explain(case, candidates)
+            explanation, fallback_reason = explain_with_status(case, candidates)
+            if fallback_reason:
+                degraded.append("llm")
+            return explanation
         except Exception:  # noqa: BLE001
             logger.exception("Explainer failed; returning result without explanation")
             degraded.append("llm")
