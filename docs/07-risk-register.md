@@ -138,7 +138,8 @@ deployed one. A clinician using the prototype has a partial history by definitio
    at 25%. EXP-018's "overconfident on short input" is narrowed: on masked validate patients the
    `+aug` models are calibrated against DDXPlus (ECE ≤ 0.011); the concern stands for hand-written
    cases, on GC-001's evidence. The
-   configured ranker is now **B1-LR′+aug**. Likelihood 3 → 2.
+   configured ranker is now **B1-LR′+aug**. Likelihood 3 → 2. *2026-10-13:* it is the transformer
+   B1-DL′+aug since D-13, trained the same way; B1-LR′+aug is the backup.
 
 *Trigger for review:* the deep ranker (B1-DL) is scored at the three levels.
 
@@ -426,6 +427,11 @@ models' (EXP-021, EXP-022), at every evidence level and over five seeds. **Safet
 the transformer replaces B1-LR′+aug as the pipeline's ranker only if it meets the safety targets
 and is non-inferior to it on validation; otherwise logistic regression stays, and the deep model
 is reported as the comparison. Nothing is tuned to make it win (T-6).
+
+*2026-10-13/14 (EXP-021):* it passed D-13 at all five seeds and replaced B1-LR′+aug. On
+validation its MRR at 25% beats the logistic regression's at nine of ten networks, but it is
+level with XGBoost trained the same way, so the risk held in part: H6, judged against both on
+the test split, may still not be supported.
 
 ---
 

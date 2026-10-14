@@ -4,8 +4,9 @@ A mask keeps a share of the questions a patient answered, as though the intervie
 early. It serves two purposes:
 
 * **Evaluation** at 50% and 25% of the history, as ``docs/proposals/05-amendment-3.md`` §3.7
-  proposes (:func:`mask_frame`, :func:`evaluation_rng`). **That amendment is not approved.** Until
-  the team picks a mask rule, no model is scored on masked validate patients (PROGRESS.md §1).
+  proposed (:func:`mask_frame`, :func:`evaluation_rng`). The team approved it on 2026-09-25
+  (`docs/05` amendment 3, §3.7), and EXP-019 recorded the masks' digests before anything was
+  scored on them.
 * **Training** on masked copies of *train* patients, ``+aug`` in the proposal's labels
   (:func:`augment`, :func:`augmentation_rng`), so that a model learns what an unasked question
   looks like. Without masked training rows the encoder's "asked" channel is constant and teaches
