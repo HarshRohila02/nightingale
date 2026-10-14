@@ -20,10 +20,14 @@ Phase 0 documentation set. Read in this order if you are new to the project.
 | 10 | [Spike R-01: Crosswalk](10-spike-r01-crosswalk.md) | Measured result that set the knowledge-graph strategy | P1 |
 | 11 | [Compute Runbook](11-compute-runbook.md) | Where each job runs; the owner's laptop-GPU steps; cloud jobs; AuraDB setup | Owner + P4 |
 | 12 | [Project Overview](12-project-overview.md) | A readable summary as of 2026-10-02: what is done, the techniques and the subjects they come from, a flowchart to the final result, and the time left. `PROGRESS.md` stays the source of truth | All |
+| 13 | [Simplified Project Guide](13-simplified-project-guide.md) | A guide to the 2026-10-02 scope cut: **withdrawn** on 2026-10-11 and kept as a record | — |
+| 14 | [Supervisor Brief](14-supervisor-brief.md) | The one-page brief for the owner's meeting with the supervisor on 2026-10-12 | Owner |
 | 15 | [The Working Prototype](15-prototype-demo.md) | How to start the dashboard and the API, the checklist for the day before a presentation, a five-minute demo script over the golden cases, the figures to quote with their caveats, and likely questions (`v0.1-prototype`, 2026-10-14) | Presenter |
 | — | [Proposal: `docs/05` amendment 3](proposals/05-amendment-3.md) | Reduced evidence (D-10) and the deep ranker (D-11): **approved 2026-09-25** and applied to `docs/05` v1.3; kept as the record of the proposal | All four |
 | — | [Proposal: amendment 3 errata](proposals/05-amendment-3-errata.md) | Contradictions an independent review found inside amendment 3's approved wording, with exact corrections: **approved 2026-10-02** and applied to `docs/05` v1.4 as amendment 3a; kept as the record | All four |
 | — | [Proposal: amendment 3a follow-ups](proposals/05-amendment-3b-errata.md) | What the verifiers of amendment 3a found: the `+aug` comparators are perfect or within four misses at 50%, so, as approved, the reduced-evidence claims cannot be met (needs an answer before the fusion sweep), and ten gaps left in the text: **for the team** (E-2) | All four |
+
+| — | [The report, first draft](report/00-outline.md) | Chapters 0–8 of the final report (2026-10-14): validation results so far, with placeholders for what is pending | All four |
 
 ## Reading paths
 

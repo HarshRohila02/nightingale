@@ -336,8 +336,9 @@ shared-source contribution from its independent ones (R-12, docs/05 §8.7), and
    PageRank, which this card first named, was measured against it and not chosen.
 5. ~~**The pipeline and golden cases still use the stub store.** They use `SYM:*` ids, which need the
    crosswalk first.~~ *Updated 2026-09-18:* a hand-authored case now runs on this graph after
-   `expand_case` (§5.2). The golden cases pass on it, but **only because red flags rank first**: by
-   graph score alone, GC-001's MI ranks fifth (EXP-014). CI still runs them on the stub, because
+   `expand_case` (§5.2). ~~The golden cases pass on it, but **only because red flags rank first**: by
+   graph score alone, GC-001's MI ranks fifth (EXP-014).~~ *Since 2a (EXP-005) every golden case
+   ranks first by graph score alone.* CI still runs them on the stub, because
    data/ is not committed. Locally they run on both.
 
 **Hand-authored aortic dissection** (`src/medical_kg/hand_authored.py`, 2026-09-19). DDXPlus has
@@ -469,8 +470,9 @@ the English is machine-translated.
   unilateral leg swelling in PE.
 - **The red-flag rules over-fire on DDXPlus (R-15).** 59% of patients get a flag, and the
   aortic-dissection rule alone flags 50%, because back radiation by itself fires it.
-- **The golden cases pass on the real graph only because red flags rank first.** By graph score
-  alone, GC-001's MI ranks fifth, behind Boerhaave, pericarditis, pneumothorax and stable angina.
+- ~~**The golden cases pass on the real graph only because red flags rank first.** By graph score
+  alone, GC-001's MI ranks fifth, behind Boerhaave, pericarditis, pneumothorax and stable angina.~~
+  *Fixed by 2a (EXP-005): every golden case ranks first by graph score alone.*
 
 **Two new `Finding.source` values**: `crosswalk` (derived) and `ddxplus` (read from a DDXPlus row).
 The field is a free string, so nothing breaks. Adding them to its description in

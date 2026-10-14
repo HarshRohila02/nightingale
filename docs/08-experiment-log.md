@@ -441,7 +441,7 @@ to within 6%.
 
 ---
 
-### EXP-021 — B1-DL, the small transformer: trained on Colab, judged by D-13's safety floor (validation split) · *pre-registered 2026-10-12, before any training*
+### EXP-021 — B1-DL, the small transformer: trained on ~~Colab~~ Kaggle, judged by D-13's safety floor (validation split) · *pre-registered 2026-10-12, before any training*
 
 | Field | Value |
 |---|---|
@@ -739,7 +739,7 @@ no ground truth, R-17):
 
 ---
 
-### EXP-020 — Seeds 43–46: B1-XGB, B1+aug and B1′+aug, trained on Colab (validation split, full evidence only, so far)
+### EXP-020 — Seeds 43–46: B1-XGB, B1+aug and B1′+aug, trained on Colab (validation split, ~~full evidence only, so far~~ at 100%, 50% and 25% since 2026-10-12)
 
 | Field | Value |
 |---|---|
@@ -2254,7 +2254,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-009 | B3 LLM-only | 3 | H3 |
 | EXP-010 | B4 text-RAG + LLM | 3 | H3 |
 | EXP-011 | Retrieval quality sweep | 3 | Chunking/embedding choice |
-| EXP-012 | **Full ablation A0–A6** `[TEST]` | 4 | H1, H2, H4 |
+| EXP-012 | **Full ablation ~~A0–A6~~ A0–A7 and A1b** (`docs/05` §5 as amended) `[TEST]` | 4 | H1, H2, H4 (and H1-R, H2-R, H6) |
 | EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |
 | EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |

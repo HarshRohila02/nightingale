@@ -48,8 +48,8 @@ fixed before training, because nothing is tuned beyond early stopping (T-6).
 |---|---|
 | Input | One token per DDXPlus question (84), each the sum of its answers' embeddings plus an "asked / not asked" embedding; plus age, sex and a [CLS] token |
 | Model | FT-Transformer style (Gorishniy et al. 2021): 2 blocks, width 96, 4 attention heads, ReGLU feed-forward, the paper's default dropouts and optimiser |
-| Size | 225,645 parameters (0.9 MB); about 9.6 M multiply-adds per patient, the same for every patient |
-| Training | Like B1-LR′+aug: the full histories plus one masked copy of each patient; seeds 42–46, on a Colab GPU. The seed-42 model is the one used |
+| Size | 225,645 parameters (0.9 MB as float32; 1.23 MB as its JSON file, EXP-022); about 9.6 M multiply-adds per patient, the same for every patient |
+| Training | Like B1-LR′+aug: the full histories plus one masked copy of each patient; seeds 42–46, on a ~~Colab~~ Kaggle GPU (2026-10-13). The seed-42 model is the one used |
 | Laptop | A NumPy forward pass on the CPU, with nothing to install |
 
 **Why a transformer:** findings interact (exertional pain means something different with and
