@@ -29,6 +29,7 @@ __all__ = [
     "load_config",
     "open_graph_from_config",
     "open_ranker_from_config",
+    "open_retriever_from_config",
 ]
 
 GRAPH_BACKENDS = ("neo4j", "networkx", "stub")
@@ -123,6 +124,27 @@ def open_ranker_from_config(config: dict[str, Any]) -> Any:
     )
 
 
+def open_retriever_from_config(config: dict[str, Any]) -> Any:
+    """The evidence retriever the ``retrieval:`` block asks for (src/rag/retriever.py, task 3a).
+
+    ``retrieval.bundle`` names the unzipped bundle the Kaggle notebook writes
+    (``notebooks/kaggle_retrieval_corpus.ipynb``); null switches retrieval off. ``top_k`` is how
+    far down each of BM25's and the dense search's lists enters the fusion, and ``rrf_k`` the
+    fusion's constant. Returns a retriever that gives no evidence and reports ``rag``, never an
+    exception, when the bundle is absent — the ordinary case, since ``data/`` is gitignored — or
+    fails its manifest's checks.
+    """
+    from src.rag.retriever import DEPTH, RRF_K, open_retriever
+
+    retrieval = config.get("retrieval") or {}
+    bundle = retrieval.get("bundle")
+    return open_retriever(
+        REPO_ROOT / bundle if bundle else None,
+        depth=int(retrieval.get("top_k", DEPTH)),
+        rrf_k=int(retrieval.get("rrf_k", RRF_K)),
+    )
+
+
 def open_graph_from_config(config: dict[str, Any], backend: str | None = None) -> Any:
     """The graph store the ``graph:`` block asks for (src/medical_kg/neo4j_store.py).
 
@@ -196,37 +218,46 @@ def describe_graph(store: Any) -> str:
 def build_pipeline(config: dict[str, Any], graph_backend: str | None = None) -> dict[str, Any]:
     """The pipeline as ``scripts/demo.py`` builds it, for the app and the dashboard.
 
-    The configured ranker and graph, the template explainer (with the model's reasons, 2b), no
-    retrieval yet (Phase 3), the configured fusion weights, and the configured calibrator, if any
-    (2b).
+    The configured ranker and graph, the configured evidence retriever (3a; without its bundle it
+    gives no evidence and every result reports ``rag``), the template explainer (with the model's
+    reasons, 2b), the configured fusion weights, how many candidates get evidence
+    (``ranking.top_k_evidence``), and the configured calibrator, if any (2b).
 
     Returns:
-        ``pipeline``, ``ranker``, ``graph``, ``labels`` (the real graph's node labels, for
-        ``expand_case``; None for the stub) and ``about`` (one line each for the ranker and the
-        graph).
+        ``pipeline``, ``ranker``, ``graph``, ``retriever``, ``labels`` (the real graph's node
+        labels, for ``expand_case``; None for the stub) and ``about`` (one line each for the
+        ranker, the graph and the retriever).
 
     Raises:
         GraphUnavailable: as :func:`open_graph_from_config`.
     """
     from src.ml.ranker import describe
     from src.pipeline import DiagnosisPipeline
-    from src.stubs import EmptyRetriever, TemplateExplainer
+    from src.rag.retriever import describe as describe_retriever
+    from src.stubs import TemplateExplainer
 
     ranker = open_ranker_from_config(config)
     graph = open_graph_from_config(config, graph_backend)
+    retriever = open_retriever_from_config(config)
     labels = dict(graph.graph.nodes(data="label")) if hasattr(graph, "graph") else None
     pipeline = DiagnosisPipeline(
         ranker=ranker,
         graph=graph,
-        retriever=EmptyRetriever(),
+        retriever=retriever,
         explainer=TemplateExplainer(ranker=ranker),
         **fusion_weights_from_config(config),
+        top_k_evidence=int((config.get("ranking") or {}).get("top_k_evidence", 3)),
         calibrator=calibrator_from_config(config),
     )
     return {
         "pipeline": pipeline,
         "ranker": ranker,
         "graph": graph,
+        "retriever": retriever,
         "labels": labels,
-        "about": {"ranker": describe(ranker), "graph": describe_graph(graph)},
+        "about": {
+            "ranker": describe(ranker),
+            "graph": describe_graph(graph),
+            "retriever": describe_retriever(retriever),
+        },
     }
