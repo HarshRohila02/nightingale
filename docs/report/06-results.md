@@ -29,13 +29,14 @@
 | 6.5 The graph alone (circular) | EXP-005, EXP-015, EXP-016, EXP-019 | Done |
 | 6.6 The red-flag rules, and their collapse at reduced evidence | EXP-008, EXP-019 | Done |
 | 6.7 Seeds 43–46 of the classical models | EXP-020 | Done |
-| 6.8 The transformer B1-DL and the safety floor D-13 | EXP-021 | Seed 42 done; seeds 43–46 and the full comparison table pending |
+| 6.8 The transformer B1-DL and the safety floor D-13 | EXP-021 | Done: ~~seed 42 done; seeds 43–46 and the full comparison table pending~~ every seed and the full comparison table (2026-10-14) |
 | 6.9 Calibration | EXP-007 | Stage 1 and the transformer arms done; stage 2 pending |
 | 6.10 Complexity and latency | EXP-022 | Done |
 | 6.11 The golden cases | EXP-005, EXP-006, EXP-018, EXP-021 | Done |
 | 6.12 Fusion | EXP-006 | [pending: EXP-006 fusion sweep] |
 | 6.13 Retrieval and the language model | EXP-009, EXP-010, EXP-011 | [pending: retrieval EXP-011] [pending: LLM baselines B3/B4, EXP-009/010] |
-| 6.14 The test split: ablations and hypothesis verdicts | EXP-012 | [pending: EXP-012, test split] |
+| 6.14 Where each component goes wrong, by condition *(added 2026-10-14)* | EXP-023 | Done |
+| ~~6.14~~ 6.15 The test split: ablations and hypothesis verdicts | EXP-012 | [pending: EXP-012, test split] |
 
 ## 6.2 B0 and B1 on full histories, and saturation (R-16)
 
@@ -512,10 +513,52 @@ At 100% both transformers reach must-not-miss recall@3 1.000 and a dangerous fal
 6. **Disclosed:** these validation figures were read on 2026-10-13, before the team answered E-2.
    E-2's recommendation, written without any deep result, stands as written (EXP-021).
 
-**Still to report** (EXP-021): non-inferiority at seeds 43–46, and the full comparison table
+~~**Still to report** (EXP-021): non-inferiority at seeds 43–46, and the full comparison table
 (McNemar on top-3 and the paired MRR test against B1-LR(′)+aug and B1-XGB(′)+aug at every level and
 seed), with the seed spread and the training times [pending: EXP-021 seeds 43–46 and the full
-comparison table].
+comparison table].~~ *Reported 2026-10-14, below.*
+
+**The full report** (EXP-021; validation; run on Kaggle's CPU by the owner,
+`notebooks/kaggle_exp021_reports.ipynb`; both mask digests reproduced; seed 42 reproduces the
+laptop's D-13 run exactly, e.g. MRR +0.0018 [+0.0009, +0.0026]).
+
+**Table 6.19 — D-13 at every seed, at 25% of the history** (EXP-021; validation). The differences
+are paired against the logistic regression trained like each arm, transformer minus logistic
+regression. The four figures before them have no interval in `docs/08` †.
+
+| Seed | Arm | Top-1 † | MRR † | Must-not-miss recall@3 † | Dangerous FN † | Must-not-miss Δ | MRR Δ |
+|---|---|---|---|---|---|---|---|
+| 42 | B1-DL′+aug | 0.9487 | 0.9728 | 0.9981 | 0.0004 | +0.0006 [−0.0001, +0.0013] | +0.0018 [+0.0009, +0.0026] |
+| 43 | B1-DL′+aug | 0.9493 | 0.9732 | 0.9988 | 0.0002 | +0.0011 [+0.0005, +0.0018] | +0.0025 [+0.0016, +0.0034] |
+| 44 | B1-DL′+aug | 0.9476 | 0.9721 | 0.9982 | 0.0004 | +0.0002 [−0.0005, +0.0009] | +0.0005 [−0.0004, +0.0013] |
+| 45 | B1-DL′+aug | 0.9506 | 0.9737 | 0.9983 | 0.0004 | +0.0012 [+0.0006, +0.0019] | +0.0033 [+0.0025, +0.0042] |
+| 46 | B1-DL′+aug | 0.9485 | 0.9728 | 0.9983 | 0.0003 | +0.0009 [+0.0002, +0.0015] | +0.0014 [+0.0004, +0.0022] |
+| 42 | B1-DL+aug | 0.9347 | 0.9649 | 0.9976 | 0.0004 | +0.0018 [+0.0011, +0.0026] | +0.0022 [+0.0016, +0.0029] |
+| 43 | B1-DL+aug | 0.9329 | 0.9637 | 0.9969 | 0.0007 | +0.0011 [+0.0003, +0.0018] | +0.0012 [+0.0004, +0.0021] |
+| 44 | B1-DL+aug | 0.9355 | 0.9652 | 0.9973 | 0.0004 | +0.0014 [+0.0006, +0.0022] | +0.0022 [+0.0015, +0.0030] |
+| 45 | B1-DL+aug | 0.9356 | 0.9652 | 0.9973 | 0.0005 | +0.0014 [+0.0008, +0.0021] | +0.0025 [+0.0016, +0.0033] |
+| 46 | B1-DL+aug | 0.9336 | 0.9642 | 0.9969 | 0.0005 | +0.0009 [+0.0002, +0.0017] | +0.0014 [+0.0008, +0.0022] |
+
+7. **D-13 holds at all five seeds, for both arms.** Every network meets the safety targets at 100%
+   and 25%, is non-inferior to the logistic regression trained like it at 25%, and passes the
+   golden cases, red flags on and off (EXP-021).
+8. **Against the logistic regression, the transformer's MRR is higher at nine of ten networks.**
+   The exception is seed 44's B1-DL′+aug, whose interval includes 0 (+0.0005 [−0.0004, +0.0013])
+   (EXP-021).
+9. **Against XGBoost trained like it, the transformer is level, not better** (25%, paired MRR
+   difference; EXP-021):
+   - B1-DL′+aug against B1-XGB′+aug: higher at seeds 43, 45 and 46 (+0.0013, +0.0018, +0.0010,
+     intervals above 0) †, level at 42 and 44. McNemar on top-3 finds no difference at any seed
+     (p ≥ 0.17).
+   - B1-DL+aug against B1-XGB+aug: level at four seeds. **At seed 46 it is worse:** on top-3 at
+     25%, 16 patients only it ranks in the top 3 against 40 only XGBoost does (p = 0.0021); and MRR
+     at 50%, −0.0008 [−0.0011, −0.0004].
+   - At 50%, top-3 is saturated: zero or one discordant patient at every seed.
+10. **What it means.** The transformer earns its place as A0's component over the logistic
+    regression it replaced, as D-13 required, but it is no better than XGBoost trained the same way.
+    That is the expected result where the headroom is this small (R-19). These are validation
+    figures: H6 is judged on the test split with seed 42's model, and every seed's figures are
+    reported beside it [pending: EXP-012, test split].
 
 ## 6.9 Calibration (EXP-007)
 
@@ -524,7 +567,7 @@ Stage 1 calibrated only systems whose validation rankings EXP-019 had already pu
 or deep result was read; the transformer arms followed after D-13, by the same rule. **Stage 2, A0′'s
 fused score, on which H5 is judged, waits for EXP-006's α** [pending: EXP-007 stage 2].
 
-**Table 6.19 — Calibration, cross-fitted, calibrator fitted at 100% and applied at each level**
+**Table 6.20 — Calibration, cross-fitted, calibrator fitted at 100% and applied at each level**
 (EXP-007; validation). Brier score over 14 conditions †; top-label ECE, with its interval for the
 method the rule chose (**bold**) and † for the others. **B2 is circular.**
 
@@ -543,7 +586,7 @@ method the rule chose (**bold**) and † for the others. **B2 is circular.**
 | | **Platt** | 0.0084 | 0.0765 | 0.2382 | 0.0032 [0.0027, 0.0039] | 0.0175 [0.0161, 0.0194] | 0.0510 [0.0486, 0.0537] |
 | | isotonic | 0.0075 | 0.0823 | 0.2793 | 0.0013 | 0.0211 | 0.0556 |
 
-**Table 6.20 — The selection rule: mean Brier score over the three levels** (EXP-007) †.
+**Table 6.21 — The selection rule: mean Brier score over the three levels** (EXP-007) †.
 
 | System | none | temperature | Platt | isotonic | Chosen |
 |---|---|---|---|---|---|
@@ -553,7 +596,7 @@ method the rule chose (**bold**) and † for the others. **B2 is circular.**
 | B1-DL′+aug | 0.0317 | 0.0317 | 0.0318 | 0.0339 | none (temperature lowest by 0.00005, inside the margin) |
 | B1-DL+aug | 0.0396 | 0.0396 | 0.0413 | 0.0481 | none |
 
-**Table 6.21 — The transformer arms, raw scores ("none"), cross-fitted ECE** (EXP-007; validation;
+**Table 6.22 — The transformer arms, raw scores ("none"), cross-fitted ECE** (EXP-007; validation;
 seed 42; after A-10).
 
 | System | 100% | 50% | 25% |
@@ -602,7 +645,7 @@ BLAS thread); batch 1, the dashboard's case; 100 warm-up calls, then 1,000 timed
 in shuffled order. Latency percentiles are not ratio metrics, so they carry no bootstrap interval;
 the p99 and the maximum are reported instead.
 
-**Table 6.22 — Each model's size and cost per patient** (EXP-022; baseline run of 2026-10-12, the
+**Table 6.23 — Each model's size and cost per patient** (EXP-022; baseline run of 2026-10-12, the
 transformer untrained, since its cost is fixed by the architecture).
 
 | Model | Parameters / trees | Multiply-adds per patient | On disk | Load | p50 | p95 | p99 | Max |
@@ -615,7 +658,7 @@ transformer untrained, since its cost is fixed by the architecture).
 p95 1.38 ms, p99 1.52 ms, max 2.67 ms; 1.23 MB on disk. In the same run B1-LR′+aug's p95 was
 0.020 ms and B1-XGB′+aug's 0.59 ms (EXP-022).
 
-**Table 6.23 — The whole ranking through the pipeline** (EXP-022; the four golden cases, 300 timed
+**Table 6.24 — The whole ranking through the pipeline** (EXP-022; the four golden cases, 300 timed
 runs each; the NetworkX graph, the configured α, the template explainer, no retrieval, no LLM).
 
 | Run | Ranker | p50 | p95 | Max |
@@ -654,7 +697,7 @@ The four hand-written cases (§3.6) have no ground truth beyond the clinical exp
 input passes through the hand-curated case-to-token translation (R-17). They are the evidence that is
 not circular.
 
-**Table 6.24 — The golden cases, component by component.**
+**Table 6.25 — The golden cases, component by component.**
 
 | Case (expected) | Graph alone, rank (EXP-005) | Model alone, top answer | Fused, red flags off, α = 0.5 (B1-LR and B1-LR′+aug, EXP-006) | Red flags (EXP-008) |
 |---|---|---|---|---|
@@ -707,15 +750,82 @@ the supported- and unsupported-claim rates and citation correctness of the groun
 the LLM-only (B3) and text-RAG (B4) baselines are Phase 3 work and not yet measured. If B3 and B4 are
 not scored at 50% and 25%, the report says so (`docs/05` §3.7).
 
-## 6.14 The test split: ablations and hypothesis verdicts
+*2026-10-14.* The retrieval code is built (§4.14.2), and EXP-011's evaluation was pre-registered
+before any corpus existed: 26 queries (one per condition, and each golden case's three leading
+candidates), a blind 0–2 judgement of each pooled passage by two team members, and for each method
+Precision@3, nDCG@3 and nDCG@10, and pooled Recall@10, each with its 95% bootstrap interval; the
+hybrid is compared with each method alone on nDCG@10 by the paired bootstrap (EXP-011). Nothing is
+measured until the owner's corpus run and the judgements.
+
+## 6.14 Where each component goes wrong, by condition (EXP-023)
+
+**What it is.** A descriptive analysis of the four components alone, at 100%, 50% and 25% of the
+history: errors and calibration, by condition. It is not a test.
+- Nothing is trained, tuned, fitted or chosen, and no figure feeds a decision. It was not
+  pre-registered, has no hypothesis and no verdict, and none of its figures may be quoted as a test
+  of H1–H6.
+- **Never a fused ranking:** E-2 is unanswered, so no fused validation ranking is read (§6.12).
+- The components are B1-DL′+aug (the configured ranker, seed 42), B1-LR′+aug and B1-XGB′+aug
+  (seed 42), and B2, the graph alone, **circular on DDXPlus (R-12)**.
+- The data are the validation split, 33,963 patients, on EXP-019's masks (both digests
+  reproduced). Every overall figure reproduces EXP-019's and EXP-021's (EXP-023).
+- 22 figures in `docs/figures/`: a reliability diagram per system and per condition, a confusion
+  heatmap per system and level, and top-1 and top-3 recall per condition
+  (e.g. `exp023_confusion_b1_dl_prime_aug_25.svg`, `exp023_reliability_b1_dl_prime_aug.svg`).
+
+**Table 6.26 — Top-1, must-not-miss recall@3 and the raw scores' top-label ECE, at 100% / 50% / 25%
+of the history** (EXP-023; validation).
+
+| System | Top-1 | Must-not-miss recall@3 | Top-label ECE |
+|---|---|---|---|
+| B1-DL′+aug | 0.9985 [0.9980, 0.9989] / 0.9865 [0.9854, 0.9877] / 0.9487 [0.9464, 0.9509] | 1.0000 / 1.0000 / 0.9981 [0.9973, 0.9987] | 0.0003 [0.0001, 0.0008] / 0.0024 [0.0016, 0.0036] / 0.0047 [0.0034, 0.0068] |
+| B1-LR′+aug | 0.9983 [0.9978, 0.9987] / 0.9856 [0.9844, 0.9868] / 0.9459 [0.9436, 0.9482] | 1.0000 / 1.0000 / 0.9975 [0.9967, 0.9982] | 0.0002 [0.0001, 0.0007] / 0.0015 [0.0011, 0.0029] / 0.0110 [0.0092, 0.0131] |
+| B1-XGB′+aug | 0.9985 [0.9980, 0.9989] / 0.9865 [0.9853, 0.9878] / 0.9483 [0.9460, 0.9504] | 1.0000 / 1.0000 / 0.9978 [0.9970, 0.9984] | 0.0002 [0.0000, 0.0006] / 0.0029 [0.0020, 0.0040] / 0.0057 [0.0049, 0.0081] |
+| B2 (circular) | 0.9234 [0.9206, 0.9259] / 0.8666 [0.8629, 0.8702] / 0.7687 [0.7640, 0.7733] | 0.9998 [0.9995, 1.0000] / 0.9851 [0.9832, 0.9869] / 0.9350 [0.9309, 0.9386] | 0.0379 [0.0364, 0.0393] / 0.0358 [0.0340, 0.0382] / 0.0295 [0.0274, 0.0324] |
+
+**Findings** (EXP-023).
+
+1. **The three ML components make the same errors, at nearly the same rates.** At every level the
+   most frequent top-1 error is unstable angina ranked below stable angina.
+   - At 25%, of the 2,748 unstable angina patients: 610 for the transformer (0.222 [0.206, 0.238]),
+     620 for the logistic regression (0.226 [0.210, 0.241]) and 608 for XGBoost (0.221 [0.205,
+     0.237]).
+   - Next come unstable angina ranked below MI (transformer 0.072 [0.062, 0.082]) and MI below
+     stable angina (0.055 [0.047, 0.063]).
+   - These are the anginas DDXPlus describes with nested evidence (EXP-004's only errors, and the
+     graph's blind spot, §6.5). What separates them clinically (rest pain, a crescendo pattern, the
+     troponin) is what "what to ask next" asks for (§4.14.1).
+2. **Must-not-miss misses at 25% are few, and most are at rank 4.** Of 16,943 must-not-miss
+   patients, the transformer misses 33 (0.0019 [0.0014, 0.0027]), 19 of them at rank 4; the
+   logistic regression 43 (0.0025 [0.0018, 0.0033]); XGBoost 38 (0.0022 [0.0015, 0.0030]). No ML
+   component misses one at 100% or 50%.
+3. **Errors appear as the history shortens, and mostly persist.** The masks are nested, so a 25%
+   history lies inside its 50% one. The transformer's top-1 errors grow 51 → 457 → 1,742; of its 457
+   errors at 50%, 392 persist at 25% and 65 resolve.
+4. **The raw scores of the three ML components are calibrated against DDXPlus at every level**
+   (top-label ECE ≤ 0.011). For the transformer and the logistic regression this repeats EXP-007's
+   finding that they stay raw (§6.9); it is not a new test, and it does not make a hand-written
+   case's near-certainty a probability (EXP-018).
+5. **B2, the graph alone (circular, R-12), has the expected profile.** 98% of stable angina patients
+   go to unstable angina at 100% (0.981 [0.976, 0.986]), the tie rule's doing (EXP-005). At 25% it
+   misses 6.5% of must-not-miss patients (0.0650 [0.0612, 0.0686]), myocarditis worst (0.164
+   [0.145, 0.183]): all 253 of those patients get MI ranked first. This is why the graph is fused
+   rather than used alone; it also does not measure what the graph's knowledge adds, which is aortic
+   dissection, and DDXPlus has no dissection patient.
+
+**Limits.** Validation figures, on a synthetic dataset whose generator explains much of the pattern
+(R-16); random masks are not a clinician's questions; and the components alone: the fused system's
+errors wait for E-2 and EXP-006 [pending: EXP-006 fusion sweep].
+
+## ~~6.14~~ 6.15 The test split: ablations and hypothesis verdicts
 
 [pending: EXP-012, test split]
 
 The test split is opened once, after the freeze (PROGRESS §5: planned 2026-11-06 to 2026-11-07), and
-every ablation of Table 5.4 is scored on it at all three levels. Table 6.25 is the frame the verdicts
+every ablation of Table 5.4 is scored on it at all three levels. Table 6.27 is the frame the verdicts
 will fill.
 
-**Table 6.25 — Hypothesis verdicts** (to be filled from EXP-012 only).
+**Table 6.27 — Hypothesis verdicts** (to be filled from EXP-012 only).
 
 | Hypothesis | Verdict (test split) | For how many of the five seeds | What validation already shows |
 |---|---|---|---|

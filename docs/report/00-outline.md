@@ -60,7 +60,7 @@ Each item names the experiment, phase or decision it waits for.
   trained reviewer is available (which decides the Stretch line).
 - [ ] **EXP-012, the test split, opened once** (Phase 4, planned 2026-11-06 to 11-07): every
   ablation A0–A7 and A1b at three levels, every hypothesis verdict, the seeds count for each, the
-  per-condition and by-sex breakdowns (§6.14, Chapter 8).
+  per-condition and by-sex breakdowns (~~§6.14~~ §6.15, Chapter 8).
 - [ ] **Latency with the LLM** (`docs/05` §3.6, NFR-1): Phase 3.
 
 ### Decisions that are open

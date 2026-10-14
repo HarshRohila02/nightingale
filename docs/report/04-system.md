@@ -1,8 +1,9 @@
 # 4 · The system as built
 
-> **Draft 1, 2026-10-14.** This chapter describes what exists in the repository on 2026-10-14.
-> Components that are planned but not built are listed in §4.18 and marked
-> `[pending: …]` where they appear.
+> **Draft 1, 2026-10-14; updated the same day** (`docs/17` T8) with "what to ask next" (3d) and
+> evidence retrieval (3a), merged on 2026-10-14 (§4.14.1, §4.14.2). This chapter describes what
+> exists in the repository's `master` on 2026-10-14. Components that are planned but not built are
+> listed in §4.18 and marked `[pending: …]` where they appear.
 
 ## 4.1 Overview and design principles
 
@@ -401,7 +402,7 @@ A finding whose removal lowers a condition's odds is a reason for it. A denial i
   turn into a token is invisible to the model; and aortic dissection, which the model was not
   trained on, has no model reasons.
 
-## 4.14 Explanations
+## 4.14 Explanations, what to ask next and evidence
 
 The **template explainer** writes the explanation from the graph and the model, so it cannot state
 a fact the system does not hold. For each candidate it keeps every supporting *question* the graph
@@ -409,6 +410,81 @@ matched, with the recorded finding that answered it beside it; it names five of 
 findings not recorded and counts the rest; and it names the top candidate's model reasons
 (`docs/02` §7). The grounded language-model explainer, which may only phrase retrieved evidence and
 graph facts, is Phase 3b [pending: LLM baselines B3/B4, EXP-009/010].
+
+### 4.14.1 What to ask next (3d)
+
+FR-5.5 asks for the next test or question that best discriminates the leading candidates. The
+graph's `Test` node and `DISCRIMINATED_BY` edge were never built, so "what to ask next" has two
+parts, neither of them a graph edge (`docs/02` §5.3).
+
+- **The tests to consider** (`src/reasoning/investigations.py`). A hand-authored table gives, for
+  each of the 14 conditions, the diagnostic investigations that confirm or exclude it, in the order
+  its guideline uses them, and each line cites that guideline. The pipeline puts one line per
+  condition into `suggested_next_tests`, for the first three candidates and every red-flagged one.
+  - Every line says "consider", and lists **investigations only, never a treatment or a drug**
+    (FR-6.5). The safety layer would remove a line that broke this, and a test scans the table for
+    treatment language.
+  - The table does not rank tests against each other, nor weigh their cost or harm.
+  - Two of its references were written from memory and are flagged for checking against the
+    publisher before the report cites them (BTS 2023 pleural disease, WSES 2019 oesophageal
+    emergencies) [citation needed].
+- **The questions to ask** (`src/reasoning/next_questions.py`). Of the findings the form offers
+  that the case has neither recorded nor denied, it ranks those whose answer would most reduce the
+  graph's uncertainty over the 14 conditions: the **expected entropy reduction** of the graph's
+  posterior, under the same naive-Bayes likelihoods that rank the case (§4.5).
+  - Each answer, present or denied, is scored by the arithmetic that would rank it, through the
+    crosswalk. The gain is the mutual information between the condition and the answer: never
+    negative, and 0 for a question every condition answers alike.
+  - The five best are returned, each with the conditions a yes and a no would favour.
+  - A finding the record already settles is not asked, nor one that cannot apply to the recorded
+    sex (pregnancy, of a man: found in review).
+  - Nothing is tuned and no data is read.
+  - *Limits:* the posterior is the graph's alone, so the order matters, not the number. Every
+    condition counts the same; the red-flag rules and the tests carry the danger. The ranking is
+    myopic, one question at a time. The model is not consulted.
+- **Where it shows.** The dashboard's "What to ask next" block, and the API's `POST
+  /next-questions`. `DiagnosisResult` has no field for questions, and a contract change needs the
+  whole team, so one is proposed rather than made (`docs/02` §5.3).
+
+On GC-001 the graph's first questions are rest pain and a crescendo pattern, which bear on
+unstable angina against MI there, and its tests are a 12-lead ECG and serial high-sensitivity
+troponin. Rest pain, a crescendo pattern and the troponin are also what separates the anginas
+clinically, where every ML component errs most (EXP-023, §6.14).
+
+### 4.14.2 Evidence with citations (3a)
+
+Beside each of the first three candidates the dashboard can show **excerpts from PubMed Central
+Open Access articles**, each with its citation, a link to its PMC page, its licence and an
+attribution (FR-7.1–7.3, FR-9.4). **Evidence never changes the ranking**: it is attached after
+ranking, and a test checks the order is unchanged (`src/rag/`, EXP-011).
+
+- **The corpus** is built on Kaggle by the owner's run of `notebooks/kaggle_retrieval_corpus.ipynb`
+  (`docs/11` §4.6), never on the laptop.
+  - It searches PMC for each condition, restricted to the Open Access subset, using NCBI's
+    E-utilities with no API key and at most 3 requests a second.
+  - An article is kept only with a Creative Commons licence in its XML, and the licence is
+    recorded.
+- **Diagnosis only** (FR-6.5). A sentence with any treatment language is never stored, embedded or
+  shown, and an article whose title names a treatment is dropped (`src/rag/screening.py`).
+  - What is kept is a run of consecutive clean sentences, never sentences glued across a removed
+    one.
+  - The laptop screens every excerpt again before showing it, and the safety layer drops any
+    evidence that recommends a treatment.
+- **Retrieval** is a hybrid of BM25 and a dense search, fused by reciprocal rank (k = 60).
+  - The dense vectors are computed on Kaggle with `pritamdeka/S-PubMedBert-MS-MARCO`, for the
+    passages and for a fixed vocabulary of queries.
+  - On the laptop a query vector is a mix of those precomputed vectors, so **the laptop runs no
+    model**: only NumPy, and no FAISS. An exact product over tens of thousands of passages takes
+    milliseconds.
+  - The constants (the dense query's mix, the depth, BM25's parameters, the excerpt length) were
+    fixed before any real passage was seen, and EXP-011's evaluation was pre-registered before the
+    corpus existed.
+- **Without the corpus bundle**, as now, the retriever gives no evidence and every result reports
+  `rag` (§4.16). Each bundle file's SHA-256 is in its manifest, and a bundle that fails its checks
+  is refused the same way.
+
+[pending: retrieval EXP-011]: the corpus, its relevance judgements by two team members, and the
+retrieval metrics.
 
 ## 4.15 The API and the dashboard
 
@@ -427,12 +503,16 @@ malformed case is refused with HTTP 422.
   beside it;
 - ✓ supporting, ? missing and ✗ contradicting findings, with the graph's paths (FR-9.3, FR-5.4),
   and each candidate's model reasons;
+- **"What to ask next"** (§4.14.1): the questions the graph would learn most from, and the cited
+  tests to consider;
+- each of the first three candidates' **evidence** with its citation and PMC link (§4.14.2), or
+  one line saying no corpus is loaded;
 - what is degraded, and the disclaimer on every screen (FR-6.4);
 - **it re-ranks on every change to the form** (decision D-14, "real time" as live re-ranking),
   because a whole ranking takes milliseconds (§6.10).
 
-Calibrated confidence and evidence with citations are still to come [pending: EXP-007 stage 2]
-[pending: retrieval EXP-011].
+Calibrated confidence is still to come [pending: EXP-007 stage 2]. ~~Evidence with citations is
+still to come~~ The evidence is built and waits for its corpus [pending: retrieval EXP-011].
 
 ## 4.16 Degradation
 
@@ -445,7 +525,7 @@ Calibrated confidence and evidence with citations are still to come [pending: EX
 | A case the feature space cannot hold (sex "other") | Graph-only ranking | `ml` |
 | Graph store fails outright | Model-only ranking | `graph_backend` |
 | Calibrator unusable or fitted for another system | Ranks only, no probability | `calibration` |
-| Retrieval fails *(Phase 3)* | Graph-only explanation | `rag` |
+| Retrieval ~~fails *(Phase 3)*~~: no corpus bundle, a bundle that fails its checks, or a failure *(3a, 2026-10-14)* | No evidence; ranking and explanation unchanged | `rag` |
 | Language model unavailable *(Phase 3)* | Template explanation | `llm` |
 | Empty or invalid case | HTTP 422 with field errors | — |
 
@@ -454,8 +534,8 @@ problem (`docs/04` F-8).
 
 ## 4.17 Engineering and reproducibility
 
-- **Tests:** 871 tests on 2026-10-13, of which 856 passed and 15 skipped locally (PROGRESS §1)
-  [to update at submission], including the four golden cases run with every model, red flags on
+- **Tests:** ~~871 tests on 2026-10-13, of which 856 passed and 15 skipped locally~~ 1,102 tests on
+  2026-10-14, of which 1,087 passed and 15 skipped locally (PROGRESS §1) [to update at submission], including the four golden cases run with every model, red flags on
   and off; GitHub Actions runs them, with formatting and linting, on every push. CI has no `data/` or `models/`, so the data-gated tests skip there
   and run locally.
 - **Compute placement** (decision D-7): every training or tuning run, and any job over about five
@@ -474,9 +554,11 @@ problem (`docs/04` F-8).
 - **The patient knowledge graph and Synthea patients** (Phase 1d) [pending: 1d].
 - **Clinical NLP for free text** (FR-2.*): the packages `src/nlp` and `src/patient_kg` are empty;
   cases are entered as structured findings.
-- **Evidence retrieval** (3a) [pending: retrieval EXP-011], **the grounded language-model
-  explainer** and baselines B3/B4 (3b) [pending: LLM baselines B3/B4, EXP-009/010], **claim-support
-  guardrails** (3c), **"what to ask next"** (3d) and reliability diagrams with per-condition error
-  analysis (3e).
+- **Evidence retrieval** (3a): ~~not built~~ the code is built (§4.14.2); its corpus and evaluation
+  wait [pending: retrieval EXP-011].
+- **The grounded language-model explainer** and baselines B3/B4 (3b) [pending: LLM baselines B3/B4,
+  EXP-009/010], and **claim-support guardrails** (3c).
+- ~~**"What to ask next"** (3d) and reliability diagrams with per-condition error analysis (3e)~~
+  Both built on 2026-10-14: 3d in §4.14.1, and 3e as EXP-023 (§6.14).
 - **The audit log** (FR-6.6): repairs are logged, but the audit log itself is not built
   (`src/reasoning/safety.py`).
