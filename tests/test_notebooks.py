@@ -72,3 +72,33 @@ def test_the_kaggle_notebook_keeps_data_out_of_its_saved_output():
     assert 'REPO = Path("/tmp/nightingale")' in source
     assert 'OUT = Path("/kaggle/working/nightingale_b1_dl")' in source
     assert "SEEDS = (42, 43, 44, 45, 46)" in source
+
+
+def test_the_retrieval_notebook_passes_only_flags_its_script_accepts():
+    """Task 3a (docs/11 §4.6): the corpus notebook runs scripts/build_retrieval_corpus.py."""
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_retrieval_corpus.ipynb"))
+    accepted = script_flags("build_retrieval_corpus.py")
+    calls = re.findall(r"build_retrieval_corpus\.py(.*?)(?:\]|\n\n|$)", source, flags=re.S)
+    assert len(calls) == 2  # the smoke test and the real build
+    for call in calls:
+        used = set(re.findall(r'"(--[a-z0-9-]+)"', call))
+        assert used and used <= accepted, f"passes {sorted(used - accepted)}"
+    assert {"--smoke", "--per-condition", "--out", "--cache", "--email"} <= accepted
+
+
+def test_the_retrieval_notebook_never_touches_ddxplus_and_saves_only_the_bundle():
+    """It needs no patient data at all; the code goes to /tmp, the bundle to /kaggle/working."""
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_retrieval_corpus.ipynb"))
+    code = "\n".join(line.split("#", 1)[0] for line in source.splitlines())
+    for forbidden in (
+        "ddxplus",
+        "hf_hub_download",
+        "aai530",
+        "train.csv",
+        "validate.csv",
+        "api_key",
+    ):
+        assert forbidden not in code.lower(), forbidden
+    assert 'REPO = Path("/tmp/nightingale")' in source
+    assert 'OUT = Path("/kaggle/working/retrieval_corpus")' in source
+    assert "make_archive" in source and "STATUS.txt" in source

@@ -76,6 +76,47 @@ def test_health_reports_a_degraded_ranker():
     assert body["status"] == "degraded" and body["degraded_components"] == ["ml"]
 
 
+def test_health_reports_a_missing_evidence_bundle(tmp_path):
+    from src.rag.retriever import open_retriever
+
+    pipeline = DiagnosisPipeline(
+        ranker=ConstantRanker(),
+        graph=InMemoryGraphStore(),
+        retriever=open_retriever(tmp_path / "no bundle"),
+    )
+    body = TestClient(create_app(pipeline)).get("/health").json()
+    assert body["status"] == "degraded" and body["degraded_components"] == ["rag"]
+
+
+def test_diagnose_returns_evidence_cited_with_a_link(tmp_path):
+    """Task 3a: each top candidate's evidence carries its PMCID and its PMC page. The bundle is
+    invented (tests/rag_fixture.py)."""
+    from src.rag.bundle import load_bundle
+    from src.rag.retriever import HybridRetriever
+    from tests.rag_fixture import write_fake_bundle
+
+    retriever = HybridRetriever(load_bundle(write_fake_bundle(tmp_path / "bundle")))
+    pipeline = DiagnosisPipeline(
+        ConstantRanker(), InMemoryGraphStore(), retriever, TemplateExplainer(), top_k_evidence=14
+    )
+    case = {
+        "case_id": "T-API",
+        "age": 40,
+        "sex": "F",
+        "findings": [
+            {"concept_id": c, "label": c, "assertion": "present"}
+            for c in ("SYM:chest_pain", "SYM:pleuritic", "SYM:positional_relief_sitting_forward")
+        ],
+    }
+    body = TestClient(create_app(pipeline)).post("/diagnose", json=case).json()
+    assert "rag" not in body["degraded_components"]
+    by_id = {c["condition_id"]: c for c in body["candidates"]}
+    evidence = by_id["COND:pericarditis"]["evidence"]
+    assert evidence and all(e["citation"].startswith("PMCID:PMC") for e in evidence)
+    assert all(e["url"].startswith("https://pmc.ncbi.nlm.nih.gov/articles/PMC") for e in evidence)
+    assert body["disclaimer"] == DISCLAIMER
+
+
 def test_conditions_are_the_fourteen_the_system_knows():
     body = stub_client().get("/conditions").json()
     assert [c["id"] for c in body] == [c.id for c in CONDITIONS] and len(body) == 14
