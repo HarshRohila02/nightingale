@@ -63,6 +63,83 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-023 — Where each component goes wrong, at 100%, 50% and 25% evidence: errors and calibration by condition (3e) (validation split) · *run 2026-10-14*
+
+**What it is.** A descriptive analysis, not a test.
+- Nothing is trained, tuned, fitted or chosen, and no figure feeds a decision.
+- It was not pre-registered: it has no hypothesis and no verdict. It was written by an agent on
+  2026-10-13 and finished and run by Claude on 2026-10-14.
+- **The components alone, never a fused ranking.** E-2 is unanswered, so no fused validation ranking
+  is read (EXP-006). The components:
+  - B1-DL′+aug, the configured ranker (D-13; seed 42);
+  - B1-LR′+aug and B1-XGB′+aug (EXP-018; seed 42);
+  - B2, the graph alone, which is **circular on DDXPlus (R-12)**.
+
+**The run.** `scripts/error_analysis.py` at `a58e3cb` (3e's branch), NumPy 1.26.4, 243 s on the
+laptop CPU.
+- **Data:** the validation split, 33,963 patients, at the three levels of `docs/05` §3.7.
+- **Masks:** EXP-019's; both digests reproduced (`e99a7a8fbf792675` / `af3a357f6454838a`).
+- **Intervals:** every share and ECE has a 95% bootstrap interval (1,000 resamples, seed 42).
+- **Reproduction:** every overall figure reproduces EXP-019's and the transformer's own run (largest
+  difference 5.0 × 10⁻¹⁰), and the top-label ECE of each system EXP-007 measured (all but XGBoost) reproduces EXP-007's
+  (≤ 1.7 × 10⁻¹⁷).
+- **Outputs:**
+  - `data/interim/exp023_error_analysis.json` (aggregates only, no patient);
+  - 22 SVG figures in `docs/figures/`: reliability diagrams per system and per condition, a
+    confusion heatmap per system and level, and top-1 and top-3 recall per condition.
+- DDXPlus is synthetic, and the system is closed-world (R-13).
+
+**Results** (top-1, must-not-miss recall@3 and top-label ECE of the raw scores, at 100% / 50% / 25%):
+
+| System | Top-1 | Must-not-miss recall@3 | Top-label ECE |
+|---|---|---|---|
+| B1-DL′+aug | 0.9985 [0.9980, 0.9989] / 0.9865 [0.9854, 0.9877] / 0.9487 [0.9464, 0.9509] | 1.0000 / 1.0000 / 0.9981 [0.9973, 0.9987] | 0.0003 [0.0001, 0.0008] / 0.0024 [0.0016, 0.0036] / 0.0047 [0.0034, 0.0068] |
+| B1-LR′+aug | 0.9983 [0.9978, 0.9987] / 0.9856 [0.9844, 0.9868] / 0.9459 [0.9436, 0.9482] | 1.0000 / 1.0000 / 0.9975 [0.9967, 0.9982] | 0.0002 [0.0001, 0.0007] / 0.0015 [0.0011, 0.0029] / 0.0110 [0.0092, 0.0131] |
+| B1-XGB′+aug | 0.9985 [0.9980, 0.9989] / 0.9865 [0.9853, 0.9878] / 0.9483 [0.9460, 0.9504] | 1.0000 / 1.0000 / 0.9978 [0.9970, 0.9984] | 0.0002 [0.0000, 0.0006] / 0.0029 [0.0020, 0.0040] / 0.0057 [0.0049, 0.0081] |
+| B2 (circular) | 0.9234 [0.9206, 0.9259] / 0.8666 [0.8629, 0.8702] / 0.7687 [0.7640, 0.7733] | 0.9998 [0.9995, 1.0000] / 0.9851 [0.9832, 0.9869] / 0.9350 [0.9309, 0.9386] | 0.0379 [0.0364, 0.0393] / 0.0358 [0.0340, 0.0382] / 0.0295 [0.0274, 0.0324] |
+
+1. **The three ML components make the same errors, at nearly the same rates.** At every level the
+   most frequent top-1 error is unstable angina ranked below stable angina:
+   - at 25%, 610 of the 2,748 unstable angina patients for the transformer (0.222 [0.206, 0.238]),
+     620 for the logistic regression (0.226 [0.210, 0.241]) and 608 for XGBoost (0.221 [0.205,
+     0.237]);
+   - next come unstable angina ranked below MI (transformer 0.072 [0.062, 0.082]) and MI below
+     stable angina (0.055 [0.047, 0.063]).
+
+   These are the anginas that DDXPlus describes with nested evidence (EXP-004's only errors, and
+   the graph's blind spot). What separates them clinically (rest pain, a crescendo pattern, the
+   troponin) is exactly what 3d's questions and tests now ask for.
+2. **Must-not-miss misses at 25% are few, and most are at rank 4.** Of 16,943 must-not-miss
+   patients:
+   - the transformer misses 33 (0.0019 [0.0014, 0.0027]), 19 of them at rank 4;
+   - the logistic regression misses 43 (0.0025 [0.0018, 0.0033]);
+   - XGBoost misses 38 (0.0022 [0.0015, 0.0030]).
+
+   No ML component misses one at 100% or 50%.
+3. **Errors appear as the history shortens, and mostly persist.** The masks are nested, so a 25%
+   history lies inside its 50% one. The transformer's top-1 errors grow 51 → 457 → 1,742. Of its
+   457 errors at 50%, 392 persist at 25%, and 65 resolve.
+4. **The raw scores of the three ML components are calibrated against DDXPlus at every level**
+   (top-label ECE ≤ 0.011). For the transformer and the logistic regression this repeats EXP-007's
+   finding that they stay raw; it is not a new test. None of this makes a hand-written case's near-certainty a probability (EXP-018).
+5. **B2, the graph alone (circular, R-12),** has the expected profile:
+   - 98% of stable angina patients go to unstable angina at 100% (0.981 [0.976, 0.986]). The tie
+     rule does this by design (EXP-005).
+   - At 25% it misses 6.5% of must-not-miss patients (0.0650 [0.0612, 0.0686]), myocarditis worst
+     (0.164 [0.145, 0.183]): all 253 of those patients get MI ranked first.
+
+   This is why the graph is fused rather than used alone. It also does not measure what the
+   graph's knowledge adds, which is aortic dissection (EXP-005), and DDXPlus has no dissection
+   patient.
+
+**Limits.**
+- Validation figures, on a synthetic dataset whose generator explains much of the pattern (R-16).
+- Random masks are not a clinician's questions.
+- The components alone: the fused system's errors wait for E-2 and EXP-006.
+- Every figure is a descriptive aggregate; none may be quoted as a test of H1–H6.
+
+---
+
 ### EXP-011 — Evidence retrieval: BM25, dense search and their hybrid, over PMC Open Access (3a) · *design pre-registered 2026-10-14, before any corpus existed*
 
 | Field | Value |
@@ -2399,3 +2476,4 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-020 | XGBoost's seeds 43–46 for B1-XGB, B1-XGB+aug and B1-XGB′+aug, and with them B1-LR+aug's and B1-LR′+aug's *(amendment 3 §6; amendment 3a item 5 for the logistic regressions; Colab, the owner's choice)* | 2 | How much each XGBoost figure, and each `+aug` logistic regression's, at every level, depends on the seed; closes §6's disclosed gap. The seed-42 models stay the ones used. *Run 2026-10-01 on Colab by the owner; logged 2026-10-11, at full evidence; the 50%/25% scoring waits for a code change* |
 | EXP-021 | ~~Deep-model selection: B1-MLP′+aug, B1-ResNet′+aug, B1-Transformer′+aug, seeds 42–46 *(planned 2026-10-11; needs `docs/05` amendment 4, the deep-model selection, approved by the team)*~~ **B1-DL, the small transformer** (D-12, 2026-10-12): B1-DL′+aug and B1-DL+aug, seeds 42–46, on Colab *(pre-registered 2026-10-12; no amendment needed, nothing is selected)* | 2 | ~~Which deep model becomes B1-DL′+aug~~ Whether the transformer becomes A0′'s ML component, by D-13's safety floor fixed before training (`src/eval/safety_floor.py`). B1-LR′+aug stays the comparator and the backup. *Run 2026-10-13 on Kaggle by the owner (all ten networks, 2 h 10 min); received and checked: it reproduces on the laptop. **D-13 passed** (2026-10-13), and holds at all five seeds (the full report, Kaggle, 2026-10-14): better than the logistic regression on MRR at nine of ten networks, level with XGBoost* |
 | EXP-022 | Complexity and real time: parameters, multiply-adds, size, training time, CPU latency p50/p95/p99, pipeline latency by stage *(planned 2026-10-11; the baseline done 2026-10-12, with the transformer untrained: the whole ranking p95 ≈ 1–2 ms, so live re-ranking is feasible)* | 2 | `docs/05` §3.6 made concrete; the supervisor's "check the model complexity"; whether a real-time budget can be met (soft real time only) |
+| EXP-023 | Where each component goes wrong: errors and calibration by condition at 100%, 50% and 25% evidence *(3e; descriptive, not pre-registered; the components alone, no fused ranking)* | 3 | Per-condition top-1/top-3 recall, confusions, must-not-miss misses, reliability diagrams; 22 SVG figures for the report. *Run 2026-10-14 on the laptop (243 s): every figure reproduces EXP-019, EXP-021 and EXP-007* |
