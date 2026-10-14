@@ -382,12 +382,18 @@ result.
 - [ ] Minimal clinician dashboard with disclaimer
 
 **Phase 2 — Evidence & explanation**
-- [ ] RAG over PubMed/PMC cardiology guidelines; retrieval metrics
+- [ ] RAG over PubMed/PMC cardiology guidelines; retrieval metrics. *Code done 2026-10-14 (3a):*
+  excerpts from PMC Open Access articles beside the first three candidates, each with its
+  citation and PMC link, diagnosis only; the corpus waits for its Kaggle run (docs/11 §4.6), the
+  retrieval metrics for EXP-011
 - [ ] LLM explainer constrained to retrieved evidence + guardrails
 - [ ] Contradiction detection; safety layer; calibration + reliability diagrams
 
 **Phase 3 — Stretch (value ÷ effort)**
-- [ ] "What to ask next" — KG-driven missing-test suggestion (troponin / ECG / D-dimer)
+- [x] "What to ask next" — ~~KG-driven missing-test suggestion (troponin / ECG / D-dimer)~~ ✅
+  2026-10-14 (3d): the findings the knowledge graph would learn most from, and the tests to
+  consider from a cited guideline table (the graph holds no tests), in the dashboard, the API and
+  `scripts/demo.py`
 - [ ] Free-text intake via clinical NLP (negation/temporality)
 - [ ] UCI Heart cardiac-risk sub-model fused into ranking
 - [ ] KG embeddings (TransE/RotatE) or a GNN ranker as the ML-research angle
