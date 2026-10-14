@@ -372,6 +372,9 @@ itself.
    - `EMAIL` is optional. NCBI asks tools for a contact address, so that it can write before
      blocking one. Leave it empty to send none.
 4. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+   - **When.** NCBI asks that large jobs run at weekends, or between 9 pm and 5 am US Eastern time
+     (6:30 am to 2:30 pm in India). This one is about 200 requests, small by NCBI's standards,
+     but starting it in that window is the polite choice.
    - The **smoke cell** builds a bundle of 2 conditions × 3 articles and loads it with the laptop's
      own code. It takes a minute or two, including the model's download (about 0.4 GB). If it
      fails, the version stops there.

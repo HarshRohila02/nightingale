@@ -382,7 +382,9 @@ def parse_articles(
             dropped.append({"pmcid": "", "reason": "no article-meta"})
             continue
         ids = _ids(meta)
-        pmcid = normalise_pmcid(ids.get("pmcid") or ids.get("pmc") or "")
+        # PMC has written the id as "pmc", "pmcid" and, digits only, "pmc-uid". A wrong guess
+        # cannot mislabel an article: the build keeps only articles whose id it asked for.
+        pmcid = normalise_pmcid(ids.get("pmcid") or ids.get("pmc") or ids.get("pmc-uid") or "")
         if pmcid is None:
             dropped.append({"pmcid": "", "reason": "no PMC id"})
             continue
