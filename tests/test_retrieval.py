@@ -255,9 +255,19 @@ def test_only_runs_of_consecutive_clean_sentences_are_kept():
 
 
 def test_a_title_naming_a_treatment_is_refused_but_management_is_not():
-    assert title_names_treatment("Colchicine for recurrent pericarditis")
-    assert title_names_treatment("Thrombolysis in pulmonary embolism")
+    for title in (
+        "Colchicine for recurrent pericarditis",
+        "Thrombolysis in pulmonary embolism",
+        "Catheter ablation for supraventricular tachycardia",
+        "Psychotherapy for panic disorder",
+        "Surgical outcomes in Boerhaave syndrome",
+        "Apixaban versus warfarin in atrial fibrillation",
+    ):
+        assert title_names_treatment(title), title
+    # Generic treatment words name no treatment: such a title is kept, its excerpts screened.
     assert not title_names_treatment("Diagnosis and management of acute pericarditis")
+    assert not title_names_treatment("Treatment of acute pericarditis")
+    assert treatment_language("Treatment of acute pericarditis")
 
 
 def test_no_search_asks_for_treatment_and_every_search_is_open_access():

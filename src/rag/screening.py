@@ -21,9 +21,12 @@ language is never stored, indexed, embedded or shown.** Concretely:
    these runs into passages, so every passage is a verbatim, contiguous piece of its article.
 3. **An article whose title names a treatment is dropped** (:func:`title_names_treatment`), since
    the title is shown with every excerpt: "Colchicine for recurrent pericarditis" would itself be
-   a suggestion. Only the safety layer's lexicon applies to titles, so a review titled "Diagnosis
-   and management of acute pericarditis" stays: its title names no treatment, and its excerpts
-   are screened by rule 1.
+   a suggestion. A title is held to both patterns except their generic words ("treatment",
+   "therapy", "management", "medication", "regimen": :data:`GENERIC`), so a review titled
+   "Diagnosis and management of acute pericarditis" stays, and "Catheter ablation for
+   supraventricular tachycardia" or "Psychotherapy for panic disorder" goes. A title that names
+   treatment only generically ("Treatment of acute pericarditis") is kept: it recommends nothing,
+   and its excerpts are screened by rule 1.
 4. **The laptop screens again** (src/rag/retriever.py): every title on load; every passage on
    load when the bundle was screened under other rules (an older notebook, or rules tightened
    since: the manifest records :data:`SCREEN_DIGEST`); and every excerpt just before it is shown.
@@ -45,6 +48,7 @@ from src.rag.text import sentences
 from src.reasoning.safety import TREATMENT
 
 __all__ = [
+    "GENERIC",
     "MIN_SEGMENT_CHARS",
     "SCREEN_DIGEST",
     "THERAPY",
@@ -53,9 +57,11 @@ __all__ = [
     "treatment_language",
 ]
 
+GENERIC = r"treat\w*|therap\w*|manag\w*|regimens?|medications?|medicines?"
+"""Treatment words that name no treatment: screened out of passages, allowed in titles."""
 _CONTEXT = (
-    r"treat\w*|\w*therap\w*|manag\w*|regimens?|drug(?![\s-]+(?:use|abuse|misuse|induced))s?|"
-    r"medications?|medicines?|doses?|dosing|dosage\w*|prophyla\w*|pharmaco\w*|"
+    r"\w+therap\w*|drug(?![\s-]+(?:use|abuse|misuse|induced))s?|"
+    r"doses?|dosing|dosage\w*|prophyla\w*|pharmaco\w*|"
     r"first[- ]line|second[- ]line|rehabilitat\w*|"
     r"surgical\w*|(?<!recent )(?<!after )(?<!following )(?<!prior )(?<!previous )surger(?:y|ies)|"
     r"operation|operative(?:ly)?|intervention\w*|ablation|pacemakers?|pacing|defibrillat\w*|"
@@ -70,15 +76,18 @@ _DRUG_STEMS = (
     r"cycline|statin|prazole)s?|\w{2,}pril"
 )
 
-THERAPY = re.compile(rf"\b(?:{_CONTEXT}|{_DRUG_STEMS})\b", flags=re.IGNORECASE)
+THERAPY = re.compile(rf"\b(?:{GENERIC}|{_CONTEXT}|{_DRUG_STEMS})\b", flags=re.IGNORECASE)
 """Treatment context the safety layer's lexicon does not name: see the module docstring."""
+_SPECIFIC = re.compile(rf"\b(?:{_CONTEXT}|{_DRUG_STEMS})\b", flags=re.IGNORECASE)
 
 MIN_SEGMENT_CHARS = 150
 """The shortest run of clean sentences kept: about one full sentence. Shorter runs are mostly
 fragments between two removed sentences, which say little alone."""
 
 SCREEN_DIGEST = hashlib.sha256(
-    "\n".join([TREATMENT.pattern, THERAPY.pattern, str(MIN_SEGMENT_CHARS)]).encode("utf-8")
+    "\n".join(
+        [TREATMENT.pattern, THERAPY.pattern, _SPECIFIC.pattern, str(MIN_SEGMENT_CHARS)]
+    ).encode("utf-8")
 ).hexdigest()[:16]
 """Identifies these rules; recorded in each bundle's manifest (``screening``)."""
 
@@ -89,9 +98,9 @@ def treatment_language(text: str) -> bool:
 
 
 def title_names_treatment(title: str) -> bool:
-    """Whether an article's title names a drug, a procedure, a dose or a prescribing verb: the
-    safety layer's lexicon only (rule 3)."""
-    return bool(TREATMENT.search(title))
+    """Whether an article's title names a treatment: either pattern, without the generic words
+    (rule 3)."""
+    return bool(TREATMENT.search(title) or _SPECIFIC.search(title))
 
 
 def diagnostic_spans(text: str, min_chars: int = MIN_SEGMENT_CHARS) -> list[tuple[int, int]]:
