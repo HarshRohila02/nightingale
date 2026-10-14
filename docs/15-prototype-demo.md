@@ -108,9 +108,10 @@ clinical expectations the tests enforce.
    - **Move "Diaphoresis" to Findings denied:** a denial is evidence, while a finding not chosen is
      "not asked". The ranking changes differently for each.
    - **Scroll to "What to ask next".** The graph's first questions are **rest pain** and the
-     **crescendo pattern**: the findings that separate unstable angina from stable angina, which
-     the graph ties when neither is recorded (EXP-005). The tests to consider are a **12-lead
-     ECG** and **serial high-sensitivity troponin** (ESC 2023 ACS; AHA/ACC 2021).
+     **crescendo pattern**, which bear on unstable angina against MI here (as recorded from the
+     3d review on the real graph). The tests to consider are a **12-lead ECG** and **serial
+     high-sensitivity troponin** (ESC 2023 ACS; AHA/ACC 2021). The anginas are also where every
+     model errs most (EXP-023).
      - Say: questions are asked, never answered for the patient; tests are investigations only,
        each with its guideline; the clinician decides.
    - **Open MI's row: its Evidence.** With the corpus bundle, excerpts from PMC Open Access
