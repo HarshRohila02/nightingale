@@ -591,6 +591,20 @@ class TestProperties:
             BY_CONCEPT[k].match is Match.NONE or k == "SYM:irregular_pulse" for k in EXAMINATION
         )
 
+    def test_only_what_the_form_offers_is_asked_and_never_advice(self):
+        """A question is a finding the form offers (``GET /concepts``), named by its label, and no
+        label reads as a treatment (FR-6.5)."""
+        store = networkx_store(MIXED)
+        for q in next_questions(case(), store, limit=100).questions:
+            assert q.concept_id in BY_CONCEPT and q.label == BY_CONCEPT[q.concept_id].label
+            expected = (
+                "risk_factor"
+                if q.concept_id.startswith("RF:")
+                else "examination" if q.concept_id in EXAMINATION else "history"
+            )
+            assert q.kind == expected
+        assert not any(recommends_treatment(e.label) for e in BY_CONCEPT.values())
+
 
 class TestDegraded:
     def test_a_store_without_likelihoods(self):
