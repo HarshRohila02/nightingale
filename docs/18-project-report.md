@@ -1022,11 +1022,20 @@ already exists.
 ---
 
 ## 16. Team, process and engineering practice
-- **Roles:**
-  - **P1:** the knowledge graph, graph scoring and red-flag rules;
-  - **P2:** data, features, rankers, calibration and error analysis;
-  - **P3:** the patient graph, retrieval, the grounded explanation and the safety layer;
-  - **P4:** contracts, the API, the dashboard, the evaluation harness, CI and documentation.
+- **Roles,** partitioned into four segments in [`docs/19-work-partition.md`](19-work-partition.md),
+  with each segment's components, experiments, what is left, report sections and slides:
+  - **P1, the medical knowledge graph and graph reasoning:** the graph from three sources, the
+    crosswalk, the Neo4j and NetworkX stores, the naive-Bayes score, case → model tokens, the
+    question ranking, the patient graph (left);
+  - **P2, data and the ML rankers:** DDXPlus decoding, the encoder with the "asked" channel,
+    masked training, B0/B1, the transformer and its safety floor, calibration, the model's
+    reasons;
+  - **P3, clinical safety, fusion, evidence and explanation:** the red-flag rules, the safety
+    layer, the opinion-pool fusion, the cited tests, the golden cases, evidence retrieval, the
+    explainer, and, still to build, the LLM explanation and its guardrails;
+  - **P4, the platform, evaluation and integration:** contracts and pipeline, the metrics harness,
+    the evaluation protocol and its three levels, the API, the dashboard, latency, error analysis,
+    CI, and the Phase 4 test-split evaluation and report assembly.
 - **`PROGRESS.md` is the single source of truth.** Every task writes a write-ahead marker first,
   then commits its work together with the status update, so an interrupted session can always be
   recovered.

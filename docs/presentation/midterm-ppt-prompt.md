@@ -30,6 +30,13 @@ minutes plus questions**, and is shared by four presenters (P1–P4).
 Give the literature review the most slides. Progress and results are not marked: show them briefly
 (two slides), only as proof that the methodology works.
 
+### Presenters by slide
+Put the presenter's label in each slide's speaker notes:
+- **P1:** slides 4, 7, 14;
+- **P2:** slides 6, 13, 15, 19;
+- **P3:** slides 5, 8, 10, 16;
+- **P4:** slides 1–3, 9, 11, 12, 17, 18, 20, 21.
+
 ### Rules you must follow
 1. **Use only the facts, numbers and references given below.** Do not add statistics, citations,
    authors, years or claims of your own. If a slide needs something that is not given, write
@@ -62,8 +69,11 @@ Give the literature review the most slides. Progress and results are not marked:
 - **Subtitle:** A safety-first, explainable differential-diagnosis assistant for acute chest pain
 - **Footer fields:** PRJ1 Mid-term Evaluation · [Team member names and roll numbers] · Supervisor:
   [Name, title] · [Institution] · [Date]
-- **Notes:** Introduce the team and the roles: P1 knowledge graph; P2 data and ML; P3 retrieval,
-  LLM and safety; P4 platform and evaluation.
+- **Notes:** Introduce the team and the four segments:
+  - P1, the medical knowledge graph and graph reasoning;
+  - P2, data and the machine-learning rankers;
+  - P3, clinical safety, fusion, evidence and explanation;
+  - P4, the platform, evaluation and integration.
 
 ### Slide 2 · The problem
 **Bullets:**

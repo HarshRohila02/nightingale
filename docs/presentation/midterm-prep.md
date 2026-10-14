@@ -16,12 +16,20 @@ slide limit, format, who must speak).
 
 | Part | Criterion | Marks | Slides (prompt file) | Suggested presenter | Time |
 |---|---|---:|---|---|---:|
-| Literature review | Comprehensiveness of the literature review | 10 | 4–9 | P1 (graph) and P2 (data, ML) | 5 min |
-| Literature review | Research gap | 5 | 10 | P2 | 1.5 min |
-| Methodology | Objective / problem definition | 5 | 2–3, 11 | P4 (platform, evaluation) | 2 min |
-| Methodology | Proposed methodology: tools, techniques, methods, dataset | 5 | 12–17 | P1, P2, P3, P4, each their part | 5 min |
-| — | Progress so far, and an optional 2-minute live demo | — (supports the methodology) | 18–19 | P4 | 1.5–3 min |
-| — | Questions | — | 20–21 | All | — |
+| Literature review | Comprehensiveness of the literature review | 10 | 4–9 | P1 (slides 4, 7) · P2 (6) · P3 (5, 8) · P4 (9) | 5 min |
+| Literature review | Research gap | 5 | 10 | P3 | 1.5 min |
+| Methodology | Objective / problem definition | 5 | 2–3, 11 | P4 | 2 min |
+| Methodology | Proposed methodology: tools, techniques, methods, dataset | 5 | 12–17 | P4 (12, 17) · P2 (13, 15) · P1 (14) · P3 (16) | 5 min |
+| — | Progress so far, and an optional 2-minute live demo | — (supports the methodology) | 18–19 | P4 (18, demo) · P2 (19) | 1.5–3 min |
+| — | Questions | — | 20–21 | P4 (20); each answers for their segment | — |
+
+**Who presents what follows the four segments of [`docs/19-work-partition.md`](../19-work-partition.md):**
+- **P1:** knowledge graph and graph reasoning;
+- **P2:** data and ML rankers;
+- **P3:** clinical safety, fusion, evidence and explanation;
+- **P4:** platform, evaluation and integration.
+
+The question owners for §7 are listed there too.
 
 **Weight the time the way the marks are weighted.** The literature review carries 15 of the 25
 marks, so it gets the most time. Progress and results are not marked here. Show them briefly, as
