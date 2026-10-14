@@ -73,7 +73,7 @@ Reference: docs/02-architecture.md §5.1 (KG card), docs/08-experiment-log.md EX
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -203,6 +203,39 @@ class LikelihoodScorer:
                 )
         return sorted(parts, key=lambda p: (-abs(p.log_likelihood), p.concept_id))
 
+    def score_many(
+        self,
+        cases: Sequence[tuple[Collection[str], Collection[str]]],
+        relative_to: tuple[Collection[str], Collection[str]] | None = None,
+    ) -> np.ndarray:
+        """The log-likelihoods of many cases at once, each given as (present ids, denied ids).
+
+        The same arithmetic as :meth:`score` (the same usable, contradictory and entailed rules),
+        but for id sets rather than a :class:`~src.contracts.PatientCase`, and unrounded: one row
+        per case, one column per condition in :attr:`conditions`. The question ranking
+        (:mod:`src.reasoning.next_questions`, 3d) scores every hypothetical answer this way in one
+        product, because building a case per answer would cost more than the ranking itself.
+        Expanding a hand-authored case through the crosswalk is the caller's.
+
+        Args:
+            cases: (present ids, denied ids) per case.
+            relative_to: A reference case. Each row is then the case's score *minus* the
+                reference's, summed over the columns where the two differ only, so a column both
+                count cancels exactly rather than to within rounding.
+        """
+        n = len(cases)
+        present = np.zeros((n, len(self.concepts)))
+        denied = np.zeros((n, len(self.concepts)))
+        for i, (p, a) in enumerate(cases):
+            p_columns, a_columns = self._columns_of(p, a)
+            present[i, p_columns] = 1.0
+            denied[i, a_columns] = 1.0
+        if relative_to is not None:
+            p_columns, a_columns = self._columns_of(*relative_to)
+            present[:, p_columns] -= 1.0
+            denied[:, a_columns] -= 1.0
+        return present @ self._present.T + denied @ self._denied.T
+
     def edge_kind(self, condition_id: str, concept_id: str) -> EdgeKind:
         """How the closed graph links a condition to a concept."""
         return self._kinds.get((condition_id, concept_id), EdgeKind.NONE)
@@ -217,7 +250,13 @@ class LikelihoodScorer:
 
     def _columns(self, case: PatientCase) -> tuple[list[int], list[int]]:
         """The concepts that count, as columns: usable, not contradictory, not entailed."""
-        present, absent = case.present_concept_ids(), case.absent_concept_ids()
+        return self._columns_of(case.present_concept_ids(), case.absent_concept_ids())
+
+    def _columns_of(
+        self, present: Collection[str], absent: Collection[str]
+    ) -> tuple[list[int], list[int]]:
+        """:meth:`_columns` for id sets."""
+        present, absent = set(present), set(absent)
         contradictory = present & absent
 
         def usable(ids: set[str]) -> set[str]:

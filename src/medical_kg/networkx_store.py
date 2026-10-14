@@ -91,6 +91,16 @@ class NetworkXGraphStore:
         """
         return self.degraded_reason is not None
 
+    @property
+    def scorer(self) -> LikelihoodScorer:
+        """The naive-Bayes scorer behind :meth:`score_by_connectivity`, over the closed graph.
+
+        Not part of the ``GraphStore`` Protocol: "what to ask next" (3d,
+        :mod:`src.reasoning.next_questions`) reads the same likelihoods to rank the questions, so
+        that a question's worth is judged by the score that will rank its answer.
+        """
+        return self._scorer
+
     # -- GraphStore -------------------------------------------------------- #
 
     def score_by_connectivity(self, case: PatientCase) -> dict[str, float]:

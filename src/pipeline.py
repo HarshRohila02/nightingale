@@ -35,6 +35,7 @@ from src.fusion import (
     fuse_scores,
     valid_model_scores,
 )
+from src.reasoning.investigations import TESTS_FOR_TOP, suggested_tests
 from src.reasoning.red_flags import evaluate_red_flags
 from src.reasoning.safety import safety_check
 
@@ -119,6 +120,10 @@ class DiagnosisPipeline:
             red_flags=[
                 f"{BY_ID[cid].label}: {reason}" for cid, reason in red_flags.items() if cid in BY_ID
             ],
+            # 3d: the cited investigations for the leading candidates and every red-flagged one
+            # (src/reasoning/investigations.py). With neither the model nor the graph ranking,
+            # the order is the registry's, which says nothing, so only the flagged get theirs.
+            suggested_next_tests=suggested_tests(candidates, TESTS_FOR_TOP if fused else 0),
             explanation=explanation,
             degraded_components=degraded,
         )
