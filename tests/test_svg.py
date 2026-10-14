@@ -68,7 +68,17 @@ def test_scale_maps_linearly_and_can_flip():
 
 @pytest.mark.parametrize(
     ("share", "expected"),
-    [(0.0, 0), (0.0099, 0), (0.01, 1), (0.029, 1), (0.03, 2), (0.1, 3), (0.2999, 3), (0.3, 4), (1, 4)],
+    [
+        (0.0, 0),
+        (0.0099, 0),
+        (0.01, 1),
+        (0.029, 1),
+        (0.03, 2),
+        (0.1, 3),
+        (0.2999, 3),
+        (0.3, 4),
+        (1, 4),
+    ],
 )
 def test_share_classes(share, expected):
     assert svg.share_class(share) == expected
@@ -152,8 +162,11 @@ def test_text_is_escaped():
 def test_reliability_grid_draws_every_condition_and_level():
     series = {
         "1.0": {"rows": [row(0.9, 100, 0.95, 0.96)], "ece": 0.001, "ci": [0.0005, 0.002]},
-        "0.25": {"rows": [row(0.0, 900, 0.02, 0.01), row(0.5, 12, 0.55, 0.5)], "ece": 0.01,
-                 "ci": [0.008, 0.012]},
+        "0.25": {
+            "rows": [row(0.0, 900, 0.02, 0.01), row(0.5, 12, 0.55, 0.5)],
+            "ece": 0.01,
+            "ci": [0.008, 0.012],
+        },
     }
     panels = [{"label": name, "series": series} for name in ("MI *", "GERD", "PE *")]
     root = parse(svg.reliability_grid(panels, title="Grid", subtitle="s", notes="n", columns=2))
@@ -219,8 +232,10 @@ def test_confusion_cells_are_laid_out_by_row_and_column():
 def test_recall_dots_are_placed_on_a_shared_axis():
     def rows(value: float) -> dict:
         return {
-            MI: {"1.0": {"value": 1.0, "ci": [1.0, 1.0]}, "0.25": {"value": value,
-                 "ci": [value - 0.02, value + 0.02]}},
+            MI: {
+                "1.0": {"value": 1.0, "ci": [1.0, 1.0]},
+                "0.25": {"value": value, "ci": [value - 0.02, value + 0.02]},
+            },
             UA: {"1.0": {"value": 0.9, "ci": [0.88, 0.92]}},
         }
 
@@ -246,7 +261,9 @@ def test_recall_dots_are_placed_on_a_shared_axis():
     # Linear: 0.9 is halfway between 0.8 and 1.0.
     assert a_ua[0] - a_low[0] == pytest.approx(a_one[0] - a_ua[0], abs=0.2)
     # The axis starts at the lowest interval end rounded down to 0.05: 0.58 → 0.55.
-    ticks = [float(t.text) for t in root.iter(f"{NS}text") if re.fullmatch(r"0\.\d+|1", t.text or "")]
+    ticks = [
+        float(t.text) for t in root.iter(f"{NS}text") if re.fullmatch(r"0\.\d+|1", t.text or "")
+    ]
     assert min(ticks) >= 0.55 and max(ticks) == 1.0
     assert a_one[1] < a_ua[1]  # MI's row above UA's
 

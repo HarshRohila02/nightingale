@@ -172,7 +172,9 @@ class _Canvas:
             f'stroke-width="{width:g}"{extra}/>'
         )
 
-    def polyline(self, points: Sequence[tuple[float, float]], stroke: str, width: float = 2) -> None:
+    def polyline(
+        self, points: Sequence[tuple[float, float]], stroke: str, width: float = 2
+    ) -> None:
         if len(points) < 2:
             return
         path = " ".join(f"{_n(x)},{_n(y)}" for x, y in points)
@@ -225,7 +227,9 @@ class _Canvas:
             self.parts.append(self._close("circle", body, title))
         elif shape == "square":
             s = size * 0.88
-            body = f'x="{_n(x - s / 2)}" y="{_n(y - s / 2)}" width="{_n(s)}" height="{_n(s)}"{paint}'
+            body = (
+                f'x="{_n(x - s / 2)}" y="{_n(y - s / 2)}" width="{_n(s)}" height="{_n(s)}"{paint}'
+            )
             self.parts.append(self._close("rect", body, title))
         elif shape == "triangle":
             h = size * 1.05
@@ -291,8 +295,12 @@ def _reliability_axes(
         canvas.line(sx(t), y0, sx(t), y0 + size, GRID)
         canvas.line(x0, sy(t), x0 + size, sy(t), GRID)
         label = f"{t:g}"
-        canvas.text(sx(t), y0 + size + tick_size + 3, label, size=tick_size, fill=MUTED, anchor="middle")
-        canvas.text(x0 - 4, sy(t) + tick_size * 0.35, label, size=tick_size, fill=MUTED, anchor="end")
+        canvas.text(
+            sx(t), y0 + size + tick_size + 3, label, size=tick_size, fill=MUTED, anchor="middle"
+        )
+        canvas.text(
+            x0 - 4, sy(t) + tick_size * 0.35, label, size=tick_size, fill=MUTED, anchor="end"
+        )
     canvas.line(x0, y0 + size, x0 + size, y0 + size, AXIS)
     canvas.line(x0, y0, x0, y0 + size, AXIS)
     canvas.line(sx(0), sy(0), sx(1), sy(1), MUTED, 1, extra=' class="diagonal"')
@@ -368,22 +376,48 @@ def reliability_figure(
         canvas.text(x0, y0 - 9, _ece_text(panel["ece"], panel["ci"]), size=11, fill=INK_2)
         sx, sy = _reliability_axes(canvas, x0, y0, size, (0, 0.2, 0.4, 0.6, 0.8, 1))
         _reliability_series(canvas, sx, sy, panel["rows"], panel["level"], what)
-        canvas.text(x0 + size / 2, y0 + size + 28, "mean probability given", size=10, fill=INK_2,
-                    anchor="middle")
+        canvas.text(
+            x0 + size / 2,
+            y0 + size + 28,
+            "mean probability given",
+            size=10,
+            fill=INK_2,
+            anchor="middle",
+        )
         if i == 0:
-            canvas.text(x0 - 40, y0 + size / 2, "observed share correct", size=10, fill=INK_2,
-                        anchor="middle", rotate=-90)
+            canvas.text(
+                x0 - 40,
+                y0 + size / 2,
+                "observed share correct",
+                size=10,
+                fill=INK_2,
+                anchor="middle",
+                rotate=-90,
+            )
         # Patients per bin: bar height on a log scale, the count above it.
         base = y0 + size + 44 + strip
         slot = size / 10
         for r in panel["rows"]:
             b = min(int(r["bin_low"] * 10 + 1e-9), 9)
             h = max(1.5, strip * math.log10(r["cases"] + 1) / math.log10(biggest + 1))
-            canvas.rect(x0 + b * slot + 1, base - h, slot - 2, h, style["colour"],
-                        title=f"{style['name']} evidence, bin {r['bin_low']:.1f}–{r['bin_high']:.1f}: "
-                        f"{r['cases']:,} patients", extra=' class="count"')
-            canvas.text(x0 + b * slot + slot / 2, base - h - 3, compact(int(r["cases"])), size=8.5,
-                        fill=INK_2, anchor="middle")
+            canvas.rect(
+                x0 + b * slot + 1,
+                base - h,
+                slot - 2,
+                h,
+                style["colour"],
+                title=f"{style['name']} evidence, bin {r['bin_low']:.1f}–{r['bin_high']:.1f}: "
+                f"{r['cases']:,} patients",
+                extra=' class="count"',
+            )
+            canvas.text(
+                x0 + b * slot + slot / 2,
+                base - h - 3,
+                compact(int(r["cases"])),
+                size=8.5,
+                fill=INK_2,
+                anchor="middle",
+            )
         canvas.line(x0, base, x0 + size, base, AXIS)
         if i == 0:
             canvas.text(x0 - 6, base - 2, "patients", size=9, fill=MUTED, anchor="end")
@@ -463,39 +497,63 @@ def confusion_figure(
     width = x0 + len(columns) * cw + 64
     canvas = _Canvas(width, 10, title, f"{subtitle} {notes}")
     y = _header(canvas, title, subtitle, width - 32)
-    canvas.text(x0 + len(columns) * cw / 2, y + 12, "ranked first", size=10, fill=INK_2,
-                anchor="middle")
+    canvas.text(
+        x0 + len(columns) * cw / 2, y + 12, "ranked first", size=10, fill=INK_2, anchor="middle"
+    )
     y0 = y + 34
     for j, column in enumerate(columns):
-        canvas.text(x0 + j * cw + cw / 2, y0 - 6, column_codes[column], size=9.5, fill=INK,
-                    anchor="middle")
+        canvas.text(
+            x0 + j * cw + cw / 2, y0 - 6, column_codes[column], size=9.5, fill=INK, anchor="middle"
+        )
     canvas.text(x0 + len(columns) * cw + 8, y0 - 6, "patients", size=9.5, fill=INK_2)
     canvas.text(16, y0 - 6, "true condition", size=10, fill=INK_2)
     for i, row in enumerate(rows):
         total = int(sum(matrix[i]))
         ry = y0 + i * ch
         canvas.text(16, ry + ch / 2 + 4, row_labels[row], size=10.5)
-        canvas.text(x0 + len(columns) * cw + 8, ry + ch / 2 + 4, f"{total:,}", size=9.5,
-                    fill=INK_2)
+        canvas.text(x0 + len(columns) * cw + 8, ry + ch / 2 + 4, f"{total:,}", size=9.5, fill=INK_2)
         for j, column in enumerate(columns):
             count = int(matrix[i][j])
             share = count / total if total else 0.0
             cell = f' class="cell" data-r="{i}" data-c="{j}"'
-            label = f"{row_labels[row]} ranked first as {column_codes[column]}: {count:,} of {total:,}"
+            label = (
+                f"{row_labels[row]} ranked first as {column_codes[column]}: {count:,} of {total:,}"
+            )
             cx, cy = x0 + j * cw + 1, ry + 1
             if row == column:
-                canvas.rect(cx, cy, cw - 2, ch - 2, DIAGONAL_CELL,
-                            title=f"{label} ({share:.1%}, top-1 recall)", extra=cell)
-                canvas.text(cx + (cw - 2) / 2, cy + ch / 2 + 2.5, f"{share:.1%}", size=8.5,
-                            anchor="middle")
+                canvas.rect(
+                    cx,
+                    cy,
+                    cw - 2,
+                    ch - 2,
+                    DIAGONAL_CELL,
+                    title=f"{label} ({share:.1%}, top-1 recall)",
+                    extra=cell,
+                )
+                canvas.text(
+                    cx + (cw - 2) / 2, cy + ch / 2 + 2.5, f"{share:.1%}", size=8.5, anchor="middle"
+                )
             elif count == 0:
                 canvas.rect(cx, cy, cw - 2, ch - 2, EMPTY_CELL, extra=cell)
             else:
                 k = share_class(share)
-                canvas.rect(cx, cy, cw - 2, ch - 2, SEQUENTIAL[k],
-                            title=f"{label} ({share:.2%})", extra=cell)
-                canvas.text(cx + (cw - 2) / 2, cy + ch / 2 + 2.5, f"{count:,}", size=8.5,
-                            fill=SURFACE if k >= DARK_FROM else INK, anchor="middle")
+                canvas.rect(
+                    cx,
+                    cy,
+                    cw - 2,
+                    ch - 2,
+                    SEQUENTIAL[k],
+                    title=f"{label} ({share:.2%})",
+                    extra=cell,
+                )
+                canvas.text(
+                    cx + (cw - 2) / 2,
+                    cy + ch / 2 + 2.5,
+                    f"{count:,}",
+                    size=8.5,
+                    fill=SURFACE if k >= DARK_FROM else INK,
+                    anchor="middle",
+                )
     # The key: the five share classes and the diagonal.
     ky = y0 + len(rows) * ch + 22
     canvas.text(16, ky, "Off the diagonal, the share of the row's patients:", size=10, fill=INK_2)
@@ -505,8 +563,9 @@ def confusion_figure(
         canvas.text(kx + 22, ky, name, size=10, fill=INK_2)
         kx += 22 + _width(name, 10) + 12
     canvas.rect(16, ky + 8, 18, 12, DIAGONAL_CELL)
-    canvas.text(38, ky + 18, "diagonal: the true condition ranked first (top-1 recall)", size=10,
-                fill=INK_2)
+    canvas.text(
+        38, ky + 18, "diagonal: the true condition ranked first (top-1 recall)", size=10, fill=INK_2
+    )
     y = canvas.paragraph(16, ky + 40, notes, width - 32)
     canvas.height = math.ceil(y)
     return canvas.render()

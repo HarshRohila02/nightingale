@@ -258,6 +258,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe scripts/serve_api.py               # 1e: the API, 127.0.0.1:8000/docs
 ./.venv/Scripts/python.exe scripts/measure_latency.py         # EXP-022: model cost and pipeline latency (~15 s)
 ./.venv/Scripts/python.exe scripts/measure_retrieval.py       # 3a: retrieval cost (synthetic bundle, or --bundle data/raw/retrieval_corpus)
+./.venv/Scripts/python.exe scripts/error_analysis.py          # 3e, EXP-023: errors and calibration by condition (~4 min; --figures-only redraws docs/figures/)
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data

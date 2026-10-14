@@ -1,6 +1,8 @@
 # 16 · Handoff to a cloud session (2026-10-14)
 
-**Read this, then `PROGRESS.md` §1–§2, before doing anything.** The owner moved the work from the
+**Read this, then `PROGRESS.md` §1–§2, before doing anything. Then take the work from
+[`docs/17-cloud-session-tasks.md`](17-cloud-session-tasks.md)**, the list of tasks a cloud session can
+do with no risk and no input from the owner (2026-10-14). The owner moved the work from the
 laptop session to a cloud Claude Code session on 2026-10-14. This page holds what a fresh session
 needs that the repository does not show by itself: where each workstream stopped, what it still
 needs, and what a cloud machine cannot do.
@@ -11,6 +13,9 @@ needs, and what a cloud machine cannot do.
 > laptop by two agents and reviewed with the real graph and transformer: PR #2 (3d) and PR #3 (3a,
 > which contains 3d). The `wip/3d-next-steps` and `wip/3a-retrieval` rows below are history; 3e
 > and 1d are still as described. `PROGRESS.md` §1 has the next action.
+>
+> **Update 2026-10-14 (later still):** PRs #2 and #3 are merged (`9852695`, `e84e685`), and 3e was
+> finished and run on the laptop (EXP-023). §5's order below is replaced by `docs/17`'s task list.
 
 - **`master` = `v0.1-prototype`** (`06b6263`). The working prototype: the dashboard with the
   transformer B1-DL′+aug (D-13), the knowledge graph, the red flags and the model's reasons. To

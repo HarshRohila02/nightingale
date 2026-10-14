@@ -179,7 +179,9 @@ def top_confusions(
     out = []
     for (truth, predicted), count in sorted(pairs.items(), key=key)[:limit]:
         cases = by_true[truth]
-        share = _share((bool(o.ranking) and o.ranking[0] == predicted for o in cases), resamples, seed)
+        share = _share(
+            (bool(o.ranking) and o.ranking[0] == predicted for o in cases), resamples, seed
+        )
         out.append({"true": truth, "predicted": predicted, "count": count, "share": share})
     return out
 
@@ -205,9 +207,7 @@ def must_not_miss_misses(
     order = {c: i for i, c in enumerate(_REGISTRY)}
 
     def ordered(counter: Counter) -> dict[str, int]:
-        return dict(
-            sorted(counter.items(), key=lambda kv: (-kv[1], order.get(kv[0], len(order))))
-        )
+        return dict(sorted(counter.items(), key=lambda kv: (-kv[1], order.get(kv[0], len(order)))))
 
     def summarise(cases: Sequence[CaseOutcome]) -> dict[str, Any]:
         missed = [o for o in cases if o.true_condition not in o.ranking[:3]]

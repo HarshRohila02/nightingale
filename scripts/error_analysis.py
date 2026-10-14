@@ -213,7 +213,9 @@ def check_references(results: dict[str, Any]) -> dict[str, Any]:
             mine = results["systems"][system]["levels"][level]["headline"]
             for name, m in recorded.items():
                 worst = max(worst, abs(m["value"] - mine[name]["value"]))
-                worst = max(worst, *(abs(a - b) for a, b in zip(m["ci"], mine[name]["ci"], strict=True)))
+                worst = max(
+                    worst, *(abs(a - b) for a, b in zip(m["ci"], mine[name]["ci"], strict=True))
+                )
                 compared += 1
             raw = reference[level].get("calibration_of_raw_scores")
             if raw is not None:
