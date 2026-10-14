@@ -106,7 +106,9 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-*(empty: 3d and 3a are done, in PRs #2 and #3; see §1 for what is next.)*
+**Before the cloud handoff (2026-10-14).** The owner: "i could'nt find the retrival corpus notebook, fix that and commit all other things, finish what is needed to be done before handing it to cloud session and make a .md of all the stuff that can be done in could session without any risk and need to my input and intervention".
+- *Done so far:* the notebook was only on PR #3's branch; PRs #2 (`9852695`) and #3 (`e84e685`) merged on green CI, so `notebooks/kaggle_retrieval_corpus.ipynb` is on `master`.
+- *Remaining:* (1) **3e on the laptop** (it needs `data/` and `models/`, which a cloud session lacks): finish `wip/3e-error-analysis` (the figure grid reads `rows`, the analysis stores `reliability`), run EXP-023, record it; (2) the laptop-only checks on `master`; (3) **`docs/17-cloud-session-tasks.md`**: the work a cloud session can do with no risk and no input from the owner, and what it must leave alone; (4) `docs/16`, §1 and §8.
 
 ---
 
