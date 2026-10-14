@@ -24,10 +24,11 @@ language is never stored, indexed, embedded or shown.** Concretely:
    a suggestion. Only the safety layer's lexicon applies to titles, so a review titled "Diagnosis
    and management of acute pericarditis" stays: its title names no treatment, and its excerpts
    are screened by rule 1.
-4. **The laptop screens again** (src/rag/retriever.py): a passage or title that fails the rules as
-   they are now, because the bundle was built by an older notebook or the rules were tightened
-   since, is never shown; and ``safety_check`` drops any evidence that recommends a treatment
-   (src/reasoning/safety.py), whatever retriever produced it.
+4. **The laptop screens again** (src/rag/retriever.py): every title on load; every passage on
+   load when the bundle was screened under other rules (an older notebook, or rules tightened
+   since: the manifest records :data:`SCREEN_DIGEST`); and every excerpt just before it is shown.
+   A passage that fails is never shown. Last, ``safety_check`` drops any evidence that
+   recommends a treatment (src/reasoning/safety.py), whatever retriever produced it.
 
 It is lexical, like the safety layer v1: it catches how papers usually phrase treatment, not every
 paraphrase, and the sentence splitter is crude (src/rag/text.py). Its digest

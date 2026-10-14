@@ -275,6 +275,23 @@ def test_the_retriever_hides_passages_with_treatment_in_the_text_or_the_title(re
         e.passage + e.title for e in retriever.retrieve("pericarditis", PERICARDITIS_CASE, k=9)
     ]
     assert texts and not any(treatment_language(t) or "Colchicine" in t for t in texts)
+    assert retriever.rescreened  # the fixture says it was screened under older rules
+
+
+def test_a_bundle_screened_under_today_s_rules_is_not_rescreened_but_still_never_shows_treatment(
+    tmp_path,
+):
+    """The manifest's hashes guarantee the text is what the notebook screened, so only titles are
+    checked on load; the excerpt check still stops a passage that slipped through from showing."""
+    from src.rag.screening import SCREEN_DIGEST
+
+    bundle = load_bundle(write_fake_bundle(tmp_path / "today", screening_digest=SCREEN_DIGEST))
+    trusting = HybridRetriever(bundle)
+    assert not trusting.rescreened and trusting.screened_out == 1  # the colchicine title only
+    assert 6 in trusting.eligible("COND:pericarditis")
+    shown = trusting.retrieve("COND:pericarditis", PERICARDITIS_CASE, k=9)
+    assert shown and not any("ibuprofen" in e.passage for e in shown)
+    assert HybridRetriever(bundle, rescreen=True).screened_out == 2
 
 
 def test_safety_check_drops_evidence_that_recommends_a_treatment():
@@ -845,12 +862,17 @@ def test_the_configuration_builds_the_retriever_and_its_settings(bundle_dir, tmp
     assert all(len(c.evidence) <= 1 for c in result.candidates)
 
 
-def test_the_shipped_configuration_has_retrieval_off_by_default():
-    from _config import load_config
+def test_the_shipped_configuration_names_a_bundle_key_and_degrades_without_one():
+    """``retrieval.bundle`` ships null (docs/11 §4.6: the owner sets it after unzipping); set or
+    not, a clone without data/ degrades to no evidence and ``rag``, never an error."""
+    from _config import load_config, open_retriever_from_config
 
-    retrieval = load_config()["retrieval"]
-    assert retrieval["bundle"] is None and retrieval["rrf_k"] == 60
+    config = load_config()
+    retrieval = config["retrieval"]
+    assert "bundle" in retrieval and retrieval["rrf_k"] == 60
     assert retrieval["embedding_model"] == "pritamdeka/S-PubMedBert-MS-MARCO"
+    if retrieval["bundle"] is None or not (REPO_ROOT / retrieval["bundle"]).exists():
+        assert open_retriever_from_config(config).degraded
 
 
 # --------------------------------------------------------------------------- #

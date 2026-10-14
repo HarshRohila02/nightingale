@@ -19,7 +19,6 @@ import numpy as np
 
 from src.rag.bundle import write_jsonl, write_manifest
 from src.rag.corpus import article_url
-from src.rag.screening import SCREEN_DIGEST
 
 __all__ = ["ARTICLES", "DIMENSION", "PASSAGES", "axis", "mixed", "write_fake_bundle"]
 
@@ -160,8 +159,15 @@ def query_rows() -> list[tuple[dict, np.ndarray]]:
     return rows
 
 
-def write_fake_bundle(path: Path, *, passage_dtype: str = "float32") -> Path:
-    """Write the invented bundle to ``path`` with a manifest, as the notebook would; ``path``."""
+def write_fake_bundle(
+    path: Path, *, passage_dtype: str = "float32", screening_digest: str = "older-rules"
+) -> Path:
+    """Write the invented bundle to ``path`` with a manifest, as the notebook would; ``path``.
+
+    By default its manifest says it was screened under other rules than today's, as a bundle from
+    an older notebook would, so the retriever screens every passage again on load; pass
+    ``SCREEN_DIGEST`` for a bundle screened under today's rules.
+    """
     path.mkdir(parents=True, exist_ok=True)
     write_jsonl(path / "articles.jsonl", ARTICLES)
     write_jsonl(
@@ -184,7 +190,7 @@ def write_fake_bundle(path: Path, *, passage_dtype: str = "float32") -> Path:
         {
             "created": "2026-10-14T00:00:00+00:00",
             "model": "invented",
-            "screening": {"digest": SCREEN_DIGEST},
+            "screening": {"digest": screening_digest},
         },
     )
     return path

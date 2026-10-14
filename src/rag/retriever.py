@@ -131,10 +131,17 @@ class HybridRetriever:
     passages, EXP-011); every query after that is a few vector operations over the passages that
     name the condition.
 
+    Args:
+        rescreen: Whether to screen every passage's text again on load. None (the default) does
+            so only when the manifest's ``screening.digest`` is not these rules'
+            (:data:`~src.rag.screening.SCREEN_DIGEST`).
+
     Attributes:
         screened_out: How many passages the treatment screen hides (src/rag/screening.py): their
-            own text, or their article's title, has treatment language under the rules as they
-            are now. 0 for a bundle built under the same rules.
+            article's title names a treatment, or, when re-screened, their own text has
+            treatment language under the rules as they are now. 0 for a bundle built under the
+            same rules.
+        rescreened: Whether the passages' text was screened again on load.
         missing_concepts: Hand-authored concepts with no query vector in the bundle.
     """
 
@@ -148,6 +155,7 @@ class HybridRetriever:
         rrf_k: int = RRF_K,
         condition_weight: float = CONDITION_WEIGHT,
         excerpt_chars: int = 320,
+        rescreen: bool | None = None,
     ) -> None:
         if depth < 1 or rrf_k < 0 or not 0.0 <= condition_weight <= 1.0:
             raise ValueError("need depth >= 1, rrf_k >= 0 and 0 <= condition_weight <= 1")
@@ -166,12 +174,20 @@ class HybridRetriever:
             [title_tokens[p["pmcid"]] + t for p, t in zip(passages, text_tokens, strict=True)]
         )
 
+        # The treatment screen (src/rag/screening.py, rule 4). Titles are always checked again:
+        # there are few and they are short. Passages are checked again only when the bundle was
+        # screened under other rules: the manifest's SHA-256s guarantee the text is exactly what
+        # the notebook screened, and the screen costs about 0.3 µs a character (25 s for 20,000
+        # passages, EXP-011). Every excerpt is checked once more before it is shown (_evidence).
+        screened_under = (bundle.manifest.get("screening") or {}).get("digest")
+        self.rescreened = rescreen if rescreen is not None else screened_under != SCREEN_DIGEST
         unsafe_titles = {
             pmcid for pmcid, a in bundle.articles.items() if title_names_treatment(a["title"])
         }
         shown = np.array(
             [
-                p["pmcid"] not in unsafe_titles and not treatment_language(p["text"])
+                p["pmcid"] not in unsafe_titles
+                and not (self.rescreened and treatment_language(p["text"]))
                 for p in passages
             ],
             dtype=bool,
@@ -183,7 +199,7 @@ class HybridRetriever:
                 "rules are %s)",
                 self.screened_out,
                 len(passages),
-                bundle.manifest.get("screening", {}).get("digest", "unknown rules"),
+                screened_under or "unknown rules",
                 SCREEN_DIGEST,
             )
         # Which passages may be shown under each condition: mentioned in the passage's text or in
