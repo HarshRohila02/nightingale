@@ -2,6 +2,7 @@
 
     python scripts/measure_latency.py                     # the models and the pipeline, one thread
     python scripts/measure_latency.py --deep models/nightingale_b1_dl/b1_dl_asked_aug/seed42
+    python scripts/measure_latency.py --empty-retriever   # the pipeline as EXP-022 first timed it
 
 The supervisor asked for the models' complexity, "as real-time models are preferred" (2026-10-04),
 and the owner decided that real time means the ranking updating as the findings are entered,
@@ -15,9 +16,18 @@ used if it is fast enough and helps (D-14). This measures whether it is.
   Without ``--deep`` the transformer is an untrained one of the same architecture: its cost is
   fixed by the architecture, not the weights, so the timing holds for the trained model too.
 * **The pipeline**, per golden case, stage by stage (``DiagnosisPipeline.run`` with the NetworkX
-  graph, the template explainer and no retrieval; the LLM is not part of it): the ranker, the
-  graph, the fusion, the red flags, the explanation, the safety check, and the rest. Stages are
-  timed by wrapping the pipeline's collaborators in this script; no pipeline code changes.
+  graph, the template explainer and the configured evidence retriever; the LLM is not part of
+  it): the ranker, the graph, the fusion, the red flags, the evidence retrieval, the explanation,
+  the safety check, and the rest. Stages are timed by wrapping the pipeline's collaborators in
+  this script; no pipeline code changes.
+* **Retrieval** (3a; ``retrieval:`` in configs/config.yaml) is the configured retriever, timed as
+  its own stage, ``retrieval``. Without the corpus bundle (docs/11 §4.6) it gives no evidence and
+  every result reports ``rag``, so it costs nothing, and the script says so. EXP-022 was first
+  measured with a stub that returned no evidence without degrading; ``--empty-retriever`` puts it
+  back, so that run can be reproduced.
+* **The questions to ask next** (3d, ``src/reasoning/next_questions.py``), which the dashboard
+  computes after each ranking, are timed per case on their own (``questions_ms``), after the
+  pipeline's runs, so they change none of its figures.
 
 Soft real time only: Python on Windows cannot guarantee a deadline, so p99 and the maximum are
 reported, never promised. One laptop, one thread by default (``--threads``), plugged in. Writes
@@ -54,7 +64,12 @@ import yaml  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _config import fusion_weights_from_config, load_config, open_graph_from_config  # noqa: E402
+from _config import (  # noqa: E402
+    fusion_weights_from_config,
+    load_config,
+    open_graph_from_config,
+    open_retriever_from_config,
+)
 
 import src.pipeline as pipeline_module  # noqa: E402
 from src.contracts import PatientCase  # noqa: E402
@@ -63,6 +78,8 @@ from src.medical_kg.crosswalk import expand_case  # noqa: E402
 from src.ml.deep import DeepRanker  # noqa: E402
 from src.ml.ranker import ModelRanker, open_ranker  # noqa: E402
 from src.pipeline import DiagnosisPipeline  # noqa: E402
+from src.rag.retriever import describe as describe_retriever  # noqa: E402
+from src.reasoning.next_questions import next_questions  # noqa: E402
 from src.stubs import EmptyRetriever, TemplateExplainer  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -191,8 +208,17 @@ class Timer:
         return timed
 
 
-def time_pipeline(ranker: Any, graph: Any, weights: dict, cases: dict, args) -> dict[str, Any]:
-    """Each golden case through the pipeline, ``args.pipeline_calls`` times, stage by stage."""
+def time_pipeline(
+    ranker: Any, graph: Any, weights: dict, cases: dict, args, retriever: Any = None
+) -> dict[str, Any]:
+    """Each golden case through the pipeline, ``args.pipeline_calls`` times, stage by stage, then
+    its questions to ask next as many times.
+
+    Args:
+        retriever: The evidence retriever, timed as the ``retrieval`` stage when it retrieves.
+            None means EXP-022's stub, which returns no evidence without degrading.
+    """
+    retriever = EmptyRetriever() if retriever is None else retriever
     timer = Timer()
     originals = {
         name: getattr(pipeline_module, name)
@@ -201,13 +227,21 @@ def time_pipeline(ranker: Any, graph: Any, weights: dict, cases: dict, args) -> 
     explainer = TemplateExplainer(ranker=ranker)  # the model's reasons included (2b)
     explainer.explain = timer.wrap("explanation", explainer.explain)  # type: ignore[method-assign]
     pipeline = DiagnosisPipeline(
-        ranker=ranker, graph=graph, retriever=EmptyRetriever(), explainer=explainer, **weights
+        ranker=ranker, graph=graph, retriever=retriever, explainer=explainer, **weights
     )
     pipeline.ranker = _Proxy(ranker, "score", timer.wrap("ranker", ranker.score))
     pipeline.graph = _Proxy(
         graph, "score_by_connectivity", timer.wrap("graph", graph.score_by_connectivity)
     )
-    labels = dict(graph.graph.nodes(data="label"))
+    if not isinstance(retriever, EmptyRetriever):
+        # EXP-022's stub, and the stand-in for an absent bundle (a subclass of it), stay as they
+        # were, so their retrieval stays in "rest" and a reproduced run reports what EXP-022 did.
+        pipeline.retriever = _Proxy(
+            retriever, "retrieve", timer.wrap("retrieval", retriever.retrieve)
+        )
+    # The real graph knows DDXPlus questions, so a case is expanded for it; the stub (in tests)
+    # knows the hand-authored concepts already.
+    labels = dict(graph.graph.nodes(data="label")) if hasattr(graph, "graph") else None
     results: dict[str, Any] = {}
     try:
         pipeline_module.fuse_scores = timer.wrap("fusion", originals["fuse_scores"])
@@ -216,7 +250,9 @@ def time_pipeline(ranker: Any, graph: Any, weights: dict, cases: dict, args) -> 
         )
         pipeline_module.safety_check = timer.wrap("safety_check", originals["safety_check"])
         for case_id, spec in cases.items():
-            case = expand_case(PatientCase(**spec["case"]), labels)
+            case = PatientCase(**spec["case"])
+            if labels is not None:
+                case = expand_case(case, labels)
             for _ in range(args.warmup):
                 pipeline.run(case)
             timer.spent.clear()
@@ -232,11 +268,44 @@ def time_pipeline(ranker: Any, graph: Any, weights: dict, cases: dict, args) -> 
                 "mean_ms_by_stage": stages,
                 "top": result.candidates[0].condition_id,
                 "degraded": list(result.degraded_components),
+                "evidence_passages": sum(len(c.evidence) for c in result.candidates),
+                "questions_ms": time_questions(case, graph, args),
             }
     finally:
         for name, function in originals.items():
             setattr(pipeline_module, name, function)
     return results
+
+
+def retriever_for(config: dict[str, Any], empty: bool = False) -> tuple[Any, list[str]]:
+    """The retriever to time, and the lines that say what it is.
+
+    The configured one (``retrieval:``), which without its bundle gives no evidence and reports
+    ``rag``; or, with ``empty``, EXP-022's stub, which returns no evidence without degrading.
+    """
+    if empty:
+        return EmptyRetriever(), ["retrieval: EXP-022's stub (no evidence, not degraded)"]
+    retriever = open_retriever_from_config(config)
+    about = [describe_retriever(retriever)]
+    if getattr(retriever, "degraded", False):
+        about.append(
+            "  so the pipeline is timed without evidence: every result reports rag, and "
+            "retrieval costs nothing (docs/11 §4.6 builds the bundle)"
+        )
+    return retriever, about
+
+
+def time_questions(case: PatientCase, graph: Any, args) -> dict[str, float]:
+    """The questions to ask next for ``case`` (3d), as the dashboard asks after each ranking:
+    ``args.warmup`` calls, then ``args.pipeline_calls`` timed ones."""
+    for _ in range(args.warmup):
+        next_questions(case, graph)
+    seconds = []
+    for _ in range(args.pipeline_calls):
+        started = time.perf_counter()
+        next_questions(case, graph)
+        seconds.append(time.perf_counter() - started)
+    return summary(seconds)
 
 
 class _Proxy:
@@ -266,6 +335,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--calls", type=int, default=1000)
     parser.add_argument("--passes", type=int, default=3)
     parser.add_argument("--pipeline-calls", type=int, default=300)
+    parser.add_argument(
+        "--empty-retriever",
+        action="store_true",
+        help="time the pipeline with EXP-022's stub retriever, not the configured one",
+    )
     parser.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
     started = time.perf_counter()
@@ -288,9 +362,11 @@ def main(argv: list[str] | None = None) -> int:
     graph = open_graph_from_config(config, "networkx")
     cases = {c["id"]: c for c in yaml.safe_load(GOLDEN.read_text(encoding="utf-8"))["cases"]}
     weights = fusion_weights_from_config(config)
+    retriever, about = retriever_for(config, empty=args.empty_retriever)
+    print("\n".join(about))
     print(f"Timing the pipeline on {len(cases)} golden cases, {args.pipeline_calls} runs each")
     pipelines = {
-        label: time_pipeline(models[label]["ranker"], graph, weights, cases, args)
+        label: time_pipeline(models[label]["ranker"], graph, weights, cases, args, retriever)
         for label in ("B1-LR′+aug", "B1-DL′+aug")
     }
 
@@ -317,6 +393,7 @@ def main(argv: list[str] | None = None) -> int:
         },
         "pipeline": pipelines,
         "graph": "networkx (the local build; Aura is timed separately, if at all)",
+        "retrieval": about[0],
         "llm": "not part of the ranking path (Phase 3); it explains after the ranking is shown",
     }
     out = args.out or args.interim / "exp022_latency.json"
@@ -337,6 +414,7 @@ def main(argv: list[str] | None = None) -> int:
             stages = " · ".join(f"{k} {v:.2f}" for k, v in r["mean_ms_by_stage"].items())
             print(
                 f"  {case_id}: p95 {r['total_ms']['p95']:.2f}, max {r['total_ms']['max']:.2f} | {stages}"
+                f" | questions p95 {r['questions_ms']['p95']:.2f}"
             )
     print(f"\nWrote {out} in {time.perf_counter() - started:.0f} s")
     return 0
