@@ -212,6 +212,15 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   against which conditions give it in DDXPlus. **`ModelRanker.reasons(case)`** (leave-one-finding-out
   occlusion, `src/ml/reasons.py`) names the finding a model's answer rests on: run it on any
   surprising ranking before suspecting the model.
+- **Evidence (3a, `src/rag/`) is about diagnosis only, and is never used to rank.** A sentence
+  with treatment language is never stored, embedded or shown (`src/rag/screening.py`); a bundle
+  is re-screened at load only when its recorded `SCREEN_DIGEST` differs from the current rules,
+  so tightening the rules changes the digest and costs a re-screen (~25 s at 20k passages). The
+  laptop runs no embedding model: the query vector is a mix of vectors precomputed on Kaggle.
+  Never commit the corpus or the embeddings (`data/raw/retrieval_corpus/`).
+- **"What to ask next" (3d) ranks by the graph alone** (`src/reasoning/next_questions.py`): the
+  graph's likelihoods do not know the patient's sex, so `NEVER_ASKED_OF` keeps pregnancy from a
+  man; every condition counts the same (the red flags and the tests table carry the danger).
 - The Windows console is **cp1252** — printing ⚠ or ✓ crashes unless stdout is reconfigured
   (see `scripts/demo.py`).
 - The team standard is **Python 3.11** (`.venv` and CI). The machine's default `python` is still
@@ -248,6 +257,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe -m streamlit run app/streamlit_app.py  # 2e: the dashboard, 127.0.0.1:8501, re-ranks live
 ./.venv/Scripts/python.exe scripts/serve_api.py               # 1e: the API, 127.0.0.1:8000/docs
 ./.venv/Scripts/python.exe scripts/measure_latency.py         # EXP-022: model cost and pipeline latency (~15 s)
+./.venv/Scripts/python.exe scripts/measure_retrieval.py       # 3a: retrieval cost (synthetic bundle, or --bundle data/raw/retrieval_corpus)
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet
 ./.venv/Scripts/python.exe scripts/build_cardiac_kg.py          # 1b: build the KG, print its card
 ./.venv/Scripts/python.exe scripts/check_crosswalk.py           # 1b: crosswalk, red flags, golden cases on real data

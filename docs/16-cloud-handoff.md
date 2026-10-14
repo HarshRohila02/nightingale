@@ -7,6 +7,11 @@ needs, and what a cloud machine cannot do.
 
 ## 1. State of the repository
 
+> **Update 2026-10-14 (later):** PR #1 is merged (`a7222ee`). 3d and 3a were finished on the
+> laptop by two agents and reviewed with the real graph and transformer: PR #2 (3d) and PR #3 (3a,
+> which contains 3d). The `wip/3d-next-steps` and `wip/3a-retrieval` rows below are history; 3e
+> and 1d are still as described. `PROGRESS.md` §1 has the next action.
+
 - **`master` = `v0.1-prototype`** (`06b6263`). The working prototype: the dashboard with the
   transformer B1-DL′+aug (D-13), the knowledge graph, the red flags and the model's reasons. To
   present it, see `docs/15-prototype-demo.md`.
