@@ -245,8 +245,9 @@ class TemplateExplainer:
 
         missing = top.missing()
         if missing:
-            # The real graph expects two dozen findings of some conditions. Choosing which to ask
-            # first is task 3d's; until then, the first few in the graph's order, and a count.
+            # The real graph expects two dozen findings of some conditions. Which to ask first is
+            # ranked by src/reasoning/next_questions.py (3d), which needs the graph this
+            # explainer never sees; here, the first few in the graph's order, and a count.
             shown = ", ".join(a.label for a in missing[:MISSING_SHOWN])
             more = len(missing) - MISSING_SHOWN
             lines.append(
