@@ -42,17 +42,21 @@ __all__ = [
     "CaseOutcome",
     "MetricResult",
     "Ratio",
+    "binned_gap_intervals",
     "bootstrap_ratio",
     "brier_score",
     "calibration_error_by_condition",
+    "calibration_error_by_condition_interval",
     "calibration_error_interval",
     "evaluate",
     "expected_calibration_error",
     "f1_by_condition",
     "mcnemar",
+    "one_vs_rest",
     "outcome_from_record",
     "paired_bootstrap_difference",
     "ranking_from_scores",
+    "reliability_rows",
     "reliability_table",
 ]
 
@@ -357,7 +361,17 @@ def reliability_table(
 ) -> list[dict[str, float]]:
     """Equal-width confidence bins: cases, mean confidence and accuracy in each (the data behind
     a reliability diagram). Empty bins are left out."""
-    confidence, correct = _top_label(outcomes)
+    return reliability_rows(*_top_label(outcomes), bins)
+
+
+def reliability_rows(
+    confidence: np.ndarray, correct: np.ndarray, bins: int = CALIBRATION_BINS
+) -> list[dict[str, float]]:
+    """:func:`reliability_table` from arrays: one value per case, the probability given and
+    whether it came true (1 or 0). The top-label table and the one-vs-rest tables of each
+    condition (docs/05 §3.3, "per condition and overall") then share one binning."""
+    confidence = np.asarray(confidence, dtype=float)
+    correct = np.asarray(correct, dtype=float)
     edges = np.minimum((confidence * bins).astype(int), bins - 1)
     rows = []
     for b in range(bins):
@@ -403,25 +417,61 @@ def calibration_error_interval(
     """A percentile bootstrap interval for :func:`expected_calibration_error`: the cases resampled
     with replacement, as :func:`bootstrap_ratio` resamples them, and the ECE recomputed."""
     confidence, correct = _top_label(outcomes)
-    n = len(confidence)
-    if n == 0:
+    if len(confidence) == 0:
         return (math.nan, math.nan)
-    edges = np.minimum((confidence * bins).astype(int), bins - 1)
-    gap = confidence - correct
+    return binned_gap_intervals(
+        confidence[:, None], correct[:, None], bins, resamples=resamples, seed=seed, level=level
+    )[0]
+
+
+def binned_gap_intervals(
+    confidence: np.ndarray,
+    correct: np.ndarray,
+    bins: int = CALIBRATION_BINS,
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    seed: int = DEFAULT_SEED,
+    level: float = DEFAULT_LEVEL,
+) -> list[tuple[float, float]]:
+    """Bootstrap intervals for several binned calibration errors over the same cases at once.
+
+    Args:
+        confidence: ``(cases, columns)``: per column, the probability each case was given.
+        correct: The same shape: whether it came true (1 or 0).
+
+    Returns:
+        One percentile interval per column. Every column sees the same resamples of the cases,
+        drawn exactly as :func:`calibration_error_interval` draws them, so a one-column call is
+        that function's interval, and the per-condition intervals of
+        :func:`calibration_error_by_condition_interval` share the top-label's resamples.
+    """
+    confidence = np.asarray(confidence, dtype=float)
+    correct = np.asarray(correct, dtype=float)
+    if confidence.ndim != 2 or confidence.shape != correct.shape:
+        raise ValueError("confidence and correct must be matching (cases, columns) arrays")
+    n, columns = confidence.shape
+    if n == 0:
+        return [(math.nan, math.nan)] * columns
+    # One contiguous row per column: gathering from a contiguous array is much faster.
+    edges = np.ascontiguousarray(np.minimum((confidence * bins).astype(np.int32), bins - 1).T)
+    gap = np.ascontiguousarray((confidence - correct).T)
     rng = np.random.default_rng(seed)
-    values = np.empty(resamples)
+    values = np.empty((columns, resamples))
     done = 0
     chunk = max(1, min(resamples, 20_000_000 // n))
     while done < resamples:
         size = min(chunk, resamples - done)
         index = rng.integers(0, n, size=(size, n), dtype=np.int32)
-        cells = (np.arange(size)[:, None] * bins + edges[index]).ravel()
-        sums = np.bincount(cells, weights=gap[index].ravel(), minlength=size * bins)
-        values[done : done + size] = np.abs(sums.reshape(size, bins)).sum(axis=1) / n
+        offsets = (np.arange(size, dtype=np.int32) * bins)[:, None]
+        for j in range(columns):
+            cells = (offsets + edges[j][index]).ravel()
+            sums = np.bincount(cells, weights=gap[j][index].ravel(), minlength=size * bins)
+            values[j, done : done + size] = np.abs(sums.reshape(size, bins)).sum(axis=1) / n
         done += size
     tail = (1 - level) / 2
-    low, high = np.quantile(values, [tail, 1 - tail])
-    return (float(low), float(high))
+    return [
+        (float(low), float(high)) for low, high in np.quantile(values, [tail, 1 - tail], axis=1).T
+    ]
 
 
 def calibration_error_by_condition(
@@ -433,6 +483,18 @@ def calibration_error_by_condition(
     between the probability it was given and whether it was the true condition, over equal-width
     bins weighted by size. A condition no case has is left out: there is nothing to compare its
     probabilities with (aortic dissection on DDXPlus)."""
+    return {
+        label: _binned_gap(given, positive, bins)
+        for label, (given, positive) in one_vs_rest(outcomes, conditions).items()
+    }
+
+
+def one_vs_rest(
+    outcomes: Sequence[CaseOutcome], conditions: Sequence[str] | None = None
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """For each condition some case has: (the probability every case gave it, clipped to [0, 1];
+    whether it was the true condition). The inputs of its one-vs-rest calibration, as
+    :func:`calibration_error_by_condition` forms them; a condition no case has is left out."""
     labels = list(conditions) if conditions is not None else [c.id for c in CONDITIONS]
     for o in outcomes:
         if o.probabilities is None:
@@ -444,8 +506,31 @@ def calibration_error_by_condition(
         if not positive.any():
             continue
         given = np.array([float(o.probabilities.get(label, 0.0)) for o in outcomes])  # type: ignore[union-attr]
-        out[label] = _binned_gap(np.clip(given, 0.0, 1.0), positive, bins)
+        out[label] = (np.clip(given, 0.0, 1.0), positive)
     return out
+
+
+def calibration_error_by_condition_interval(
+    outcomes: Sequence[CaseOutcome],
+    conditions: Sequence[str] | None = None,
+    bins: int = CALIBRATION_BINS,
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    seed: int = DEFAULT_SEED,
+    level: float = DEFAULT_LEVEL,
+) -> dict[str, tuple[float, float]]:
+    """A percentile bootstrap interval for each value of :func:`calibration_error_by_condition`,
+    every condition over the same resamples of the cases (:func:`binned_gap_intervals`)."""
+    pairs = one_vs_rest(outcomes, conditions)
+    if not pairs:
+        return {}
+    labels = list(pairs)
+    confidence = np.column_stack([pairs[label][0] for label in labels])
+    correct = np.column_stack([pairs[label][1] for label in labels])
+    intervals = binned_gap_intervals(
+        confidence, correct, bins, resamples=resamples, seed=seed, level=level
+    )
+    return dict(zip(labels, intervals, strict=True))
 
 
 def brier_score(outcomes: Sequence[CaseOutcome], conditions: Sequence[str] | None = None) -> Ratio:
