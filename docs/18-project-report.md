@@ -1,10 +1,10 @@
 # 18 · Nightingale: the full project report
 
-**Nightingale — Clinical Intelligence & Reasoning System**
-**Version 1.0 · 2026-10-14** (end of Week 4 of the plan; Week 1 began 2026-09-17)
+**Nightingale — Clinical Intelligence & Reasoning System**\
+**Version 1.0 · 2026-10-14** (end of Week 4 of the plan; Week 1 began 2026-09-17)\
 **Team:** [P1, cardiac knowledge graph] · [P2, data and ML] · [P3, retrieval, LLM and safety] ·
-[P4, platform and evaluation] · **Supervisor:** [Prof. Ashish Kumar: confirm title] ·
-**Institution:** [to add]
+[P4, platform and evaluation]\
+**Supervisor:** [Prof. Ashish Kumar: confirm title] · **Institution:** [to add]\
 **Repository:** `github.com/HarshRohila02/nightingale` (public) · **Status file:** `PROGRESS.md`
 
 > ⚠️ **Clinical decision support, not a diagnosis.** Nightingale is a research prototype. Its
