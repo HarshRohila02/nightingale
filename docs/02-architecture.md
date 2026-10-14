@@ -513,7 +513,8 @@ The gain is then the mutual information between the condition and the answer: ne
 0 for a question every condition answers alike. The five best are returned, each with the
 conditions a yes and a no would favour (those carrying most of its gain), so the dashboard can say
 why. A finding the record already settles through the crosswalk is not asked (unilateral leg
-swelling settles leg swelling). Order: gain to 10 significant digits, then concept id.
+swelling settles leg swelling), nor is one that cannot apply to the recorded sex (pregnancy, of a
+man: the graph's likelihoods do not know the sex). Order: gain to 10 significant digits, then concept id.
 Examination findings (inter-arm blood-pressure difference, pulse deficit, …) are marked as such.
 Nothing is tuned and no data is read. About 1.3 ms a case on a synthetic graph the size of the real
 one, and 0.6 ms on the stub (2026-10-14, laptop CPU), beside the pipeline's 10–13 ms (EXP-022).

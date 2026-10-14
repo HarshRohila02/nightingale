@@ -481,6 +481,14 @@ class TestNeverAskedAgain:
         }
         assert "SYM:leg_swelling" not in asked
 
+    @pytest.mark.parametrize("sex, asked", [("M", False), ("F", True), ("O", True)])
+    def test_pregnancy_is_never_asked_of_a_man(self, sex, asked):
+        """The graph does not know the patient's sex, so the ranking must (NEVER_ASKED_OF)."""
+        graph = Graph({MI: {"DDX:E_167": 0.8}, GERD: {"DDX:E_167": 0.2}})
+        patient = PatientCase(case_id="T", age=30, sex=sex, findings=[])
+        ranking = next_questions(patient, graph)
+        assert ("RF:pregnancy" in {q.concept_id for q in ranking.questions}) is asked
+
     def test_an_unknown_assertion_is_still_asked(self):
         """Not known is neither recorded nor denied (FR-1.3)."""
         graph = Graph({MI: {"DDX:E_91": 0.8}, GERD: {"DDX:E_91": 0.2}})

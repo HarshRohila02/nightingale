@@ -39,10 +39,11 @@ after them.
 * An answer that replaces questions the case already counts: chest pain entails "pain anywhere?",
   which a back-pain answer without a node of its own had counted, so the increment is a ratio.
 
-**What is never asked.** A concept the case records, present or denied; and one the record already
+**What is never asked.** A concept the case records, present or denied; one the record already
 settles through the crosswalk: unilateral leg swelling settles leg swelling, a denied leg swelling
-settles both of its kinds, epigastric pain settles abdominal pain (:func:`settled`). Only
-inferences the crosswalk's match types allow are drawn, as in ``expand_case``.
+settles both of its kinds, epigastric pain settles abdominal pain (:func:`settled`; only
+inferences the crosswalk's match types allow are drawn, as in ``expand_case``); and one that
+cannot apply to the patient's recorded sex (:data:`NEVER_ASKED_OF`: pregnancy, of a man).
 
 **Fixed before any data was looked at; nothing is tuned.** The measure, the units (bits), the order
 (gain to 10 significant digits, then concept id), and the display constants below. It reads no validation data, and no model: the ML ranker is not consulted, so a
@@ -81,7 +82,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from src.conditions import BY_ID
-from src.contracts import Assertion, PatientCase
+from src.contracts import Assertion, PatientCase, Sex
 from src.ddxplus import CONCEPT_PREFIX
 from src.medical_kg.crosswalk import (
     ANSWER_IMPLIES_CONCEPT,
@@ -98,6 +99,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "EXAMINATION",
+    "NEVER_ASKED_OF",
     "QUESTIONS_SHOWN",
     "SEPARATES_SHARE",
     "SEPARATES_SHOWN",
@@ -136,6 +138,12 @@ EXAMINATION = frozenset(
 )
 """Concepts found by examining the patient rather than by asking, as the crosswalk's notes say. The
 dashboard says "check" for these and "ask about" for the rest; nothing else differs."""
+
+NEVER_ASKED_OF: dict[str, frozenset[Sex]] = {"RF:pregnancy": frozenset({Sex.MALE})}
+"""Concepts that cannot apply to a patient of the recorded sex, so are never suggested for one.
+The graph's likelihoods do not know the patient's sex, so without this a man could be asked
+whether he is pregnant (found in review on GC-004 recorded as male, where it ranked fifth). A
+patient recorded as other is still asked: the record cannot rule it out."""
 
 
 class Separated(BaseModel):
@@ -338,7 +346,10 @@ class QuestionRanker:
         candidates = [
             k
             for k in self.candidates
-            if k not in present and k not in denied and not settled(k, present, denied)
+            if k not in present
+            and k not in denied
+            and not settled(k, present, denied)
+            and case.sex not in NEVER_ASKED_OF.get(k, frozenset())
         ]
         base = _expand(present, denied, every)
         p = _softmax(self.scorer.score_many([base])[0])
