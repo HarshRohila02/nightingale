@@ -35,6 +35,9 @@ from app.view import (  # noqa: E402
     build_case,
     candidate_rows,
     concept_options,
+    evidence_markdown,
+    evidence_note,
+    evidence_rows,
     example_cases,
     model_reasons,
     next_steps,
@@ -52,6 +55,25 @@ st.set_page_config(page_title="Nightingale", page_icon="🩺", layout="wide")
 @st.cache_resource(show_spinner="Loading the knowledge graph and the model…")
 def load() -> dict:
     return build_pipeline(load_config(), os.environ.get("NIGHTINGALE_GRAPH") or None)
+
+
+def show_evidence(rows: list | None, note: str | None, retrieved: bool) -> None:
+    """The candidate's evidence (task 3a, FR-9.4): its excerpts with their citations, or one
+    quiet line saying why there are none. Shown beside the ranking, never used to make it."""
+    st.markdown("**Evidence**")
+    if note:
+        st.caption(note)
+    elif not retrieved:
+        st.caption("Evidence is retrieved for the first candidates only.")
+    elif not rows:
+        st.caption("No screened passage in the corpus names this condition.")
+    else:
+        for row in rows:
+            st.markdown(evidence_markdown(row))
+        st.caption(
+            "Excerpts from PMC Open Access articles, chosen for this condition and these "
+            "findings; about diagnosis only, so passages about treatment are never shown."
+        )
 
 
 def apply_example() -> None:
@@ -131,9 +153,11 @@ ranked = expand_case(case, built["labels"]) if built["labels"] is not None else 
 result = built["pipeline"].run(ranked)
 elapsed = (time.perf_counter() - started) * 1000
 rows = candidate_rows(result, ranked, model_reasons(built["ranker"], ranked))
+evidence = evidence_rows(result, built.get("retriever"))
 
 st.caption(
-    f"{built['about']['ranker']} · {built['about']['graph']} · ranked in {elapsed:.1f} ms; "
+    f"{built['about']['ranker']} · {built['about']['graph']} · "
+    f"{built['about'].get('retriever', 'retrieval: none')} · ranked in {elapsed:.1f} ms; "
     "the list re-ranks as you change the findings."
 )
 if result.degraded_components:
@@ -204,6 +228,11 @@ for r in rows[:DETAILED]:
         if r["paths"]:
             st.markdown("**The graph's reasoning**")
             st.markdown("\n".join(f"- {p}" for p in r["paths"][:MISSING_SHOWN]))
+        show_evidence(
+            evidence.get(r["condition_id"]),
+            evidence_note(result),
+            r["rank"] <= built["pipeline"].top_k_evidence,
+        )
 
 
 def render_next_steps(steps: dict) -> None:

@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(built["about"]["ranker"])
     print(built["about"]["graph"])
+    print(built["about"]["retriever"])
     app = create_app(built["pipeline"], labels=built["labels"], about=built["about"])
     uvicorn.run(app, host="127.0.0.1", port=args.port)
     return 0

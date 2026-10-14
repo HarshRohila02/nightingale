@@ -24,6 +24,7 @@ the knowledge graph (``src/reasoning/next_questions.py``), each with the conditi
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -231,3 +232,88 @@ def next_steps(result: DiagnosisResult, case: PatientCase | None, graph: Any) ->
         "questions": questions,
         "entropy_bits": ranking.entropy_bits if ranking else None,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Evidence (task 3a, FR-9.4): kept apart from the rest so it merges cleanly
+# --------------------------------------------------------------------------- #
+
+EVIDENCE_OFF = "No evidence bundle is loaded, so no literature is shown (docs/11 §4.6)."
+"""The one quiet line an expander shows when retrieval is degraded (``rag``)."""
+
+_PMC_ARTICLE = "https://pmc.ncbi.nlm.nih.gov/articles/"
+_MARKDOWN = re.compile(r"([\\`*_{}\[\]()<>#+\-|!$~])")
+
+
+def _escape_markdown(text: str) -> str:
+    """Literature text shown as itself: Streamlit's Markdown would otherwise turn a stray
+    bracket into a link, an asterisk into emphasis and a dollar sign into LaTeX."""
+    return _MARKDOWN.sub(r"\\\1", " ".join(text.split()))
+
+
+def _pmc_link(citation: str, url: str | None) -> str:
+    """The article's PMC page: the evidence's own link when it is one, else built from the
+    PMCID, so a link never leads anywhere but PMC."""
+    if url and url.startswith(_PMC_ARTICLE + "PMC"):
+        return url
+    return f"{_PMC_ARTICLE}{citation.removeprefix('PMCID:')}/"
+
+
+def evidence_note(result: DiagnosisResult) -> str | None:
+    """:data:`EVIDENCE_OFF` when the result was produced without evidence retrieval, else None."""
+    return EVIDENCE_OFF if "rag" in result.degraded_components else None
+
+
+def evidence_rows(
+    result: DiagnosisResult, retriever: Any = None
+) -> dict[str, list[dict[str, Any]]]:
+    """{condition id: one row per passage}, for the candidates the pipeline gave evidence.
+
+    A row holds the ``snippet`` (the excerpt, verbatim), the ``title``, the ``citation``
+    (``PMCID:…``), the ``url`` of its PMC page, and, from the retriever's bundle
+    (``source_of``), the ``licence``, its ``licence_url`` and an ``attribution`` (first author,
+    journal, year): Creative Commons licences ask for attribution, and ``Evidence`` has no field
+    for it (src/contracts.py).
+    """
+    source_of = getattr(retriever, "source_of", None)
+    out: dict[str, list[dict[str, Any]]] = {}
+    for candidate in result.candidates:
+        rows = []
+        for evidence in candidate.evidence:
+            source = (source_of(evidence.citation) if source_of else None) or {}
+            year = source.get("year")
+            rows.append(
+                {
+                    "snippet": evidence.passage,
+                    "title": evidence.title,
+                    "citation": evidence.citation,
+                    "url": _pmc_link(evidence.citation, evidence.url),
+                    "licence": source.get("licence"),
+                    "licence_url": source.get("licence_url"),
+                    "attribution": ", ".join(
+                        str(part)
+                        for part in (source.get("authors"), source.get("journal"), year)
+                        if part
+                    ),
+                }
+            )
+        if rows:
+            out[candidate.condition_id] = rows
+    return out
+
+
+def evidence_markdown(row: Mapping[str, Any]) -> str:
+    """One passage as Markdown: the excerpt quoted, then its citation as a link, its title, its
+    attribution and its licence."""
+    licence = row.get("licence")
+    if licence and str(row.get("licence_url") or "").startswith("https://creativecommons.org/"):
+        licence = f"[{_escape_markdown(licence)}]({row['licence_url']})"
+    elif licence:
+        licence = _escape_markdown(licence)
+    parts = [
+        f"[{_escape_markdown(row['citation'])}]({row['url']})",
+        f"*{_escape_markdown(row['title'])}*",
+        _escape_markdown(row["attribution"]) if row.get("attribution") else None,
+        licence,
+    ]
+    return f"> {_escape_markdown(row['snippet'])}\n\n" + " · ".join(p for p in parts if p)

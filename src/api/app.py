@@ -26,7 +26,9 @@ Endpoints:
   four team members (docs/02 §5.3). None when the graph cannot answer, rather than a guess.
 * ``GET /conditions``: the 14 conditions the system knows, which are all it can rank (R-13).
 * ``GET /concepts``: the hand-authored findings it understands, for a form to offer.
-* ``GET /health``: which ranker and graph answer, and what is degraded (docs/02 §7).
+* ``GET /health``: which ranker, graph and evidence retriever answer, and what is degraded
+  (docs/02 §7). Each candidate's ``evidence`` (task 3a) cites its passage by PMCID with a link;
+  without a retrieval bundle it is empty and every result reports ``rag``.
 
 Requests are handled one at a time by the pipeline's components, which are not written for
 concurrent use (the ranker keeps its last tokens for the audit trail); a demo serves one user.
@@ -80,7 +82,7 @@ def create_app(
         labels: ``DDX:E_nn`` → label, the real graph's node labels. When given, each case is
             expanded through the crosswalk before it is ranked, as the real graph needs; leave it
             out for the stub graph, which speaks the hand-authored concepts directly.
-        about: One-line descriptions (``ranker``, ``graph``) for ``/health``.
+        about: One-line descriptions (``ranker``, ``graph``, ``retriever``) for ``/health``.
     """
     app = FastAPI(
         title="Nightingale",
@@ -90,7 +92,11 @@ def create_app(
     lock = threading.Lock()
     startup_degraded = [
         name
-        for name, part in (("ml", pipeline.ranker), ("graph_backend", pipeline.graph))
+        for name, part in (
+            ("ml", pipeline.ranker),
+            ("graph_backend", pipeline.graph),
+            ("rag", pipeline.retriever),
+        )
         if getattr(part, "degraded", False)
     ]
 

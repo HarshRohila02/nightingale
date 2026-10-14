@@ -63,6 +63,7 @@ class DiagnosisPipeline:
         kg_weight: float = DEFAULT_KG_WEIGHT,
         enable_red_flags: bool = True,
         top_k_evidence: int = 3,
+        evidence_per_candidate: int = 3,
         calibrator: Any | None = None,
     ) -> None:
         self.ranker = ranker
@@ -72,7 +73,11 @@ class DiagnosisPipeline:
         self.ml_weight = ml_weight
         self.kg_weight = kg_weight
         self.enable_red_flags = enable_red_flags
+        # Evidence (task 3a) goes to the first top_k_evidence candidates, after ranking, at most
+        # evidence_per_candidate passages each (ranking.top_k_evidence and
+        # retrieval.passages_per_candidate in configs/config.yaml). It never changes the ranking.
         self.top_k_evidence = top_k_evidence
+        self.evidence_per_candidate = evidence_per_candidate
         # src/fusion/calibration.py (2b): fitted on validation to this system's fused score.
         # None means the system is not calibrated yet, and no probability is shown.
         self.calibrator = calibrator
@@ -259,12 +264,17 @@ class DiagnosisPipeline:
     def _attach_evidence(
         self, case: PatientCase, candidates: list[Candidate], degraded: list[str]
     ) -> None:
-        if self.retriever is None:
+        if self.retriever is None or getattr(self.retriever, "degraded", False):
+            # No retriever, or one standing in for a missing or refused corpus
+            # (src/rag/retriever.py: UnavailableRetriever). Same duck-typed check as the ranker's
+            # and the graph's.
             degraded.append("rag")
             return
         for candidate in candidates[: self.top_k_evidence]:
             try:
-                candidate.evidence = self.retriever.retrieve(candidate.label, case)
+                candidate.evidence = self.retriever.retrieve(
+                    candidate.label, case, k=self.evidence_per_candidate
+                )
             except Exception:  # noqa: BLE001
                 logger.exception("Retrieval failed for %s", candidate.condition_id)
                 if "rag" not in degraded:

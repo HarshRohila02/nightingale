@@ -340,6 +340,79 @@ The notebook downloads DDXPlus's validation split only: not `train.csv`, never `
 
 ---
 
+### 4.6 The evidence corpus for retrieval (task 3a, EXP-011) · *ready 2026-10-14 · Kaggle, the owner's choice of 2026-10-13*
+
+This job builds the **retrieval bundle**: passages from **PMC Open Access** articles about the 14
+conditions, and their embeddings. The dashboard then shows a few of them beside each top candidate,
+each with its PMCID as a link and its licence. **Evidence never changes the ranking.** The laptop
+runs no model for it, only NumPy (`src/rag/`).
+
+The notebook is `notebooks/kaggle_retrieval_corpus.ipynb`. It runs `scripts/build_retrieval_corpus.py`:
+- **PMC searches** for each condition, restricted to the Open Access subset, diagnosis-focused
+  articles first; every search is recorded in the bundle.
+- **NCBI's E-utilities with no API key**, at most 3 requests a second.
+- **An article is kept only with a Creative Commons licence in its XML**, and the licence is
+  recorded with it.
+- **Diagnosis only.** No sentence with treatment language is kept, and no article whose title
+  names a drug, a dose or a procedure (`src/rag/screening.py`; FR-6.5: the system never recommends
+  a treatment).
+- **The embedding** of the passages and of a fixed query vocabulary, with
+  `pritamdeka/S-PubMedBert-MS-MARCO`.
+
+**It never touches DDXPlus or any patient data**: nothing to keep out of the output but the corpus
+itself.
+
+1. **Create → New Notebook → File → Import Notebook**: `notebooks/kaggle_retrieval_corpus.ipynb`.
+2. **Session options:** Accelerator **GPU T4 x2** (one GPU is used, for the embedding), Internet
+   **on**. Without a GPU it still works, but the embedding takes about an hour instead of minutes.
+3. In the first code cell:
+   - Leave `COMMIT = "master"`, or set the commit Claude names. The bundle's manifest records the
+     exact commit either way.
+   - `PER_CONDITION = 150` articles per condition.
+   - `EMAIL` is optional. NCBI asks tools for a contact address, so that it can write before
+     blocking one. Leave it empty to send none.
+4. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+   - **When.** NCBI asks that large jobs run at weekends, or between 9 pm and 5 am US Eastern time
+     (6:30 am to 2:30 pm in India). This one is about 200 requests, small by NCBI's standards,
+     but starting it in that window is the polite choice.
+   - The **smoke cell** builds a bundle of 2 conditions × 3 articles and loads it with the laptop's
+     own code. It takes a minute or two, including the model's download (about 0.4 GB). If it
+     fails, the version stops there.
+   - The **real build** should take **30–60 minutes**. This is an estimate, not a measurement: the
+     first run is the measurement.
+     - About 3,000 articles are planned (150 × 1.5 per condition, fewer after overlaps). They are
+       fetched in about 150 requests of 20 full-text articles; NCBI's response time, not the rate
+       limit, should dominate.
+     - Then chunking, a minute or two, and embedding 15,000–25,000 passages on one T4 in half
+       precision, a few minutes.
+     - Kaggle allows 12 hours a session.
+5. From the latest version's **Output**, download **`retrieval_corpus.zip`**. Expect tens of MB:
+   the passages' text, and float16 vectors at about 1.5 kB a passage. `STATUS.txt` inside it should
+   start with `DONE`.
+6. **On the laptop:**
+   - **Stop the dashboard and the API first.**
+   - Unzip the file into `data/raw/retrieval_corpus/`, so that
+     `data/raw/retrieval_corpus/manifest.json` exists (the zip has no top folder). `data/` is
+     gitignored: the corpus is never committed (`docs/03` §1.4).
+   - In `configs/config.yaml`, set **`retrieval.bundle: data/raw/retrieval_corpus`**.
+   - Start the dashboard again. Its caption should say "retrieval: BM25 + dense (RRF) over N
+     passages from M PMC Open Access articles". Start-up takes a few seconds longer: about 4 s per
+     20,000 passages, measured on a synthetic bundle.
+   - **If the bundle fails its checks** (a file changed or truncated: every file's SHA-256 is in
+     its manifest), the dashboard says "Running without: rag" and its log says why. Nothing else
+     breaks.
+   - Tell Claude: EXP-011's relevance judgements come next (`docs/08`).
+
+**If the version stops early** (a limit, an NCBI outage): open the notebook, choose **Add Input →
+Your Work → Notebook Output Files** and pick its last version, then **Save & Run All** again. The
+articles already fetched are copied from that output's `retrieval_cache/` and not fetched again.
+
+**Keep the notebook private** (Kaggle's default). The articles are Open Access, but the corpus is
+never committed or republished. A CC BY-NC article is used only for this non-commercial coursework,
+and the dashboard shows each excerpt's attribution and licence.
+
+---
+
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
 
 Neo4j runs in Neo4j's own cloud, so nothing extra runs on the laptop. The knowledge graph holds no

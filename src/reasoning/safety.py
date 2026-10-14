@@ -10,7 +10,10 @@ of docs/01's safety requirements and repairs a result that breaks them rather th
   reason or a suggested test that recommends a treatment, names a drug or gives a dose is removed.
   A removed sentence is listed in ``explanation.unsupported_claims`` and the explanation is marked
   not grounded, so the result says what was taken out. Investigations ("obtain ECG and
-  troponin") are not treatments and are kept.
+  troponin") are not treatments and are kept. **A retrieved passage (task 3a) whose excerpt or
+  title does is dropped whole**: an excerpt is quoted, so it is not edited. The retriever already
+  screens its corpus with a broader rule (src/rag/screening.py); this is the last check, whatever
+  retriever produced the evidence.
 
 The treatment check reads the text the system *generated*: the labels of the case's own findings
 and of the conditions are masked first, because DDXPlus's questions include "do you take
@@ -128,6 +131,27 @@ def safety_check(result: DiagnosisResult, case: PatientCase | None = None) -> Di
             red_flags.append(f"{candidate.label}: {candidate.red_flag_reason or 'red flag'}")
     if red_flags != result.red_flags:
         update["red_flags"] = red_flags
+
+    screened = []
+    for candidate in candidates:
+        kept = [
+            e
+            for e in candidate.evidence
+            if not recommends_treatment(e.passage, labels)
+            and not recommends_treatment(e.title, labels)
+        ]
+        if len(kept) != len(candidate.evidence):
+            logger.warning(
+                "case %s: %d passage(s) with treatment language dropped from the evidence for %s "
+                "(FR-6.5)",
+                case_id,
+                len(candidate.evidence) - len(kept),
+                candidate.label,
+            )
+            candidate = candidate.model_copy(update={"evidence": kept})
+        screened.append(candidate)
+    if any(a is not b for a, b in zip(screened, candidates, strict=True)):
+        update["candidates"] = screened
 
     tests = [t for t in result.suggested_next_tests if not recommends_treatment(t, labels)]
     if tests != result.suggested_next_tests:
