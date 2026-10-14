@@ -254,7 +254,9 @@ class DiagnosisPipeline:
     def _attach_evidence(
         self, case: PatientCase, candidates: list[Candidate], degraded: list[str]
     ) -> None:
-        if self.retriever is None:
+        if self.retriever is None or getattr(self.retriever, "degraded", False):
+            # No retriever, or one standing in for a missing or refused corpus (src/rag/retriever.py:
+            # UnavailableRetriever). Same duck-typed check as the ranker's and the graph's.
             degraded.append("rag")
             return
         for candidate in candidates[: self.top_k_evidence]:
