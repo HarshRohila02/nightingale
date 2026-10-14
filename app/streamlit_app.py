@@ -37,6 +37,7 @@ from app.view import (  # noqa: E402
     concept_options,
     example_cases,
     model_reasons,
+    next_steps,
 )
 from src.contracts import DISCLAIMER  # noqa: E402
 from src.medical_kg.crosswalk import expand_case  # noqa: E402
@@ -203,6 +204,43 @@ for r in rows[:DETAILED]:
         if r["paths"]:
             st.markdown("**The graph's reasoning**")
             st.markdown("\n".join(f"- {p}" for p in r["paths"][:MISSING_SHOWN]))
+
+
+def render_next_steps(steps: dict) -> None:
+    """3d's "What to ask next" block: the questions the graph ranks, and the cited tests."""
+    st.subheader("What to ask next")
+    ask, test = st.columns(2)
+    with ask:
+        st.markdown("**Questions the knowledge graph would learn most from**")
+        if steps["questions"]:
+            for q in steps["questions"]:
+                why = "; ".join(
+                    part
+                    for part in (
+                        "a yes favours " + ", ".join(q["if_present"]) if q["if_present"] else "",
+                        "a no favours " + ", ".join(q["if_denied"]) if q["if_denied"] else "",
+                    )
+                    if part
+                )
+                st.markdown(f"- {q['verb']} **{q['label']}**" + (f": {why}" if why else ""))
+        elif steps["entropy_bits"] is None:
+            st.markdown("_The knowledge graph is unavailable, so no questions are suggested._")
+        else:
+            st.markdown("_No single answer would tell the graph anything more._")
+    with test:
+        st.markdown("**Tests to consider**")
+        st.markdown("\n".join(f"- {t}" for t in steps["tests"]) or "_none suggested_")
+    st.caption(
+        "Questions: findings not yet recorded, ordered by how much their answer would reduce the "
+        "knowledge graph's uncertainty over the 14 conditions (expected information gain); the "
+        "model is not consulted, every condition counts the same, and when the graph is already "
+        "nearly certain they only test it. Tests: investigations only, "
+        "from the guideline in brackets, for the top three candidates and every red flag. "
+        "The clinician decides."
+    )
+
+
+render_next_steps(next_steps(result, ranked, built["graph"]))
 
 if result.explanation:
     st.subheader("Explanation")

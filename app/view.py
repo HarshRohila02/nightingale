@@ -16,6 +16,10 @@
 A row also carries **the model's reasons** for its condition when the ranker gives them (2b,
 ``src/ml/reasons.py``): the recorded findings whose removal moves the condition's odds most, for
 and against, names only.
+
+:func:`next_steps` is the "What to ask next" block (3d): the cited tests to consider, as the
+pipeline put them in the result, and the findings worth asking about or checking next, ranked by
+the knowledge graph (``src/reasoning/next_questions.py``), each with the conditions it bears on.
 """
 
 from __future__ import annotations
@@ -36,6 +40,7 @@ __all__ = [
     "concept_options",
     "example_cases",
     "model_reasons",
+    "next_steps",
     "ranks_of",
 ]
 
@@ -190,3 +195,39 @@ def example_cases() -> dict[str, dict[str, Any]]:
             "denied": [e["concept_id"] for e in known if e.get("assertion") == "absent"],
         }
     return examples
+
+
+def next_steps(result: DiagnosisResult, case: PatientCase | None, graph: Any) -> dict[str, Any]:
+    """The "What to ask next" block (3d), as plain data.
+
+    Args:
+        result: The pipeline's result; its ``suggested_next_tests`` are shown as they are, after
+            the safety layer (src/reasoning/safety.py), each ending with its source's tag.
+        case: The case the pipeline ranked, as entered or after ``expand_case``.
+        graph: The graph store that ranked it. No questions when there is no case or the graph
+            cannot answer (``next_questions`` then returns none, rather than a guess).
+
+    Returns:
+        ``tests``: the lines to show. ``questions``: one dict per question, best first, with
+        ``verb`` ("Ask about", or "Check" for an examination finding), ``label``, ``if_present``
+        and ``if_denied`` (the conditions a yes or a no would favour, by label). ``entropy_bits``:
+        the graph's uncertainty now, or None when it could not answer.
+    """
+    from src.reasoning.next_questions import next_questions
+
+    ranking = next_questions(case, graph) if case is not None else None
+    questions = [
+        {
+            "concept_id": q.concept_id,
+            "label": q.label,
+            "verb": "Check" if q.kind == "examination" else "Ask about",
+            "if_present": [s.label for s in q.if_present],
+            "if_denied": [s.label for s in q.if_denied],
+        }
+        for q in (ranking.questions if ranking else [])
+    ]
+    return {
+        "tests": list(result.suggested_next_tests),
+        "questions": questions,
+        "entropy_bits": ranking.entropy_bits if ranking else None,
+    }

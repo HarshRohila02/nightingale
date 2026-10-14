@@ -479,6 +479,69 @@ The field is a free string, so nothing breaks. Adding them to its description in
 `src/contracts.py` and §4.2 was a contracts change, which needs all four members. The team
 agreed on 2026-09-19, as relayed by the owner.
 
+### 5.3 What to ask next: cited tests and graph-ranked questions · *built 2026-10-14 (3d)*
+
+FR-5.5 asks for the next test or question that best discriminates the leading candidates. The
+`Test` node and the `DISCRIMINATED_BY` edge drawn in §5 were never built, so 3d has two parts,
+neither of which is a graph edge.
+
+**1. The tests to consider** (`src/reasoning/investigations.py`). A hand-authored table: for each
+of the 14 conditions, the diagnostic investigations that confirm or exclude it, in the order its
+guideline uses them, each line citing that guideline (`SOURCES`: ESC, AHA/ACC, NICE, BTS, WSES and
+ACG guidelines and position statements). The pipeline puts one line per condition into
+`DiagnosisResult.suggested_next_tests`, for the first three candidates and every red-flagged one
+(red flags first); when neither the model nor the graph ranks, only the flagged. Every line says
+"consider" and lists **investigations only, never a treatment or a drug** (FR-6.5, docs/04 §3);
+the safety layer, which runs after it, would remove a line that broke that, and a test scans the
+table for treatment language. *Limits:* the table does not rank tests against each other or
+weigh their cost or harm; it goes no further than the next investigation; and two citations were
+written from memory (`verify=True`: BTS 2023 pleural disease, WSES 2019 oesophageal emergencies)
+and must be checked against the publisher before the report cites them. Newer ESC guidance on
+myocarditis and pericarditis (2025) and on aortic disease (2024) is not cited, because its details
+could not be checked here.
+
+**2. The questions to ask** (`src/reasoning/next_questions.py`). Of the findings the form offers
+(the hand-authored `SYM:*` / `RF:*` concepts) that the case has neither recorded nor denied, those
+whose answer would most reduce the graph's uncertainty: the **expected entropy reduction** of the
+graph's posterior over the 14 conditions (uniform prior, the `P_kg` of §6), under the naive-Bayes
+likelihoods that rank the case (§5.1). For each candidate finding the case is scored twice more,
+with the finding present and denied, after the crosswalk expansion (`expand_case`, mirrored on id
+sets and tested against it), so each answer is judged by the arithmetic that would rank it. The
+two increments are the answers' likelihoods L⁺ and L⁻; P(present | c) = L⁺ / (L⁺ + L⁻), which is the
+scorer's own P(finding | c) whenever the finding lands on one node the condition has an edge to.
+The gain is then the mutual information between the condition and the answer: never negative, and
+0 for a question every condition answers alike. The five best are returned, each with the
+conditions a yes and a no would favour (those carrying most of its gain), so the dashboard can say
+why. A finding the record already settles through the crosswalk is not asked (unilateral leg
+swelling settles leg swelling), nor is one that cannot apply to the recorded sex (pregnancy, of a
+man: the graph's likelihoods do not know the sex). Order: gain to 10 significant digits, then concept id.
+Examination findings (inter-arm blood-pressure difference, pulse deficit, …) are marked as such.
+Nothing is tuned and no data is read. About 1.3 ms a case on a synthetic graph the size of the real
+one, and 0.6 ms on the stub (2026-10-14, laptop CPU), beside the pipeline's 10–13 ms (EXP-022).
+
+*Limits.* (1) The posterior is the graph's alone, a naive Bayes over mostly question-level
+knowledge (§5.1), so it is often near-certain and the gains tiny: the order is what matters, and
+the number is neither a probability nor calibrated. (2) Every condition counts the same: ruling
+out a must-not-miss condition is not preferred for its danger; the red-flag rules and the tests
+(every flagged candidate gets its own) carry that. (3) One question at a time: two findings that
+matter only together each look weak. (4) Naive Bayes treats findings as independent given the
+condition, so a finding correlated with one recorded can look more informative than it is. (5)
+Where the crosswalk carries a finding one way only (a denied *exertional* denies `E_218`, an
+asserted one implies nothing), or an answer replaces questions the case already counts,
+P(present | c) is a normalised reading of the scorer's two increments, keeping each condition's
+likelihood ratio between the answers but not its exact posterior; likewise LEAK / (1 + LEAK) for a
+condition with no edge to a finding. (6) The model is not consulted. (7) The stub graph has no likelihoods; its questions come
+from a naive-Bayes view of the stub map (`InMemoryGraphStore.scorer`), a toy like the map. (8) A
+graph that fails, or a store without a likelihood view, gives no questions rather than a guess.
+
+**Not in the contract.** `DiagnosisResult` has no field for questions, and `src/contracts.py`
+changes only with all four team members. So the API serves them at `POST /next-questions` and the
+dashboard calls `next_questions()` directly. *Proposed contract change, for the team:* a
+`SuggestedQuestion` model (`concept_id`, `label`, `kind`, `gain_bits`, `if_present` and
+`if_denied` as condition ids) and a field `DiagnosisResult.suggested_questions:
+list[SuggestedQuestion] = []`, filled by the pipeline after the safety layer's ordering, so that
+`/diagnose` returns one complete result.
+
 ---
 
 ## 6. Fusion

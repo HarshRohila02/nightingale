@@ -12,6 +12,7 @@ because it only renders findings the reasoning layer already derived.
 from __future__ import annotations
 
 import logging
+from functools import cached_property
 from typing import Any
 
 from src.conditions import BY_ID, CONDITIONS
@@ -141,6 +142,23 @@ class InMemoryGraphStore:
     def __init__(self, symptom_map: dict[str, tuple[str, ...]] | None = None) -> None:
         self._map = symptom_map if symptom_map is not None else STUB_SYMPTOM_MAP
 
+    @cached_property
+    def scorer(self) -> Any:
+        """A naive-Bayes view of the stub map, for "what to ask next" only (3d).
+
+        The stub ranks by overlap (above), which has no likelihoods to compute a question's worth
+        from. This view reads each listed symptom as "listed, frequency unknown", the weight 1.0
+        DDXPlus's own edges carry, so the real scorer's rules apply unchanged
+        (:class:`~src.medical_kg.scoring.LikelihoodScorer`: capped at 0.9, LEAK for a present
+        symptom a condition does not list). It is a toy, like the map.
+        """
+        from src.medical_kg.scoring import LikelihoodScorer
+
+        return LikelihoodScorer(
+            {c: {k: 1.0 for k in expected} for c, expected in self._map.items()},
+            {k for expected in self._map.values() for k in expected},
+        )
+
     def score_by_connectivity(self, case: PatientCase) -> dict[str, float]:
         present = case.present_concept_ids()
         absent = case.absent_concept_ids()
@@ -227,8 +245,9 @@ class TemplateExplainer:
 
         missing = top.missing()
         if missing:
-            # The real graph expects two dozen findings of some conditions. Choosing which to ask
-            # first is task 3d's; until then, the first few in the graph's order, and a count.
+            # The real graph expects two dozen findings of some conditions. Which to ask first is
+            # ranked by src/reasoning/next_questions.py (3d), which needs the graph this
+            # explainer never sees; here, the first few in the graph's order, and a count.
             shown = ", ".join(a.label for a in missing[:MISSING_SHOWN])
             more = len(missing) - MISSING_SHOWN
             lines.append(

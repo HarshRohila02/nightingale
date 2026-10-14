@@ -17,6 +17,13 @@ Endpoints:
   :class:`~src.contracts.DiagnosisResult`, with ``X-Elapsed-Ms`` saying how long the ranking took.
   A case written in the hand-authored ``SYM:*`` / ``RF:*`` concepts is passed through the crosswalk
   first (``expand_case``), as the real graph needs; a malformed case is refused with 422.
+  Its ``suggested_next_tests`` are the cited investigations to consider for the leading and the
+  red-flagged candidates (3d, ``src/reasoning/investigations.py``).
+* ``POST /next-questions`` takes the same case and returns the findings worth asking about next,
+  ranked by how much their answer would reduce the knowledge graph's uncertainty (3d,
+  ``src/reasoning/next_questions.py``), with the conditions each one bears on. A separate endpoint
+  because ``DiagnosisResult`` has no field for them, and ``src/contracts.py`` changes only with all
+  four team members (docs/02 §5.3). None when the graph cannot answer, rather than a guess.
 * ``GET /conditions``: the 14 conditions the system knows, which are all it can rank (R-13).
 * ``GET /concepts``: the hand-authored findings it understands, for a form to offer.
 * ``GET /health``: which ranker and graph answer, and what is degraded (docs/02 §7).
@@ -33,13 +40,31 @@ from collections.abc import Mapping
 from typing import Any
 
 from fastapi import FastAPI, Response
+from pydantic import BaseModel, Field
 
 from src.conditions import CONDITIONS
 from src.contracts import DISCLAIMER, DiagnosisResult, PatientCase
 from src.medical_kg.crosswalk import BY_CONCEPT, Match, expand_case
 from src.pipeline import DiagnosisPipeline
+from src.reasoning.next_questions import NextQuestion, next_questions
 
-__all__ = ["create_app"]
+__all__ = ["NextQuestions", "create_app"]
+
+
+class NextQuestions(BaseModel):
+    """``POST /next-questions``: what to ask next for one case (3d). Not a contract type."""
+
+    case_id: str
+    questions: list[NextQuestion] = Field(
+        default_factory=list,
+        description="Best first; empty when the graph cannot answer or no answer would move it",
+    )
+    entropy_bits: float | None = Field(
+        default=None,
+        description="The knowledge graph's uncertainty over the conditions now, in bits; None "
+        "when the graph cannot answer. Not calibrated, and not a probability.",
+    )
+    disclaimer: str = DISCLAIMER
 
 
 def create_app(
@@ -115,5 +140,19 @@ def create_app(
             result = pipeline.run(expanded)
         response.headers["X-Elapsed-Ms"] = f"{(time.perf_counter() - started) * 1000:.2f}"
         return result
+
+    @app.post("/next-questions", response_model=NextQuestions)
+    def questions(case: PatientCase, response: Response) -> NextQuestions:
+        started = time.perf_counter()
+        with lock:
+            # The ranking expands the case through the crosswalk itself, once per hypothetical
+            # answer, so it takes the case as entered.
+            ranking = next_questions(case, pipeline.graph)
+        response.headers["X-Elapsed-Ms"] = f"{(time.perf_counter() - started) * 1000:.2f}"
+        return NextQuestions(
+            case_id=case.case_id,
+            questions=ranking.questions,
+            entropy_bits=ranking.entropy_bits,
+        )
 
     return app

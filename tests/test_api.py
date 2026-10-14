@@ -118,3 +118,53 @@ def test_golden_cases_through_the_api_with_the_configured_pipeline(golden):
     response = client.post("/diagnose", json=golden["case"])
     check_golden(response, golden)
     assert "ml" not in response.json()["degraded_components"]
+
+
+# --------------------------------------------------------------------------- #
+# 3d: what to ask next
+# --------------------------------------------------------------------------- #
+
+
+def test_diagnose_suggests_the_cited_tests():
+    """``suggested_next_tests``: the investigations for the leading and red-flagged candidates,
+    each saying "consider" and ending with its guideline's tag (src/reasoning/investigations.py)."""
+    pe = next(g for g in GOLDEN_CASES if g["id"] == "GC-002")
+    body = stub_client().post("/diagnose", json=pe["case"]).json()
+    tests = body["suggested_next_tests"]
+    assert tests and all(": consider " in t and t.endswith(")") for t in tests)
+    assert any(t.startswith("Pulmonary embolism") and "D-dimer" in t for t in tests)
+
+
+@pytest.mark.parametrize("golden", GOLDEN_CASES, ids=[c["id"] for c in GOLDEN_CASES])
+def test_next_questions_never_asks_what_is_recorded(golden):
+    response = stub_client().post("/next-questions", json=golden["case"])
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["case_id"] == golden["case"]["case_id"]
+    assert body["disclaimer"] == DISCLAIMER
+    assert body["entropy_bits"] is not None and body["questions"]
+    recorded = {
+        f["concept_id"]
+        for f in [*golden["case"].get("findings", []), *golden["case"].get("risk_factors", [])]
+    }
+    for question in body["questions"]:
+        assert question["concept_id"] not in recorded
+        assert question["gain_bits"] > 0
+        assert question["if_present"] or question["if_denied"]
+    assert float(response.headers["X-Elapsed-Ms"]) >= 0
+
+
+def test_next_questions_from_a_failed_graph_are_none_rather_than_a_guess():
+    class FailedGraph:
+        def score_by_connectivity(self, case):  # noqa: ARG002
+            raise RuntimeError("the graph is gone")
+
+    pipeline = DiagnosisPipeline(ranker=ConstantRanker(), graph=FailedGraph())
+    body = TestClient(create_app(pipeline)).post("/next-questions", json=GOLDEN_CASES[0]["case"])
+    assert body.json()["questions"] == [] and body.json()["entropy_bits"] is None
+    assert body.json()["disclaimer"] == DISCLAIMER
+
+
+def test_next_questions_refuses_a_malformed_case():
+    response = stub_client().post("/next-questions", json={"case_id": "x", "age": 200, "sex": "M"})
+    assert response.status_code == 422
