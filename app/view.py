@@ -34,6 +34,7 @@ import yaml
 from src.conditions import BY_ID
 from src.contracts import Assertion, DiagnosisResult, Finding, PatientCase
 from src.medical_kg.crosswalk import BY_CONCEPT, recorded_answers
+from src.reasoning.guardrails import citation_link
 
 __all__ = [
     "build_case",
@@ -251,12 +252,12 @@ def _escape_markdown(text: str) -> str:
     return _MARKDOWN.sub(r"\\\1", " ".join(text.split()))
 
 
-def _pmc_link(citation: str, url: str | None) -> str:
-    """The article's PMC page: the evidence's own link when it is one, else built from the
-    PMCID, so a link never leads anywhere but PMC."""
-    if url and url.startswith(_PMC_ARTICLE + "PMC"):
-        return url
-    return f"{_PMC_ARTICLE}{citation.removeprefix('PMCID:')}/"
+def _pmc_link(citation: str) -> str:
+    """The article's PMC page, from the one citation formatter (src/reasoning/guardrails.py, 3c),
+    so a link never leads anywhere but PMC. A citation that is not a PMC identifier links to PMC's
+    article index rather than to a page built from it. The evidence's own ``url`` is not used: the
+    citation decides, as it does in the explanation's citations."""
+    return citation_link(citation) or _PMC_ARTICLE
 
 
 def evidence_note(result: DiagnosisResult) -> str | None:
@@ -287,7 +288,7 @@ def evidence_rows(
                     "snippet": evidence.passage,
                     "title": evidence.title,
                     "citation": evidence.citation,
-                    "url": _pmc_link(evidence.citation, evidence.url),
+                    "url": _pmc_link(evidence.citation),
                     "licence": source.get("licence"),
                     "licence_url": source.get("licence_url"),
                     "attribution": ", ".join(
