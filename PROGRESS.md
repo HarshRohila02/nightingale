@@ -106,7 +106,9 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-*(empty: the work is partitioned into four segments, 2026-10-14; the cloud session's PRs #5–#9 await review.)*
+**2026-10-15 · the laptop session: the cloud session's PRs #5–#12 (`docs/17` T1–T8), reviewed and verified; the merge waits for the owner's yes.**
+- *Done:* each PR read; all eight merged locally into `review/cloud-prs` (not pushed) without a conflict: **1219 tests, 1204 pass and 15 skip** (PyTorch and live Neo4j), the data-gated ones included. `scripts/check_crosswalk.py`: every golden case holds on the real graph and transformer. `scripts/demo.py --case GC-001` on the real graph prints the questions (rest pain, the crescendo pattern) and the tests (ECG, serial troponin) that `docs/15` now gives. Guardrails (T5): 312 explanations on the real graph, all grounded (the transformer, B1-LR′+aug and no model; red flags on and off; each golden case and each with one finding dropped or denied). `scripts/measure_latency.py --empty-retriever` with the transformer: pipeline p95 7.5–10 ms (EXP-022: 10–13 ms), the questions 1.1–1.3 ms more. T8's two references checked on the publishers' pages and both exactly right (BTS 2023 pleural, *Thorax* 78(Suppl 3):s1–s42, doi 10.1136/thorax-2022-219784; WSES 2019, *World J Emerg Surg* 14:26, doi 10.1186/s13017-019-0245-2).
+- *Remaining:* the owner's yes, then merge #7, #8, #5, #6, #9, #10, #11, #12 in that order (auto mode refused the merge without it); clear the two `verify=True` flags and the report's `[citation needed]` for them; the PRs' records into §5 and §8; clear this marker.
 
 ---
 
