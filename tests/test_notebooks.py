@@ -102,3 +102,24 @@ def test_the_retrieval_notebook_never_touches_ddxplus_and_saves_only_the_bundle(
     assert 'REPO = Path("/tmp/nightingale")' in source
     assert 'OUT = Path("/kaggle/working/retrieval_corpus")' in source
     assert "make_archive" in source and "STATUS.txt" in source
+
+
+def test_the_synthea_notebook_passes_only_flags_its_script_accepts_and_pins_its_release():
+    """Task 1d (docs/17 T7): Synthea at the release its SNOMED table was checked against, seed 42,
+    the repository in /tmp and only the output in /kaggle/working; and no patient data of ours."""
+    from src.patient_kg.mapping import SYNTHEA_VERSION
+
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_synthea.ipynb"))
+    accepted = script_flags("build_patient_kg.py")
+    calls = re.findall(r"build_patient_kg\.py(.*?)(?:\]|cwd=)", source, flags=re.S)
+    assert len(calls) == 2  # the smoke test and the real build
+    for call in calls:
+        used = set(re.findall(r'"(--[a-z0-9-]+)"', call))
+        assert used and used <= accepted, f"passes {sorted(used - accepted)}"
+    assert f'SYNTHEA_VERSION = "{SYNTHEA_VERSION}"' in source
+    assert "SEED = 42" in source and '"-s", SEED' in source
+    assert 'REPO = Path("/tmp/nightingale")' in source
+    assert 'OUT = Path("/kaggle/working/synthea_patient_kg")' in source
+    code = "\n".join(line.split("#", 1)[0] for line in source.splitlines())
+    for forbidden in ("ddxplus", "train.csv", "validate.csv", "hf_hub_download"):
+        assert forbidden not in code.lower(), forbidden

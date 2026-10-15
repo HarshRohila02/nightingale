@@ -1,0 +1,6 @@
+Id,BIRTHDATE,DEATHDATE,SSN,DRIVERS,PASSPORT,PREFIX,FIRST,MIDDLE,LAST,SUFFIX,MAIDEN,MARITAL,RACE,ETHNICITY,GENDER,BIRTHPLACE,ADDRESS,CITY,STATE,COUNTY,FIPS,ZIP,LAT,LON,HEALTHCARE_EXPENSES,HEALTHCARE_COVERAGE,INCOME
+p-0001,1960-03-15,,999-00-0001,,,Mr.,Test,,One,,,M,white,nonhispanic,M,Nowhere,1 Invented Rd,Testville,Massachusetts,Test County,,00000,0,0,0,0,0
+p-0002,1990-06-01,,999-00-0002,,,Ms.,Test,,Two,,,M,white,nonhispanic,F,Nowhere,2 Invented Rd,Testville,Massachusetts,Test County,,00000,0,0,0,0,0
+p-0003,1950-01-01,2024-05-01,999-00-0003,,,Mr.,Test,,Three,,,M,white,nonhispanic,M,Nowhere,3 Invented Rd,Testville,Massachusetts,Test County,,00000,0,0,0,0,0
+p-0004,1955-09-09,,999-00-0004,,,Mrs.,Test,,Four,,,M,white,nonhispanic,F,Nowhere,4 Invented Rd,Testville,Massachusetts,Test County,,00000,0,0,0,0,0
+p-0005,2000-01-01,,999-00-0005,,,Mr.,Test,,Five,,,S,white,nonhispanic,M,Nowhere,5 Invented Rd,Testville,Massachusetts,Test County,,00000,0,0,0,0,0
