@@ -52,9 +52,9 @@ from src.reasoning.investigations import (
     INVESTIGATIONS,
     SOURCES,
     TESTS_FOR_TOP,
+    investigations_to_consider,
     suggested_tests,
 )
-from src.reasoning.investigations import tests_to_consider as consider  # pytest collects test*
 from src.reasoning.next_questions import (
     EXAMINATION,
     QUESTIONS_SHOWN,
@@ -236,14 +236,14 @@ class TestWhichConditionsGetTests:
             ("COND:stable_angina", False),
             (AD, True),
         )
-        chosen = [e.condition_id for e in consider(candidates)]
+        chosen = [e.condition_id for e in investigations_to_consider(candidates)]
         assert chosen == [GERD, "COND:pericarditis", "COND:panic_attack", AD]
         assert TESTS_FOR_TOP == 3
 
     def test_each_condition_once_and_none_when_nothing_ranks(self):
         candidates = ranked((PE, True), (PE, True), (MI, False))
-        assert [e.condition_id for e in consider(candidates)] == [PE, MI]
-        assert [e.condition_id for e in consider(candidates, top=0)] == [PE]
+        assert [e.condition_id for e in investigations_to_consider(candidates)] == [PE, MI]
+        assert [e.condition_id for e in investigations_to_consider(candidates, top=0)] == [PE]
         assert suggested_tests([]) == []
 
 

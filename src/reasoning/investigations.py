@@ -1,8 +1,8 @@
 """Tests to consider next: a small, hand-authored, cited table (task 3d; FR-5.5).
 
 Each of the 14 conditions maps to the **diagnostic investigations** that confirm or exclude it, as
-the guideline cited for it recommends. :func:`tests_to_consider` picks the entries for the leading
-candidates and every red-flagged one, and the pipeline puts one line per condition into
+the guideline cited for it recommends. :func:`investigations_to_consider` picks the entries for the
+leading candidates and every red-flagged one, and the pipeline puts one line per condition into
 ``DiagnosisResult.suggested_next_tests``:
 
     "Pulmonary embolism: consider a clinical probability assessment (Wells or revised Geneva
@@ -43,8 +43,8 @@ __all__ = [
     "TESTS_FOR_TOP",
     "Investigation",
     "Source",
+    "investigations_to_consider",
     "suggested_tests",
-    "tests_to_consider",
 ]
 
 TESTS_FOR_TOP = 3
@@ -336,7 +336,9 @@ INVESTIGATIONS: dict[str, Investigation] = {
 test enforces it. The tests are listed in each guideline's order, not ranked against each other."""
 
 
-def tests_to_consider(candidates: Iterable, top: int = TESTS_FOR_TOP) -> list[Investigation]:
+def investigations_to_consider(
+    candidates: Iterable, top: int = TESTS_FOR_TOP
+) -> list[Investigation]:
     """The investigations for the first ``top`` candidates and every red-flagged one, in order.
 
     Args:
@@ -359,5 +361,6 @@ def tests_to_consider(candidates: Iterable, top: int = TESTS_FOR_TOP) -> list[In
 
 
 def suggested_tests(candidates: Iterable, top: int = TESTS_FOR_TOP) -> list[str]:
-    """``DiagnosisResult.suggested_next_tests``: one line per condition of :func:`tests_to_consider`."""
-    return [entry.text() for entry in tests_to_consider(candidates, top)]
+    """``DiagnosisResult.suggested_next_tests``: one line per condition of
+    :func:`investigations_to_consider`."""
+    return [entry.text() for entry in investigations_to_consider(candidates, top)]
