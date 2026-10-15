@@ -1,6 +1,9 @@
 # 15 · The working prototype: how to start it and how to demo it
 
-**Version:** 1.0 · 2026-10-14 (`v0.1-prototype`) · for whoever presents Nightingale.
+**Version:** ~~1.0 · 2026-10-14 (`v0.1-prototype`)~~ 1.1 · 2026-10-14, for `v0.2-prototype`: "what
+to ask next" (3d) and evidence with citations (3a) are in (`docs/17` T1). `v0.2-prototype` is tagged
+on the laptop, after the checks on the real graph and transformer (`docs/17` §6) · for whoever
+presents Nightingale.
 
 > ⚠️ **Decision support, never a diagnosis.** Nightingale is a research prototype built on
 > **synthetic** patients (DDXPlus). It knows 14 causes of acute chest pain and nothing else (R-13).
@@ -22,13 +25,25 @@ and gets the 14 possible causes ranked, live, as each finding is ticked:
   - the graph's supporting (✓), contradicting (✗) and missing (?) findings, with its reasoning
     paths;
   - the model's own strongest reasons, found by removing each finding in turn (2b).
+- **What to ask next (3d):**
+  - the findings not yet recorded whose answer would most change the knowledge graph's ranking
+    (expected information gain), each with the conditions a yes or a no would favour
+    (`docs/02` §5.3);
+  - the tests to consider for the top three candidates and every red flag: investigations only,
+    each from a cited guideline, phrased "consider" (`src/reasoning/investigations.py`).
+- **Evidence with citations (3a):** for the first three candidates, excerpts from PubMed Central
+  Open Access articles, found by BM25 and a dense search fused by reciprocal rank (EXP-011), each
+  with its citation, a link to its PMC page and its licence. Diagnosis only: a sentence with any
+  treatment language is never shown (`src/rag/screening.py`). **It stays empty until the corpus is
+  built** by the owner's Kaggle run (`docs/11` §4.6); until then each row says so.
 - **Robustness:**
   - every component that fails is named on the screen (`degraded_components`);
   - the disclaimer is on every screen;
   - ranks are shown, not raw scores, because the scores are not calibrated probabilities (EXP-007).
 
 **Not in this version yet** (say so if asked):
-- "what to ask next" (3d) and evidence with citations (3a), both being built;
+- ~~"what to ask next" (3d) and evidence with citations (3a), both being built;~~ in since
+  `v0.2-prototype` (above); the evidence needs the corpus bundle (§2);
 - the LLM explanation (3b), where the template explanation stands in;
 - calibrated probabilities (EXP-007 stage 2);
 - the test-split results (Phase 4).
@@ -46,7 +61,11 @@ and gets the 14 possible causes ranked, live, as each finding is ticked:
 4. Check that `data/` and `models/` are on the laptop. They are not in git.
    - `models/nightingale_b1_dl/b1_dl_asked_aug/seed42/b1_dl.json` must exist.
    - Without it, the dashboard says `ml` is degraded and ranks with the graph alone.
-5. Plug the laptop in, close heavy applications, and start the dashboard once to warm it.
+5. **For the evidence:** the corpus bundle in `data/raw/retrieval_corpus/` and
+   `retrieval.bundle: data/raw/retrieval_corpus` in `configs/config.yaml` (`docs/11` §4.6).
+   - Without it nothing breaks: each candidate's Evidence says no literature is shown, and
+     "Running without" lists `rag`.
+6. Plug the laptop in, close heavy applications, and start the dashboard once to warm it.
 
 ## 3. Starting it
 
@@ -62,6 +81,13 @@ Then open <http://127.0.0.1:8501>. It serves on this machine only. Optionally, s
 
 It serves <http://127.0.0.1:8000/docs>, where `POST /diagnose` returns the same result as JSON.
 
+**If the browser fails,** the console shows the same result, the evidence, the questions and the
+tests included:
+
+```bash
+./.venv/Scripts/python.exe scripts/demo.py --case GC-001
+```
+
 ## 4. A five-minute demo script
 
 Use **Start from an example** in the sidebar: it loads a golden case, one of the hand-written
@@ -74,13 +100,23 @@ clinical expectations the tests enforce.
    - Open its row: the graph's reasoning names tearing pain, radiation to the back, sudden onset and
      the inter-arm blood-pressure difference.
    - The point: a model alone cannot rank what it was never trained on; knowledge and rules can.
-2. **GC-001, acute coronary syndrome: live re-ranking and the reasons** (1½ min).
+2. **GC-001, acute coronary syndrome: live re-ranking and the reasons** (~~1½~~ 2 min).
    - The ischaemic red flag fires and MI is first. The header shows the time taken: about 10 ms.
    - Read the explanation: it names the model's strongest reasons for and against the top
      candidate.
    - **Remove "Exertional onset"**, then add it back: the list re-ranks at once (D-14).
    - **Move "Diaphoresis" to Findings denied:** a denial is evidence, while a finding not chosen is
      "not asked". The ranking changes differently for each.
+   - **Scroll to "What to ask next".** The graph's first questions are **rest pain** and the
+     **crescendo pattern**, which bear on unstable angina against MI here (as recorded from the
+     3d review on the real graph). The tests to consider are a **12-lead ECG** and **serial
+     high-sensitivity troponin** (ESC 2023 ACS; AHA/ACC 2021). The anginas are also where every
+     model errs most (EXP-023).
+     - Say: questions are asked, never answered for the patient; tests are investigations only,
+       each with its guideline; the clinician decides.
+   - **Open MI's row: its Evidence.** With the corpus bundle, excerpts from PMC Open Access
+     articles, each with its citation and a link to its PMC page. Without it, the row says that no
+     literature is shown (§2, step 5).
 3. **Building a history from nothing** (1 min). Clear the findings.
    - With none, the model sees age and sex only, and says so.
    - Add chest pain, then pressure-type pain, then radiation to the jaw/arm, one at a time, and
@@ -147,3 +183,13 @@ level and model label (`docs/05` §8).
   clinical validation.
 - **"What if a component fails?"** The ranking continues with what is left, and the screen names
   what is missing (`docs/02` §7).
+- **"Where do the questions come from?"** From the knowledge graph alone, by expected information
+  gain (`docs/02` §5.3). The model is not consulted, every condition counts the same, and one
+  question is weighed at a time. The order matters, not the number.
+- **"Are the tests advice?"** No. They are diagnostic investigations only, each from a published
+  guideline, phrased "consider". There is never a treatment or a drug, and the safety layer
+  removes any line that reads as one.
+- **"Can the evidence recommend a treatment?"** No. A sentence with any treatment language is
+  screened out when the corpus is built, and every excerpt is screened again just before it is
+  shown (`src/rag/screening.py`). An article whose title names a treatment is dropped, and the
+  safety layer removes any evidence that recommends one.
