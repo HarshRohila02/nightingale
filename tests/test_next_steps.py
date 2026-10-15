@@ -186,13 +186,11 @@ class TestTheTable:
         assert cited == set(SOURCES), "a listed source no entry cites"
         assert all(source.reference.strip() and source.short for source in SOURCES.values())
 
-    def test_the_references_written_from_memory_are_flagged(self):
-        """The module says two citations need checking against the publisher before the report
-        cites them. A change to that list should be deliberate."""
-        assert {k for k, s in SOURCES.items() if s.verify} == {
-            "bts_pleural_2023",
-            "wses_oesophageal_2019",
-        }
+    def test_no_reference_awaits_checking(self):
+        """The two citations written from memory (BTS 2023 pleural, WSES 2019 oesophageal) were
+        checked against their publishers' pages on 2026-10-15 and found exact. A reference added
+        unchecked must be flagged, and flagging one should be a deliberate change here."""
+        assert {k for k, s in SOURCES.items() if s.verify} == set()
 
     def test_every_line_says_consider(self):
         for entry in INVESTIGATIONS.values():

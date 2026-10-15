@@ -509,9 +509,11 @@ ACG guidelines and position statements). The pipeline puts one line per conditio
 "consider" and lists **investigations only, never a treatment or a drug** (FR-6.5, docs/04 §3);
 the safety layer, which runs after it, would remove a line that broke that, and a test scans the
 table for treatment language. *Limits:* the table does not rank tests against each other or
-weigh their cost or harm; it goes no further than the next investigation; and two citations were
+weigh their cost or harm; it goes no further than the next investigation; and ~~two citations were
 written from memory (`verify=True`: BTS 2023 pleural disease, WSES 2019 oesophageal emergencies)
-and must be checked against the publisher before the report cites them. Newer ESC guidance on
+and must be checked against the publisher before the report cites them~~ *(2026-10-15: both checked
+against the publishers' pages and exact, flags cleared: Thorax 2023;78(Suppl 3):s1–s42, doi
+10.1136/thorax-2022-219784; World J Emerg Surg 2019;14:26, doi 10.1186/s13017-019-0245-2)*. Newer ESC guidance on
 myocarditis and pericarditis (2025) and on aortic disease (2024) is not cited, because its details
 could not be checked here.
 

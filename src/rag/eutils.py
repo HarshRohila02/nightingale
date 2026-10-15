@@ -12,10 +12,14 @@ Rules it keeps (docs/03 §1.4):
   misbehaving tool. Nothing else about anyone is sent.
 * On HTTP 429 or a server error it waits and retries (2, 4, 8… seconds, at most :data:`RETRIES`
   times): Kaggle's machines share addresses, so another user's traffic can trip NCBI's limit.
+  A connection that fails or drops, before the answer or in the middle of its body, is retried
+  the same way: the owner's first Kaggle run (2026-10-14) stopped at article 2,220 of 3,111 on an
+  ``http.client.IncompleteRead``, which is neither an ``OSError`` nor a ``URLError``.
 """
 
 from __future__ import annotations
 
+import http.client
 import json
 import time
 import urllib.error
@@ -107,7 +111,12 @@ class EUtils:
             self.requests += 1
             try:
                 status, body = self._open(full, self.timeout)
-            except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                ConnectionError,
+                http.client.HTTPException,  # IncompleteRead: the body cut off mid-read
+            ) as error:
                 status, body = -1, str(error).encode()
             if status == 200:
                 return body

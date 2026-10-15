@@ -425,9 +425,14 @@ parts, neither of them a graph edge (`docs/02` §5.3).
     (FR-6.5). The safety layer would remove a line that broke this, and a test scans the table for
     treatment language.
   - The table does not rank tests against each other, nor weigh their cost or harm.
-  - Two of its references were written from memory and are flagged for checking against the
+  - ~~Two of its references were written from memory and are flagged for checking against the
     publisher before the report cites them (BTS 2023 pleural disease, WSES 2019 oesophageal
-    emergencies) [citation needed].
+    emergencies) [citation needed].~~ *Checked 2026-10-15 against the publishers' pages:* two of
+    its references, first written from memory, are exact as cited: Roberts ME, Rahman NM,
+    Maskell NA, et al. British Thoracic Society Guideline for pleural disease. *Thorax*.
+    2023;78(Suppl 3):s1–s42, doi:10.1136/thorax-2022-219784; and Chirica M, Kelly MD, Siboni S,
+    et al. Esophageal emergencies: WSES guidelines. *World J Emerg Surg*. 2019;14:26,
+    doi:10.1186/s13017-019-0245-2.
 - **The questions to ask** (`src/reasoning/next_questions.py`). Of the findings the form offers
   that the case has neither recorded nor denied, it ranks those whose answer would most reduce the
   graph's uncertainty over the 14 conditions: the **expected entropy reduction** of the graph's

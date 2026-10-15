@@ -20,6 +20,7 @@ a model: the network is a fake opener and the model a hash of words. What is che
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import math
 import re
@@ -1157,6 +1158,42 @@ def test_a_busy_ncbi_is_retried_with_growing_waits_and_an_error_is_not():
     with pytest.raises(EUtilsError):
         refused.get("https://eutils.example/x", {})
     assert refused.requests == 1
+
+
+@pytest.mark.parametrize(
+    "dropped",
+    [
+        http.client.IncompleteRead(b"<pmc-articleset>", 177),
+        http.client.RemoteDisconnected("closed"),
+        ConnectionResetError("reset"),
+        TimeoutError("timed out"),
+    ],
+    ids=["incomplete-read", "remote-disconnected", "reset", "timeout"],
+)
+def test_a_dropped_connection_is_retried(dropped):
+    """The owner's first corpus run (2026-10-14) stopped at article 2,220 of 3,111 on an
+    IncompleteRead, which the retry did not catch. A connection that drops is retried like a
+    busy server, and fails as an EUtilsError only when every retry has."""
+    clock = Clock()
+    answers = iter([dropped, (200, b"fine")])
+
+    def opener(url, timeout):
+        answer = next(answers)
+        if isinstance(answer, BaseException):
+            raise answer
+        return answer
+
+    client = EUtils(opener=opener, clock=clock, sleep=clock.sleep)
+    assert client.get("https://eutils.example/x", {}) == b"fine"
+    assert client.requests == 2 and clock.now >= 2.0
+
+    def always(url, timeout):
+        raise dropped
+
+    failing = EUtils(opener=always, sleep=lambda s: None, retries=2)
+    with pytest.raises(EUtilsError):
+        failing.get("https://eutils.example/x", {})
+    assert failing.requests == 3
 
 
 def test_no_key_is_sent_and_an_email_only_when_given():

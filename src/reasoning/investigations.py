@@ -24,8 +24,10 @@ from the graph, are :mod:`src.reasoning.next_questions`.
 
 **The references** (:data:`SOURCES`) are guidelines or position statements of the societies named.
 Each entry's investigations paraphrase that source's diagnostic recommendations; none quotes it.
-Two entries rest on a reference marked ``verify=True``: the citation details were written from
-memory and must be checked against the publisher before the report cites them.
+Two entries rested on references whose details were written from memory (``verify=True``): BTS 2023
+pleural disease and WSES 2019 oesophageal emergencies. Both were checked against the publishers'
+own pages on 2026-10-15 (thorax.bmj.com, doi 10.1136/thorax-2022-219784; link.springer.com, doi
+10.1186/s13017-019-0245-2) and every detail was exact, so no reference is flagged now.
 
 Reference: docs/01-srs.md FR-5.5 and FR-6.5, docs/04-safety-ethics.md §3 (the must-not-miss table).
 """
@@ -133,7 +135,6 @@ SOURCES: dict[str, Source] = {
         "BTS 2023 pleural",
         "Roberts ME, Rahman NM, Maskell NA, et al. British Thoracic Society Guideline for pleural "
         "disease. Thorax. 2023;78(Suppl 3):s1-s42.",
-        verify=True,
     ),
     "bts_pneumothorax_2010": Source(
         "BTS 2010 pneumothorax",
@@ -145,7 +146,6 @@ SOURCES: dict[str, Source] = {
         "WSES 2019 oesophageal",
         "Chirica M, Kelly MD, Siboni S, et al. Esophageal emergencies: WSES guidelines. World J "
         "Emerg Surg. 2019;14:26.",
-        verify=True,
     ),
     "acg_gerd_2022": Source(
         "ACG 2022 GERD",
@@ -164,7 +164,8 @@ SOURCES: dict[str, Source] = {
         "of aortic diseases. Eur Heart J. 2014;35(41):2873-2926.",
     ),
 }
-"""Every guideline the table cites, by key. ``verify`` marks the two whose details need checking.
+"""Every guideline the table cites, by key. ``verify`` marks any whose details need checking: none
+since 2026-10-15, when the two written from memory were checked against their publishers.
 
 Newer ESC guidance may supersede two of them: a 2025 guideline on myocarditis and pericarditis, and
 a 2024 guideline on peripheral arterial and aortic diseases, are understood to exist. They are not
