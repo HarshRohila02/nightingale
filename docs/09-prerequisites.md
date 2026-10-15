@@ -190,7 +190,7 @@ in Week 2 even though you will not use it until Week 6.
 | **Streamlit** | Widgets, layout, state, caching | Streamlit docs (~3 h) |
 | **pytest + fixtures** | Golden-case regression tests | pytest docs |
 | **GitHub Actions** | Run tests on push | Actions quickstart |
-| **MLflow** | Log params/metrics, compare runs for the ablation table | MLflow tracking docs |
+| ~~**MLflow**~~ **How a run is recorded** | ~~Log params/metrics, compare runs for the ablation table~~ *Corrected 2026-10-14:* MLflow is not used. Each run writes `run.json` and `metrics.json` beside its models, and its `docs/08` entry records it | ~~MLflow tracking docs~~ `src/eval/reports.py`, `docs/08`'s entry template |
 | **Experiment design** | Baselines, ablations, why pre-registration matters | [05-evaluation-protocol.md](05-evaluation-protocol.md) |
 
 ---

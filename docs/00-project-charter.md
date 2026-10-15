@@ -51,7 +51,7 @@ question is this project's research contribution.
 | O4 | Fuse KG and ML signals into a single explainable ranking | Fusion outperforms both single-method baselines |
 | O5 | Detect and surface must-not-miss conditions as red flags | Must-not-miss recall@3 ≥ 0.95 (target) |
 | O6 | Retrieve and cite real medical evidence for each candidate | ≥80% of generated claims traceable to a retrieved passage |
-| O7 | Quantify the contribution of each component | Complete ablation study across 5 configurations |
+| O7 | Quantify the contribution of each component | Complete ablation study across ~~5 configurations~~ A0–A7 and A1b, each at 100%, 50% and 25% evidence (`docs/05` §5 as amended, v1.4; corrected 2026-10-14) |
 | O8 | Deliver a usable clinician-facing interface | Working dashboard demonstrating the full pipeline |
 
 ## 4. Scope

@@ -122,7 +122,7 @@ flowchart TD
 
     NLP --> PKG["3 · Patient Knowledge Graph<br/>this patient's structured facts"]
 
-    PKG --> ML["4 · ML Ranker<br/>LogReg · RandomForest · XGBoost<br/>(DDXPlus chest-pain subset)"]
+    PKG --> ML["4 · ML Ranker<br/>LogReg · XGBoost · small transformer<br/>(DDXPlus chest-pain subset)"]
     PKG --> MKG["5 · Cardiac Medical KG<br/>Condition ↔ Symptom relations<br/>(DDXPlus condition KB + BODHI-S enrichment)"]
 
     ML --> FUSE["6 · Candidate generation<br/>& fusion / re-ranking"]
@@ -139,6 +139,10 @@ flowchart TD
     SAFE --> DASH["12 · Clinician dashboard<br/>ranked Dx + red flags + evidence + disclaimer"]
     DASH --> DOC["13 · Doctor makes the final decision"]
 ```
+
+> *Corrected 2026-10-14:* box 4 said "LogReg · ~~RandomForest~~ · XGBoost". No random forest was
+> ever built. The rankers are logistic regression and XGBoost (B1, EXP-004) and the small
+> transformer B1-DL′+aug, the configured ranker since D-13 (EXP-021).
 
 **Design principle:** the ML + KG core is the workhorse and ships first; **RAG and the LLM come last**
 and are additive — Nightingale produces a useful ranked, explained, red-flagged differential even
@@ -283,7 +287,7 @@ Data Use Agreement, no real patient data. **Repo IDs and licenses verified on Hu
 | Backend | **FastAPI** | inference API |
 | Frontend | **Streamlit** (fast) or **React** | clinician dashboard |
 | Explainability | **SHAP** (ML), KG reasoning paths, citations | |
-| Reproducibility | **MLflow**, **DVC**, **Docker**, fixed seeds | experiment & data versioning |
+| Reproducibility | ~~**MLflow**, **DVC**,~~ **Docker**, fixed seeds | experiment & data versioning. *Corrected 2026-10-14:* neither MLflow nor DVC is used: no DVC (`PROGRESS.md` §6, 2026-09-17), and each run is recorded in `docs/08` and its bundle's `run.json` |
 
 ---
 

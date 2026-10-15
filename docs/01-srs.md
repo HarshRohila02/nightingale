@@ -179,7 +179,7 @@ Priority: **M** = must have (MVP) · **S** = should have · **C** = could have (
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-10.1 | Compute all metrics defined in the evaluation protocol | M |
-| FR-10.2 | Run all five ablation configurations reproducibly | M |
+| FR-10.2 | Run ~~all five ablation configurations~~ the ablation configurations A0–A7 and A1b, each at 100%, 50% and 25% evidence (`docs/05` §5 as amended, v1.4; corrected 2026-10-14), reproducibly | M |
 | FR-10.3 | Log every run with parameters and metrics | M |
 
 ---
@@ -225,8 +225,9 @@ Patient reports tearing pain radiating to the back. Aortic dissection is absent 
 so the ML score is zero; the KG rule fires and the UI surfaces the red flag regardless of rank.
 
 ### UC-4 — Run the evaluation suite
-Researcher runs the harness → all five configurations execute → metrics logged → ablation table
-produced.
+Researcher runs the harness → ~~all five configurations execute~~ every configuration of `docs/05`
+§5 (A0–A7 and A1b, each at 100%, 50% and 25% evidence; corrected 2026-10-14) executes → metrics
+logged → ablation table produced.
 
 ---
 
