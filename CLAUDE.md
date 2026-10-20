@@ -46,6 +46,10 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 - Never use DDXPlus `DIFFERENTIAL_DIAGNOSIS` as a model input — it is the label. In the parquet it
   is `label_differential`; select features with `INPUT_COLUMNS` from `src/ddxplus.py`.
 - Never touch the test split before Phase 4 (`docs/05` §2).
+  From the freeze (tag `v0.9-freeze`) it opens only through `src/eval/freeze.py`'s gate: build it with
+  `build_ddxplus_chestpain.py --split test --open-test-split`, score it with
+  `evaluate_ablations.py --split test` (which records the single opening in
+  `data/interim/test_split_opened.json`). Never edit `configs/` or `src/` (outside `src/eval/`) after the tag.
 - Never remove or weaken the disclaimer; never add treatment or drug recommendations.
 - `src/contracts.py` changes need all four team members — flag them rather than just making them.
 - `docs/05-evaluation-protocol.md` is **frozen** — change it only through its amendment log.
@@ -257,6 +261,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
 ./.venv/Scripts/python.exe -m streamlit run app/streamlit_app.py  # 2e: the dashboard, 127.0.0.1:8501, re-ranks live
 ./.venv/Scripts/python.exe scripts/serve_api.py               # 1e: the API, 127.0.0.1:8000/docs
 ./.venv/Scripts/python.exe scripts/measure_latency.py         # EXP-022: model cost and pipeline latency (~15 s)
+./.venv/Scripts/python.exe scripts/evaluate_ablations.py --digest-only   # EXP-012's runner: the masks and their digests; a scoring run is long (20-40 min), so ask where first (D-7)
 ./.venv/Scripts/python.exe scripts/measure_retrieval.py       # 3a: retrieval cost (synthetic bundle, or --bundle data/raw/retrieval_corpus)
 ./.venv/Scripts/python.exe scripts/error_analysis.py          # 3e, EXP-023: errors and calibration by condition (~4 min; --figures-only redraws docs/figures/)
 ./.venv/Scripts/python.exe scripts/build_ddxplus_chestpain.py   # 1a: validate.csv -> parquet

@@ -169,12 +169,15 @@ def _model_only_scores(ml: np.ndarray) -> np.ndarray:
     return out
 
 
-def ablation_scores(spec: Spec, ml: np.ndarray, graph: np.ndarray, alpha: float) -> np.ndarray:
+def ablation_scores(
+    spec: Spec, ml: np.ndarray | None, graph: np.ndarray, alpha: float
+) -> np.ndarray:
     """The score the pipeline sorts by for this ablation: ``(patients, 14)``, higher is better.
 
     Args:
         spec: What the ablation keeps.
-        ml: The model's probabilities, ``(patients, 13)`` in ``MODEL_LABELS`` order.
+        ml: The model's probabilities, ``(patients, 13)`` in ``MODEL_LABELS`` order; None when the
+            ablation keeps no model.
         graph: The graph's log-likelihoods, ``(patients, 14)``.
         alpha: The graph's share of the pool (EXP-006). Used only when the model and the graph
             are both kept.
@@ -193,7 +196,7 @@ def ablation_scores(spec: Spec, ml: np.ndarray, graph: np.ndarray, alpha: float)
 
 def ranking(
     spec: Spec,
-    ml: np.ndarray,
+    ml: np.ndarray | None,
     graph: np.ndarray,
     flagged: np.ndarray,
     alpha: float,
