@@ -106,7 +106,11 @@ A yes covers one test. `.venv-gpu` is set up and verified (`docs/11` §2).
 > Filled in **before** a task starts; cleared **after** it is committed. If this section is not empty
 > when a session begins, the previous session was interrupted — go to §4.4.
 
-*(empty: 2026-10-21, the plan for everything left recorded.)*
+**Task (2026-10-21): 5.1 — the EXP-012 runner, `scripts/evaluate_ablations.py`** (the plan's WS5; Phase 4a/4b code; validation only, the test split is not touched).
+
+- **Done so far:** the plan recorded (`a2a7041`). Three independent pieces were proposed as cards for their own sessions, each on its own branch and PR, none merged without the owner: EXP-011's judging tool, EXP-009/010's pre-registration with the Kaggle LLM notebook, the amendment-3b draft.
+- **Remaining:** survey the scoring code that exists (`scripts/evaluate_reduced_evidence.py`, `scripts/sweep_fusion.py`, `src/fusion/pool.py`, `src/eval/`); move the shared pieces into `src/eval/` rather than copy them; build the runner (systems, three levels, seeds, statistics, verdicts, by-condition and by-sex), the test-split guard (R-08) and tests on a synthetic mini-release. The fused systems wait for E-2 and EXP-006; the dry run on validate (5.2) and EXP-012's pre-registration (5.3) come after.
+- **Nothing is trained, downloaded or run on the GPU by this task.**
 
 ---
 
