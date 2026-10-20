@@ -249,6 +249,9 @@ def evaluate_claims(
         "claim": "H4",
         "status": "supported" if contrast["more_on_must_not_miss"] else "not supported",
         "rule": "the interval of (must-not-miss degradation − top-1 degradation) is above 0",
+        # The reading by point estimate, beside it: the protocol does not say how "more than" is
+        # tested, and amendment 3b's draft reads H3 and H4 as point estimates with intervals.
+        "status_by_point_estimate": "supported" if contrast["contrast"] > 0 else "not supported",
         "against": "A1",
         "figures": dict(contrast),
         "reported_beside": [{"against": "A1b", **dict(beside_h4)}] if beside_h4 else [],

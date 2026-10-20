@@ -207,6 +207,21 @@ def test_h4_follows_the_degradation_contrast():
     assert out["H4"]["reported_beside"][0]["against"] == "A1b"
 
 
+def test_h4_is_also_read_by_point_estimate_beside_the_interval_rule():
+    """The protocol does not say how "more than" is tested: both readings are kept."""
+    table = build(h4_more=False)  # the interval does not clear 0 ...
+    out = judge(table)["H4"]
+    assert out["status"] == "not supported"
+    assert out["status_by_point_estimate"] == "supported"  # ... but the point estimate is above 0
+
+
+def test_a_tie_is_not_a_win_for_a_point_estimate():
+    """ "A0 > B1" is strict: two perfect systems tie, and a tie fails (docs/05 §7, the Target)."""
+    out = judge(build(overrides={("B1-XGB", 1.0): (0, 0)}))
+    assert not out["Target"]["checks"][0]["passed"]
+    assert out["Target"]["status"] == "not met"
+
+
 def test_the_minimum_needs_a0_to_beat_b0():
     assert judge(build())["Minimum"]["status"] == "met"
     worse = judge(build(overrides={("B0", 1.0): (0, 0), ("A0", 1.0): (50, 50)}))

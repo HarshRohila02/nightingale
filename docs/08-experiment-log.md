@@ -146,7 +146,9 @@ reading of the text, and the team may change any of them by a dated note **befor
 1. **H4's "more than"** (RQ4). H4 is judged on A1 at 100%, A1b beside it. The two degradations are
    recall@3 over the must-not-miss patients and top-1 over all patients, each A0 minus the
    ablation. H4 is supported when the 95% bootstrap interval of their difference (the same
-   resamples, seed 42, 1,000) lies above 0.
+   resamples, seed 42, 1,000) lies above 0. **The point-estimate reading is kept beside it**
+   (the difference above 0), because the draft of amendment 3b reads H4 as a point estimate with
+   its interval; the team picks which one is the verdict.
 2. **H5's reading.** The point estimate of A0's top-label ECE at 100% is below 0.10; the interval
    is reported beside it, and so is the figure at 50% and 25% for the calibrator fitted at 100%
    applied unchanged (`docs/05` §3.7). The top label is the fused ranking's first condition without
@@ -164,6 +166,17 @@ reading of the text, and the team may change any of them by a dated note **befor
    here. If there is none at the freeze, the text as approved stands (both levels), and §1's
    disclosure of what that makes unreachable is repeated with the results.
 8. **The graph** is the NetworkX build, which answers exactly as Aura does (tested).
+9. **A tie fails a point-estimate comparison.** "A0 > B1" is strict: where both score 1.000 (the
+   Target at 100%, R-16), the check fails. Neither `docs/05` nor the errata says which way a tie
+   goes (the draft of amendment 3b, Part E, 15).
+10. **The 100% Stretch has only the criteria `docs/05` §7 lists** (significance against B1,
+    must-not-miss recall@3 ≥ 0.95, clinician-reviewed explainability). The draft of amendment 3b
+    offers a cumulative reading that adds the Target's ECE and unsupported-claim criteria; the
+    runner follows the team's answer.
+
+The output also lists, for every system at every level, how many patients it misses in the top 3
+(and how many must-not-miss ones), so a comparator at a ceiling is visible: McNemar's test
+cannot reach 0.05 against a comparator that misses five or fewer.
 
 **Breakdowns** (`docs/05` §8 rule 3, task 4b). For A0, A0′, B1-XGB, B1-LR, B1-DL+aug, B1-DL′+aug and
 B2, at each level: top-1, top-3 and MRR (and must-not-miss recall@3 where it applies) with
@@ -212,7 +225,7 @@ the owner says where it runs.
 1. The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007
    stage 2.
 2. The owner says where the full rehearsal runs.
-3. The team ratifies or amends the eight choices above before the freeze.
+3. The team ratifies or amends the ten choices above before the freeze.
 
 ---
 

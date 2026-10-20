@@ -441,6 +441,17 @@ def summarise(args, primary, runs, records, levels, frames, say) -> dict[str, An
             out["systems"].setdefault(label, {})[str(level)] = {"point": point}
     for (a, b, level), comparison in primary.comparisons.items():
         out["comparisons"].append({"a": a, "b": b, "level": level, **comparison})
+    # How many patients each system misses, so a comparator at a ceiling is visible: McNemar
+    # cannot reach 0.05 against a comparator that misses five or fewer (docs/05 §1).
+    out["misses"] = {
+        key(label, level): {
+            "top-3 misses": int((~cases.hit3).sum()),
+            "of patients": int(len(cases.ranks)),
+            "must-not-miss top-3 misses": int((~cases.hit3[cases.critical]).sum()),
+            "of must-not-miss patients": int(cases.critical.sum()),
+        }
+        for (label, level), cases in primary.cases.items()
+    }
     out["ece"] = {key(a, lv): v for (a, lv), v in primary.ece.items()}
     if primary.ece_raw:
         out["ece_uncalibrated_A5"] = {key(a, lv): v for (a, lv), v in primary.ece_raw.items()}
