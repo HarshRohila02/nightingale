@@ -382,6 +382,21 @@ system delivers: the model's text when the guardrails let it through, else the t
    sample drawn by the same rule from the test patients, and its own pre-registration (under
    EXP-012). Nothing here is run on the test split.
 
+#### Changes made after this entry was committed, before any model was called
+
+Dated 2026-10-21, with the code. Each is something the entry did not say. None changes a prompt, the
+sample, a metric or a rule of the analysis.
+
+1. **A model that stops answering is not a result.** `scripts/run_llm_baselines.py` stops after 5
+   failed calls in a row (each already tried three times), sets those records aside in
+   `failed_tail.jsonl` and takes them out of `results.jsonl`, so that a resume asks them again.
+   Failures that are isolated stay in the results and are counted, as written above.
+2. **The checkpoint's 10%** (rule 2) counts the A0+LLM calls on the 50 patients, not "the 54": the
+   golden cases' calls are listed apart and are not in any rate.
+3. The grounded explainer's prompt is stored in each A0+LLM record, for the audit (the ranking arms'
+   prompts already were).
+4. The scorer marks A0+LLM's ranking "via the crosswalk inversion (R-17): not EXP-012's A0 ranking".
+
 ### EXP-010 — B4, text retrieval and a language model; and A0+LLM, the grounded explainer (3b) (validation split) · *pre-registered 2026-10-21, before any model was called*
 
 | Field | Value |
