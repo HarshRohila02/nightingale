@@ -10,7 +10,13 @@ For split S this writes:
 
 Column roles (inputs / labels / metadata) are fixed in src/ddxplus.py and described in
 docs/03-data-management.md §2.1. The test split is refused unless configs/config.yaml
-sets ``evaluation.allow_test_split: true``, which happens once, in Phase 4.
+sets ``evaluation.allow_test_split: true``, which happens once, in Phase 4, or unless
+``--open-test-split`` is given: that runs the freeze gate (``src/eval/freeze.py``: the tag
+``v0.9-freeze`` is an ancestor of HEAD, nothing it fixed has changed, the tree is clean) and needs
+no change to configs/. After the freeze use the flag, because the config switch would itself be a
+change to a file the freeze fixes, and the scoring run (scripts/evaluate_ablations.py) would then
+refuse. Building the parquet decodes the test split but scores nothing and is not the opening;
+the scoring run records that (``data/interim/test_split_opened.json``).
 """
 
 from __future__ import annotations
@@ -43,6 +49,7 @@ from src.ddxplus import (  # noqa: E402
     load_evidence_specs,
     parse_token,
 )
+from src.eval import freeze  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -204,10 +211,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--raw-dir", type=Path, default=REPO_ROOT / "data" / "raw" / "ddxplus")
     parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "data" / "interim")
     parser.add_argument("--config", type=Path, default=REPO_ROOT / "configs" / "config.yaml")
+    parser.add_argument(
+        "--open-test-split",
+        action="store_true",
+        help="build the test split after the freeze (v0.9-freeze), instead of editing the config",
+    )
     args = parser.parse_args(argv)
 
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     allow_test = bool((config.get("evaluation") or {}).get("allow_test_split", False))
+    if args.open_test_split:
+        if args.split != "test":
+            parser.error("--open-test-split is for --split test")
+        try:
+            frozen = freeze.require_freeze(REPO_ROOT)
+        except freeze.NotFrozen as exc:
+            print(f"ERROR: the test split stays closed: {exc}", file=sys.stderr)
+            return 2
+        print(f"Frozen at {frozen['tag']} ({frozen['tag_commit'][:8]}); building the test split")
+        allow_test = True
     try:
         summary = build(args.split, args.raw_dir, args.out_dir, allow_test_split=allow_test)
     except PermissionError as exc:

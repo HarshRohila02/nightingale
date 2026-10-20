@@ -78,6 +78,7 @@ import evaluate_reduced_evidence as exp019  # noqa: E402
 from src.conditions import CONDITIONS, must_not_miss_ids  # noqa: E402
 from src.contracts import Finding, PatientCase  # noqa: E402
 from src.ddxplus import code_sort_key, load_evidence_specs  # noqa: E402
+from src.eval.ablation import orders, true_ranks  # noqa: E402, F401  (moved; kept importable here)
 from src.eval.metrics import (  # noqa: E402
     evaluate,
     expected_calibration_error,
@@ -154,25 +155,6 @@ def differential_matrix(frame: pd.DataFrame) -> np.ndarray:
             if entry["condition_id"] in IDS:
                 in_d[i, IDS.index(entry["condition_id"])] = True
     return in_d
-
-
-def orders(scores: np.ndarray, flagged: np.ndarray | None = None) -> np.ndarray:
-    """Column indices by descending score, ties by registry order (``ranking_from_scores``).
-
-    With ``flagged``, flagged conditions come first, as the pipeline's (red_flag, fused_score)
-    sort puts them: two keys, so no precision is lost.
-    """
-    if flagged is None:
-        return np.argsort(-scores, axis=1, kind="stable")
-    return np.lexsort((-scores, ~flagged), axis=1)
-
-
-def true_ranks(order: np.ndarray, truth: np.ndarray) -> np.ndarray:
-    """1-based rank of each patient's true condition, which every order must contain."""
-    found = order == truth[:, None]
-    if not found.any(axis=1).all():
-        raise ValueError("a true condition is missing from its order, so it has no rank")
-    return np.argmax(found, axis=1) + 1
 
 
 def point_metrics(ranks: np.ndarray, critical: np.ndarray) -> dict[str, float]:

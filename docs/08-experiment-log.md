@@ -63,6 +63,172 @@
 
 *(newest first — add above this line as experiments are run)*
 
+### EXP-012 — The full system and every ablation at three evidence levels: a rehearsal on validation, then the single opening of the test split (4a, 4b) · *design pre-registered 2026-10-21, before any full-validation scoring and before the test split is touched*
+
+| Field | Value |
+|---|---|
+| Date | 2026-10-21: this design, with the runner and its tests. A plumbing check on 2,000 validation patients with an untuned α has run (below); **no figure from it is a result**. Dated notes below record what changes before the freeze |
+| Author | P4 (run by Claude) |
+| Config / ablation | **A0 and A0′, A1, A1b, A2, A3, A4, A5, A6, A7** (`docs/05` §5), with **B0, B1-XGB, B1-LR, their `+aug` and `′+aug` variants, B1-DL+aug, B1-DL′+aug and B2** as the systems they are compared with. B3 and B4 are EXP-009/010's |
+| Split used | **validation** for the rehearsal; then **[TEST]**, once, scored at 100%, 50% and 25% within that single opening (`docs/05` §3.7) |
+| Git commit | the commit that adds this entry. The runner is `scripts/evaluate_ablations.py` (computation in `src/eval/ablation_run.py`, rankings in `src/eval/ablation.py`, verdicts in `src/eval/verdicts.py`, the gate in `src/eval/freeze.py`); the commit that scores the test split is recorded in its output |
+| MLflow run | — (nothing is trained; `docs/08` is the record) |
+| Seed | 42 for the masks, the bootstrap and the verdicts; the models take seeds 42–46 (`docs/05` §6) |
+
+**Question.** `docs/05` §1 and §7: are H1, H1-R, H2, H2-R, H3, H4, H5 and H6 supported, and which of
+the Minimum, Target and Stretch (and their reduced-evidence rows) are met? Which components earn
+their place? **Every verdict is reported, including the ones that fail** (`docs/05` §8 rules 2 and
+5), for the unprimed system A0 and the primed A0′ separately.
+
+**What was known when this was written.**
+- Every single-system result on validation at the three levels: EXP-019 (B0, B1 and its variants,
+  B2, the red-flag layer), EXP-020 (the XGBoost seeds), EXP-021 (the transformer and D-13), EXP-007
+  (calibration of the components), EXP-022 (latency), EXP-023 (errors and calibration by
+  condition). None is a fused result at a tuned weight.
+- **No fused ranking of a validation patient has been scored at a tuned α.** EXP-006's sweep has
+  not run, because it waits for the team's answer to E-2.
+- **E-2 is open**, so which levels H1-R, H2-R, H6 and the reduced-evidence rows need is not
+  settled. The runner computes every verdict under **both** readings and records the one in force.
+- The test split has never been read. Its parquet is not built.
+- What has run: the unit tests, and a plumbing run (2,000 validation patients, seeds 42–43, α = 0.5
+  for every component, 66 s) that scored 27 systems and 102 comparisons with no NaN. Its output is
+  stamped `valid_as_a_result: false` (a subset, an untuned α, masks that cannot reproduce a
+  digest), and nothing in it is quoted.
+
+**The systems, as rankings of the 14 conditions** (`src/eval/ablation.py`; a test runs each through
+the real `DiagnosisPipeline` and requires the same order):
+
+| Config | Model | Graph | Flags | Ranking |
+|---|:--:|:--:|:--:|---|
+| A0 | ✅ | ✅ | ✅ | the logarithmic opinion pool at the component's α, flagged conditions first |
+| A1 | ✅ | ❌ | ❌ | the model alone |
+| A1b | ✅ | ❌ | ✅ | the model alone, flagged conditions first |
+| A2 | ❌ | ✅ | ✅ | the graph alone, flagged conditions first |
+| A4 | ✅ | ✅ | ❌ | A0 without the flags |
+| A7 | ✅ | ✅ | ✅ | A0 with B1-LR or B1-XGB, trained like the component, as the model; **each at its own α and at A0's** (`docs/05` amendment 3a, item 18) |
+
+A0's model is **B1-DL+aug** and A0′'s **B1-DL′+aug**, seed 42. Each fused component takes the α
+EXP-006 chose for it. **A seed's models are fused at the seed-42 α and never re-swept.** If EXP-006
+chose none for a component, 0.5 is used and the output says so.
+
+**Identical to A0 by construction, so not recomputed** (the output lists them and a test holds
+them):
+- **A3** (no retrieval): retrieval never ranks (`docs/02` §6).
+- **A5** (no calibration): a calibrator never reorders; A5 differs from A0 only in the
+  probabilities, so in ECE and Brier. When a calibrator is set, A0's ECE is the calibrated one and
+  A5's is the raw fused one, reported beside it; if EXP-007's stage 2 keeps `calibration.file` null,
+  A5 is A0 exactly.
+- **A6** (no patient graph): a DDXPlus patient has no history, so there is nothing to remove (the
+  owner's decision of 2026-10-20: the patient graph is display-only).
+
+**The rules** (`src/eval/verdicts.py`, from `docs/05` §6 and amendments 3 and 3a):
+- A **hypothesis** is supported only when **every** one of its comparisons is significant **and**
+  in the system's favour at α = 0.05. McNemar's test on paired top-3 correctness (over all
+  patients, or over the must-not-miss patients alone: exact binomial under 25 discordant pairs,
+  otherwise chi-square with continuity correction); a paired bootstrap of the per-case reciprocal
+  rank for MRR (1,000 resamples, seed 42, percentile interval excluding 0).
+- A **Target** compares point estimates and reports its tests beside it. A **Stretch** needs every
+  test to pass.
+- **Primed and unprimed systems are judged separately.** The plain B1-XGB and B1-LR are
+  comparators for both.
+- A check against a comparator that is perfect, or that misses five cases or fewer, cannot be
+  passed (`docs/05` §1); the check fails and is marked as at a ceiling, so the report says why.
+- **The comparators:** H1 against B1-XGB and B2 (B1-LR and the component beside it); H2 against
+  B1-XGB (the others beside); H1-R against every ML-only system (B1-XGB, B1-LR, the two trained like
+  the component, the component) **and** B2; H2-R against the same ML-only systems; H6 the component
+  against the two trained like it; the reduced Target and Stretch against B1-XGB, B1-LR and the two
+  trained like the component.
+- **The seed-42 model's verdict is the verdict**; the output says for how many of the seeds
+  42–46 it also holds (`docs/05` §6).
+
+**Choices made here where the protocol is silent.** They are Claude's, they follow the nearest
+reading of the text, and the team may change any of them by a dated note **before the freeze**:
+1. **H4's "more than"** (RQ4). H4 is judged on A1 at 100%, A1b beside it. The two degradations are
+   recall@3 over the must-not-miss patients and top-1 over all patients, each A0 minus the
+   ablation. H4 is supported when the 95% bootstrap interval of their difference (the same
+   resamples, seed 42, 1,000) lies above 0. **The point-estimate reading is kept beside it**
+   (the difference above 0), because the draft of amendment 3b reads H4 as a point estimate with
+   its interval; the team picks which one is the verdict.
+2. **H5's reading.** The point estimate of A0's top-label ECE at 100% is below 0.10; the interval
+   is reported beside it, and so is the figure at 50% and 25% for the calibrator fitted at 100%
+   applied unchanged (`docs/05` §3.7). The top label is the fused ranking's first condition without
+   the flags (flags reorder but change no probability).
+3. **The Minimum's "A0 beats B0"** is top-3 at 100% as a point estimate, the test beside it.
+4. **ECE and Brier are computed for A0 and A0′ only** (H5, with A5 beside). Every other
+   configuration reports the ranking, safety and red-flag metrics; the components' calibration is in
+   EXP-007, EXP-019, EXP-021 and EXP-023.
+5. **The Target's and Stretch's other criteria.** The unsupported-claim rate comes from
+   EXP-009/010, and clinician-reviewed explainability needs a clinically trained reviewer. Until
+   they exist, those rows read **incomplete**, never met, and the report says why.
+6. **A7 has no verdict.** It is reported at both weights; the full system's gain over each is the
+   comparison.
+7. **The reading of E-2 in force** is the team's answer, once it exists, recorded by a dated note
+   here. If there is none at the freeze, the text as approved stands (both levels), and §1's
+   disclosure of what that makes unreachable is repeated with the results.
+8. **The graph** is the NetworkX build, which answers exactly as Aura does (tested).
+9. **A tie fails a point-estimate comparison.** "A0 > B1" is strict: where both score 1.000 (the
+   Target at 100%, R-16), the check fails. Neither `docs/05` nor the errata says which way a tie
+   goes (the draft of amendment 3b, Part E, 15).
+10. **The 100% Stretch has only the criteria `docs/05` §7 lists** (significance against B1,
+    must-not-miss recall@3 ≥ 0.95, clinician-reviewed explainability). The draft of amendment 3b
+    offers a cumulative reading that adds the Target's ECE and unsupported-claim criteria; the
+    runner follows the team's answer.
+
+The output also lists, for every system at every level, how many patients it misses in the top 3
+(and how many must-not-miss ones), so a comparator at a ceiling is visible: McNemar's test
+cannot reach 0.05 against a comparator that misses five or fewer.
+
+**Breakdowns** (`docs/05` §8 rule 3, task 4b). For A0, A0′, B1-XGB, B1-LR, B1-DL+aug, B1-DL′+aug and
+B2, at each level: top-1, top-3 and MRR (and must-not-miss recall@3 where it applies) with
+bootstrap intervals, by true condition and by sex. **By-sex results are an artifact, not evidence of
+fairness**: DDXPlus's demographics are synthetic (EXP-002).
+
+**The procedure.**
+1. **Rehearsal on validation**, with EXP-006's α once E-2 allows it. Before the freeze, it must
+   reproduce what earlier experiments recorded **exactly**; a mismatch is a bug, not a finding:
+   - B0, B1 and its variants, B2 and the red-flag layer: EXP-019's metrics;
+   - the transformer arms: EXP-021's;
+   - each fused ranking at its α: EXP-006's;
+   - A0's ECE with and without the calibrator: EXP-007 stage 2's.
+2. **Freeze** (`v0.9-freeze`): α, the calibrator, the rankers and the rules are fixed in
+   `configs/`; the golden cases pass on the real components. After the tag, `configs/`, `src/`
+   (outside `src/eval/`) and `tests/fixtures/` may not change, or the gate refuses.
+3. **Build the test parquet** with `build_ddxplus_chestpain.py --split test --open-test-split`
+   (after the owner's yes to downloading `test.csv`), then `evaluate_ablations.py --split test
+   --digest-only`. **A dated note here records the two digests before anything is scored.**
+4. **Score once**, with `--confirm-single-opening --expect-digests <tokens>,<asked>`. The run reads
+   no label until both digests reproduce; it records the opening, refuses a subset or an untuned α,
+   and writes the commit, every model file's hash and the files changed since the freeze. A second
+   opening needs `--reopen-because` and is disclosed.
+5. **Every figure is tagged [TEST]** with its level, its model label and its interval. Nothing is
+   re-run or re-tuned after the opening. A verdict that fails is reported as it stands.
+
+**Cost.** Not yet measured at full size. Extrapolated from the plumbing run (66 s for 2,000
+patients and two seeds), seed 42 alone should take about 15–20 minutes on the laptop CPU and all
+five seeds 30–45 minutes; most of it is the transformer's forward pass and the bootstrap. Under D-7
+the owner says where it runs.
+
+**Limits, stated in advance.**
+- **Synthetic data (R-12, R-13).** DDXPlus patients are generated from the definitions the graph is
+  built from, so the graph's value on them is circular; the system knows 13 conditions only.
+- **Saturation (R-16).** The comparators are at or near 1.000 on top-3 and must-not-miss recall at
+  100%, and the `+aug` ones at 50% (`docs/05` §1, on validation figures), so a comparative claim
+  cannot be supported there; only the 25% comparisons can still be won. The masks are random, so
+  they measure robustness to missing answers, not history-taking.
+- **α was chosen on validation**, so fused validation figures are optimistic; the test gives the
+  honest ones.
+- The generated differentials are open-world; Precision@3 and Recall@5 use `D_in` (D-8).
+
+**Results.** *Pending: the rehearsal waits for E-2 and EXP-006; the test split is unread.*
+
+**Next action.**
+1. The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007
+   stage 2.
+2. The owner says where the full rehearsal runs.
+3. The team ratifies or amends the ten choices above before the freeze.
+
+---
+
 ### EXP-009 — B3, a language model alone; and the design the LLM trial shares: the sample, the model, the prompts, the claim check, H3 and the checkpoint (3b) (validation split) · *pre-registered 2026-10-21, before any model was called*
 
 | Field | Value |
