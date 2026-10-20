@@ -445,6 +445,85 @@ The notebook is `notebooks/kaggle_synthea.ipynb`:
    Then tell Claude what `patient_kg/summary.json` lists as unmapped, so that the table can be
    reviewed.
 
+### 4.8 The language-model baselines and the grounded explainer (EXP-009, EXP-010, task 3b) · *ready 2026-10-21 · Kaggle (D-7); the model is D-5's*
+
+This job runs a small local language model, **`llama3.1:8b` through Ollama** (D-5, 2026-10-20), over a
+sample of 54 cases, in four arms, and scores the result. It is **the only place the model runs**: on
+the laptop, Ollama would put it on the GPU, which needs your yes every time (D-9), and the batch
+runs go to Kaggle (D-7). The protocol is pre-registered in `docs/08` (EXP-009 and EXP-010) and was
+committed before the notebook.
+
+| Arm | What it is | Needs |
+|---|---|---|
+| B3 | the model alone, at 100%, 50% and 25% of the history | nothing |
+| B3r | B3 told to use only the facts it is given (H3's control) | nothing |
+| B4 | text retrieval and the model | the retrieval bundle |
+| A0+LLM | the pipeline with the language-model explainer on; the raw answer and what the guardrails let through | the bundle, the models |
+
+It makes 416 calls over the four golden cases and 50 validation patients (hash order, seed 42), at
+temperature 0. Nothing is trained and **the test split is never downloaded**: the notebook fetches
+DDXPlus's validation split only. A run on the test split is a separate job, after `v0.9-freeze`.
+
+The notebook is `notebooks/kaggle_llm_explain.ipynb`. It runs `scripts/run_llm_baselines.py`, then
+`scripts/score_llm_baselines.py`:
+- **Ollama** is installed from ollama.com (its own install script; the version is whatever is
+  current unless you pin `OLLAMA_VERSION`, and `run.json` records it) and **`llama3.1:8b` is pulled
+  from Ollama's registry** (about 5 GB, into `/tmp`, so it is not saved with the output).
+- **The smoke test** runs two golden cases and two patients through every arm first. A model that
+  errors, an answer that never parses, a prompt that fills the context, or a model that looks to be on
+  the CPU (over a minute a call) stops the version there.
+- **The run** appends each call to `results.jsonl` as it is made.
+- **The score** applies the analysis registered in EXP-009: the ranking metrics with their intervals,
+  the unsupported-claim rate with its interval over patients, H3's four comparisons, **D-5's
+  checkpoint of 2026-11-03**, and the sheet for the two raters (`rating_sheet/`, blind to the arm).
+
+**Before you start:**
+1. **Finish the retrieval corpus run first** (§4.6, the resumed one): B4 and A0+LLM need its bundle,
+   and its `STATUS.txt` must start with `DONE`. Without the bundle, the notebook still runs B3 and
+   B3r and says so; run it again later with the bundle added and it resumes.
+2. Your private **`nightingale-models`** dataset (§4.5) must exist: A0+LLM needs the transformer.
+3. *Optional:* make a private dataset with `triples.jsonl` and `nl_facts.jsonl` from
+   `data/raw/bodhi_s/` on the laptop (BODHI-S is CC-BY-NC and is never committed), so that the graph
+   there has BODHI-S's enrichment as the laptop's has. Without it, `STATUS.txt` says "BODHI-S in the
+   graph: no".
+
+**Steps:**
+1. **Create → New Notebook → File → Import Notebook**: `notebooks/kaggle_llm_explain.ipynb`.
+2. **Add Input:** *Your Datasets → nightingale-models*; *Your Work → Notebook Output Files* → the
+   corpus notebook's last version; optionally the BODHI-S dataset.
+3. **Session options:** Accelerator **GPU T4 x2** (Ollama uses one; the notebook stops without a
+   GPU), Internet **on**. Kaggle allows GPUs and internet on a phone-verified account only.
+4. Leave the first code cell, or set `COMMIT` to the commit Claude names.
+5. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+   - Expect about **1–3 hours**. This is an estimate, not a measurement: the model has never run
+     here, and installing Ollama on Kaggle has not been tried. The smoke test is the check, and it
+     comes first, within a few minutes of the start.
+   - Kaggle allows 12 hours a session.
+6. From the latest version's **Output**, download **`llm_explain.zip`**. `STATUS.txt` inside it
+   should start with `DONE` and ends with the headline: the unsupported-claim rate of each arm, H3's
+   four comparisons, and `CHECKPOINT (2026-11-03): PASS` or `FAIL: …`.
+7. **On the laptop:** unzip it into `data/interim/llm_explain/` and tell Claude. **The file holds
+   corpus excerpts and DDXPlus patients: it stays under `data/` and is never committed.** To score
+   it again (seconds, CPU, nothing downloaded):
+   `./.venv/Scripts/python.exe scripts/score_llm_baselines.py data/interim/llm_explain --sheet data/interim/llm_explain/rating_sheet`
+8. **The ratings** (2026-10-31 to 2026-11-02): two team members, neither of whom wrote a prompt, each
+   fill their own copy of `rating_sheet/rating_items.csv` (1 to 5 on three criteria, and whether the
+   citations support the claims). They are not told which system wrote what. They are not clinical
+   experts, and the report does not call them so (`docs/05` §3.5).
+
+**If the version stops early** (a Kaggle limit, an error): open the notebook, **Add Input → Your
+Work → Notebook Output Files**, choose this notebook's last version, then **Save & Run All** again.
+The calls already made are copied from that output and skipped. The same is how to add B4 and A0+LLM
+to a run that had no bundle: add the finished bundle as an input.
+
+**If it fails at the start:** the Ollama log is in `logs/ollama.log` inside the output.
+- *No GPU:* set the accelerator and run again.
+- *The installer fails:* `OLLAMA_VERSION` can pin a release, or tell Claude what the cell printed.
+- *Over a minute a call:* Ollama is on the CPU; stop the version.
+
+**Keep the notebook private** (Kaggle's default). Nothing here needs a password or a token. The
+model is Meta's Llama 3.1, used under its community licence for this university project.
+
 ---
 
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
