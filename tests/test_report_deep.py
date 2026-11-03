@@ -61,3 +61,27 @@ def test_seed_42_comparators_are_the_configured_bundles_and_the_others_come_from
     assert at_42["B1-LR′+aug"] == (models / "nightingale_b1_asked" / "b1_asked_aug", "logreg")
     assert at_43["B1-XGB+aug"] == (models / "nightingale_b1_seeds" / "b1_aug" / "seed43", "xgboost")
     assert at_43["B1-DL′+aug"][0] == models / "nightingale_b1_dl" / "b1_dl_asked_aug" / "seed43"
+
+
+def test_a_notebook_can_name_the_bundles_it_needs(tmp_path):
+    """EXP-012's rehearsal also reads the original B1 models (and B0's prior)."""
+    fake_bundles(tmp_path / "input" / "nightingale-models-exp012")
+    plain = (
+        tmp_path
+        / "input"
+        / "nightingale-models-exp012"
+        / "nightingale_b0_b1"
+        / "b0_prevalence.json"
+    )
+    plain.parent.mkdir(parents=True)
+    plain.write_text("{}", encoding="utf-8")
+    models = tmp_path / "models"
+    wanted = (*report_deep.BUNDLES, "nightingale_b0_b1")
+    assert sorted(report_deep.place_models(tmp_path / "input", models, wanted)) == sorted(wanted)
+    assert (models / "nightingale_b0_b1" / "b0_prevalence.json").exists()
+    # asking for fewer bundles places fewer
+    other = tmp_path / "other"
+    assert report_deep.place_models(tmp_path / "input", other, ("nightingale_b0_b1",)) == [
+        "nightingale_b0_b1"
+    ]
+    assert not (other / "nightingale_b1_dl").exists()

@@ -447,6 +447,46 @@ The notebook is `notebooks/kaggle_synthea.ipynb`:
 
 ---
 
+### 4.8 EXP-006's weight sweep and EXP-012's rehearsal · *ready 2026-11-03 · Kaggle, the owner's choice of 2026-11-03*
+
+The graph's weight α is chosen on validation before the freeze (EXP-006), and the full ablation is
+rehearsed on validation with that α before the test split is opened once (EXP-012, `docs/08`). One
+notebook does both on the CPU, because the laptop's NumPy forward pass is what gets scored:
+- **EXP-006:** `scripts/sweep_fusion.py`, every fused component, the golden-case gate first. It writes
+  `exp006_fusion.json`;
+- **EXP-012's rehearsal:** `scripts/evaluate_ablations.py` at the α the sweep chose, every system at
+  100%, 50% and 25%, seeds 42-46, with both mask digests checked and the verdicts under both readings
+  of E-2.
+
+The notebook rebuilds the knowledge graph from the downloaded files and **stops if its fingerprint is
+not `de349201157a`**, the one the earlier experiments scored. The test split is never downloaded, and
+BODHI-S (CC-BY-NC-4.0) stays in `/tmp`, not in the output.
+
+1. **Once: the models as a private dataset.**
+   - On kaggle.com, **Create → New Dataset**, upload `models/kaggle_upload/nightingale_models_exp012.zip`
+     (53 MB; written by Claude), name it `nightingale-models-exp012`, **Private**.
+   - It holds the four folders EXP-012 reads: `nightingale_b0_b1` (B0 and the original B1),
+     `nightingale_b1_asked`, `nightingale_b1_seeds` and `nightingale_b1_dl`. The 2026-10-13 dataset
+     lacks the first and the plain XGBoost seeds, so it does not do.
+2. **Create → New Notebook → File → Import Notebook**: `notebooks/kaggle_exp012_rehearsal.ipynb`.
+3. **Add Input → Your Datasets → nightingale-models-exp012.**
+4. **Session options:** Accelerator **None**, Internet **on**.
+5. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+   - A smoke cell (300 patients, two seeds) stops a broken setup early.
+   - It should take 1-2 hours. This is an estimate: the sweep was about 8 minutes of laptop CPU, the
+     rehearsal is extrapolated from 66 seconds for 2,000 patients and two seeds, and Kaggle's CPU is
+     slower.
+6. From the latest version's **Output**, download `exp012_rehearsal.zip`, unzip it into
+   `data/interim/`, and tell Claude. If a step failed, the zip still holds `STATUS.txt` and the logs:
+   send it anyway.
+
+**Then, on the laptop (Claude):** check that the rehearsal reproduces EXP-019's, EXP-021's and
+EXP-006's recorded figures exactly (a mismatch is a bug, not a finding), write the chosen α into
+`configs/config.yaml`'s `ranking:` block, run the golden cases on the real components, and record
+EXP-006's result in `docs/08`. The freeze tag follows (`docs/08` EXP-012, the procedure).
+
+---
+
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
 
 Neo4j runs in Neo4j's own cloud, so nothing extra runs on the laptop. The knowledge graph holds no

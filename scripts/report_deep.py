@@ -32,6 +32,7 @@ import shutil
 import sys
 import time
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -87,8 +88,8 @@ PAIRS = (
 """Each transformer against the comparators of its own prime (``docs/05`` §4: same encoder, same rows)."""
 
 
-def place_models(source: Path, models: Path) -> list[str]:
-    """Put the three bundles under ``models``, from wherever a Kaggle dataset left them.
+def place_models(source: Path, models: Path, bundles: Sequence[str] = BUNDLES) -> list[str]:
+    """Put the bundles under ``models`` (by default :data:`BUNDLES`), from wherever a Kaggle dataset left them.
 
     Kaggle may keep an uploaded zip as it is or unpack it, and may nest it in a folder of its own
     name. So each bundle is found by its folder name anywhere under ``source``, or inside a zip
@@ -98,7 +99,7 @@ def place_models(source: Path, models: Path) -> list[str]:
     models.mkdir(parents=True, exist_ok=True)
     for archive in sorted(source.rglob("*.zip")):
         with zipfile.ZipFile(archive) as z:
-            for name in BUNDLES:
+            for name in bundles:
                 members = [m for m in z.namelist() if f"{name}/" in m]
                 if members and not (models / name).exists():
                     for member in members:
@@ -110,7 +111,7 @@ def place_models(source: Path, models: Path) -> list[str]:
                         target.parent.mkdir(parents=True, exist_ok=True)
                         target.write_bytes(z.read(member))
                     found.append(name)
-    for name in BUNDLES:
+    for name in bundles:
         if (models / name).exists():
             continue
         for folder in sorted(p for p in source.rglob(name) if p.is_dir()):

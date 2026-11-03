@@ -7,6 +7,7 @@ from __future__ import annotations
 import ast
 import json
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -123,3 +124,75 @@ def test_the_synthea_notebook_passes_only_flags_its_script_accepts_and_pins_its_
     code = "\n".join(line.split("#", 1)[0] for line in source.splitlines())
     for forbidden in ("ddxplus", "train.csv", "validate.csv", "hf_hub_download"):
         assert forbidden not in code.lower(), forbidden
+
+
+def test_the_rehearsal_notebook_is_the_full_run_and_keeps_data_out_of_its_output():
+    """EXP-006's sweep and EXP-012's rehearsal (docs/11 §4.8): shipped as the full run, never the
+    shortened one used to check its commands locally; the code in /tmp, the results in
+    /kaggle/working."""
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_exp012_rehearsal.ipynb"))
+    assert "DRESS_REHEARSAL = False" in source, "a shortened run must never be committed"
+    assert 'REPO = Path("/tmp/nightingale")' in source
+    assert 'OUT = Path("/kaggle/working/exp012_rehearsal")' in source
+    assert "SEEDS = (42, 43, 44, 45, 46)" in source
+    assert "STATUS.txt" in source and "make_archive" in source
+    code = "\n".join(line.split("#", 1)[0] for line in source.splitlines())
+    assert "train.csv" not in code and '--split", "test' not in code
+
+
+def test_the_rehearsal_notebook_passes_only_flags_its_scripts_accept():
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_exp012_rehearsal.ipynb"))
+    accepted = (
+        script_flags("evaluate_ablations.py")
+        | script_flags("sweep_fusion.py")
+        | script_flags("build_ddxplus_chestpain.py")
+    )
+    used = set(re.findall(r'"(--[a-z0-9-]+)"', source)) - {"--oneline"}  # git log's own flag
+    assert used and used <= accepted, f"passes {sorted(used - accepted)}"
+    assert {
+        "--alpha-file",
+        "--golden-only",
+        "--limit",
+        "--untuned-alpha",
+        "--seeds",
+        "--out",
+    } <= used
+
+
+def test_the_rehearsal_notebook_places_every_model_folder_the_runner_loads():
+    """If the notebook's bundle list lacked a folder, the run would fail an hour in."""
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import evaluate_ablations as runner
+
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_exp012_rehearsal.ipynb"))
+    bundles = set(
+        re.findall(r'"(nightingale_[a-z0-9_]+)"', source.split("BUNDLES = (")[1].split(")")[0])
+    )
+    assert bundles == {
+        "nightingale_b0_b1",
+        "nightingale_b1_asked",
+        "nightingale_b1_seeds",
+        "nightingale_b1_dl",
+    }
+    models = REPO_ROOT / "models"
+    for label in runner.MODELS:
+        for seed in (42, 43, 44, 45, 46):
+            folder = runner.bundle(label, seed).relative_to(models).parts[0]
+            assert folder in bundles, f"{label} seed {seed} lives in {folder}"
+    prior = runner.exp019.B1.relative_to(models).parts[0]
+    assert prior in bundles
+
+
+def test_the_rehearsal_notebook_checks_the_graph_the_laptop_built():
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / "kaggle_exp012_rehearsal.ipynb"))
+    assert 'fingerprint == "de349201157a"' in source
+    sources = REPO_ROOT / "data" / "interim" / "ddxplus_chestpain_conditions.json"
+    bodhi = REPO_ROOT / "data" / "raw" / "bodhi_s" / "triples.jsonl"
+    if not (sources.exists() and bodhi.exists()):
+        pytest.skip("needs data/")
+    from src.medical_kg.cardiac_kg import build_cardiac_kg
+    from src.medical_kg.neo4j_store import kg_fingerprint
+
+    interim = REPO_ROOT / "data" / "interim"
+    kg = build_cardiac_kg(sources, interim / "ddxplus_evidences.json", bodhi.parent)
+    assert kg_fingerprint(kg)[:12] == "de349201157a"
