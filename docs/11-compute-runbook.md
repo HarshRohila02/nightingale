@@ -480,8 +480,9 @@ BODHI-S (CC-BY-NC-4.0) stays in `/tmp`, not in the output.
    `data/interim/`, and tell Claude. If a step failed, the zip still holds `STATUS.txt` and the logs:
    send it anyway.
 
-**Then, on the laptop (Claude):** check that the rehearsal reproduces EXP-019's, EXP-021's and
-EXP-006's recorded figures exactly (a mismatch is a bug, not a finding), write the chosen α into
+**Then, on the laptop (Claude):** run `scripts/check_rehearsal.py data/interim/exp012_validate_rehearsal.json`,
+which compares every figure the rehearsal shares with EXP-019, EXP-021 and EXP-006 and must find them
+exact (a mismatch is a bug, not a finding), write the chosen α into
 `configs/config.yaml`'s `ranking:` block, run the golden cases on the real components, and record
 EXP-006's result in `docs/08`. The freeze tag follows (`docs/08` EXP-012, the procedure).
 
