@@ -76,6 +76,11 @@ class OllamaClient:
         temperature: ``llm.temperature``; low, since this explains, not writes.
         max_tokens: ``llm.max_tokens``, sent as ``num_predict``.
         transport: How the request is sent; :func:`urllib_transport` unless a test passes another.
+        seed: Sent as ``options.seed`` when given, so a run is repeatable (the B3/B4 trial, EXP-009
+            and EXP-010, pins 42). None, the default, sends none.
+        num_ctx: Sent as ``options.num_ctx`` when given. Ollama's default context is small and it
+            cuts a longer prompt silently, from the front, which would drop the system prompt of a
+            prompt carrying passages; the B3/B4 trial sets it. None, the default, sends none.
     """
 
     def __init__(
@@ -86,6 +91,8 @@ class OllamaClient:
         temperature: float = 0.1,
         max_tokens: int = 512,
         transport: Transport | None = None,
+        seed: int | None = None,
+        num_ctx: int | None = None,
     ) -> None:
         if not model:
             raise ValueError("an Ollama client needs a model name (llm.model)")
@@ -94,15 +101,25 @@ class OllamaClient:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.transport = transport or urllib_transport
+        self.seed = seed
+        self.num_ctx = num_ctx
 
     def payload(self, prompt: str, system: str) -> dict[str, Any]:
         """The request body, as Ollama's API documents it."""
+        options: dict[str, Any] = {
+            "temperature": self.temperature,
+            "num_predict": self.max_tokens,
+        }
+        if self.seed is not None:
+            options["seed"] = self.seed
+        if self.num_ctx is not None:
+            options["num_ctx"] = self.num_ctx
         return {
             "model": self.model,
             "prompt": prompt,
             "system": system,
             "stream": False,
-            "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
+            "options": options,
         }
 
     def generate(self, prompt: str, *, system: str, timeout: float) -> str:
