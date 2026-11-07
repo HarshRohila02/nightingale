@@ -86,12 +86,13 @@ ranking:
   # Fusion weights are tuned on VALIDATION ONLY and must be reported in the
   # write-up — they are a result, not a hidden hyperparameter. Since 2c they weight a
   # logarithmic opinion pool (src/fusion/pool.py, docs/02 §6), where only their ratio matters:
-  # the graph's share is α = kg_weight / (ml_weight + kg_weight). 0.5 / 0.5, untuned, until
-  # EXP-006's sweep (pre-registered in docs/08) sets ml_weight = 1 − α and kg_weight = α. The
-  # demo, scripts/check_crosswalk.py and the golden-case tests read these two keys
+  # the graph's share is α = kg_weight / (ml_weight + kg_weight). Set by EXP-006's sweep
+  # (pre-registered in docs/08; run on Kaggle 2026-11-07, validation only) for the configured
+  # component B1-DL′+aug: α = 0.05, so ml_weight = 1 − α and kg_weight = α. Do not retune by hand.
+  # The demo, scripts/check_crosswalk.py and the golden-case tests read these two keys
   # (scripts/_config.py: fusion_weights_from_config); the other keys here are not read yet.
-  ml_weight: 0.5
-  kg_weight: 0.5
+  ml_weight: 0.95
+  kg_weight: 0.05
   top_k_display: 5
   top_k_evidence: 3
 

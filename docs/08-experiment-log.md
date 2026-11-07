@@ -244,7 +244,31 @@ the owner says where it runs.
   honest ones.
 - The generated differentials are open-world; Precision@3 and Recall@5 use `D_in` (D-8).
 
-**Results.** *Pending: the rehearsal waits for E-2 and EXP-006; the test split is unread.*
+**Results.** ~~*Pending: the rehearsal waits for E-2 and EXP-006; the test split is unread.*~~
+**Rehearsal on validation, 2026-11-07** (the owner's Kaggle run, 45 minutes, commit `46f76eb`, all five
+seeds; `data/interim/exp012_rehearsal/exp012_validate_rehearsal.json`, which carries `valid_as_a_result:
+true`: the whole validation split, EXP-006's α, 1,000 resamples, both mask digests reproduced).
+**`scripts/check_rehearsal.py` compared 1,944 figures with EXP-019, EXP-021 and EXP-006: 1,944 exact, none
+different.** *The test split is unread.* The verdicts below are on **validation**, under the reading in
+force (`25-only`, amendment 3b), seed 42; each comparison behind them is in the file.
+
+| Claim | A0 (B1-DL+aug) | A0′ (B1-DL′+aug) |
+|---|---|---|
+| H1, H2 (100%) | not supported | not supported |
+| H1-R, H2-R (25%) | not supported | not supported |
+| H6 (the deep ranker against the models trained like it) | not supported | not supported |
+| H4 (removing the graph hurts must-not-miss recall more than top-1; point estimate) | supported | supported |
+| H5 (ECE below 0.10 at 100%) | supported | supported |
+| Minimum | met | met |
+| Target, 100% | not met (ties at 1.000, R-16; unsupported-claim rate not assessed) | not met (same) |
+| Stretch, 100% | not met | not met |
+| Target, reduced evidence | not met | met |
+| Stretch, reduced evidence | not met | not met |
+
+Five of the seven hypotheses judged so far (H3 waits for EXP-009/010) are not supported on validation, and they are reported as they stand
+(`docs/05` §8 rules 2 and 5): at 100% the comparators sit at 1.000 (R-16), and at 25% the fused system is
+level with its component (EXP-006's result above), so no comparison against the models trained like it can
+be won. The test split is read once with the same rules; nothing here is re-tuned.
 
 **Next action.** *(2026-11-07: E-2 is answered and amendment 3b applied; EXP-006's sweep and the
 rehearsal are the owner's Kaggle run of `notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8.)*
@@ -1815,7 +1839,28 @@ Kaggle (the owner, 2026-11-03), in the same notebook as EXP-012's rehearsal
 (`notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8), not on the laptop. Both conditions
 above are therefore met; the results arrive with the notebook's output.
 
-**Results:** to follow.
+**Results:** ~~to follow~~ **2026-11-07, validation only** (the owner's Kaggle run of
+`notebooks/kaggle_exp012_rehearsal.ipynb`, 11 minutes for the sweep, commit `46f76eb`, both mask digests
+reproduced; files in `data/interim/exp012_rehearsal/`: `exp006_fusion.json`, `sweep.log`).
+- **The golden gate held at every α on the grid for all six components**, so it removed none.
+- **α chosen, by the rule recorded above:** B1-LR+aug 0.35, B1-XGB+aug 0.45, B1-LR′+aug 0.25,
+  B1-XGB′+aug 0.1 (each: highest mean MRR meeting the constraint); **B1-DL′+aug 0.05** and B1-DL+aug
+  0.3 (no α met the constraint, so the branch took the highest mean must-not-miss recall@3).
+- **The configured component** is B1-DL′+aug, so `configs/config.yaml` now reads `ml_weight` 0.95,
+  `kg_weight` 0.05. The graph's share sits at the smallest value on the grid.
+- **The objective is flat.** For B1-DL+aug the mean MRR is 0.9852 from α 0.05 to 0.45 and falls only past
+  0.85 (0.9132 at α = 1, the graph alone), so the choice among small α rests on differences in the
+  fourth decimal.
+- **Fusion adds nothing measurable on DDXPlus validation.** B1-DL′+aug at α = 0.05, against the model
+  alone: MRR 0.9992 [0.9990, 0.9994] / 0.9932 [0.9926, 0.9938] / 0.9727 [0.9715, 0.9739] at 100 / 50 /
+  25% evidence (the model alone 0.9992 / 0.9932 / 0.9728); must-not-miss recall@3 1.0000 / 1.0000 /
+  0.9978 [0.9971, 0.9985] (alone 1.0000 / 1.0000 / 0.9981). Paired, top-3: no discordant pairs at 100% and
+  50%; at 25% the fused system is right alone in 1 and the model alone in 7 (exact p = 0.070); the MRR
+  difference at 25% is −0.00007, its interval including 0. Aortic dissection, which no DDXPlus patient
+  has, reaches the top 3 for 0.0% / 0.1% / 1.9% of patients and pushes no must-not-miss patient out of it.
+  The raw fused score's top-label ECE is 0.040 / 0.064 / 0.078. **Read this with R-12 and R-16:** DDXPlus
+  draws each patient's evidence from their condition's list, so the model already saturates, and the
+  graph's contribution is the one condition the model cannot score and the explanation, not accuracy.
 
 
 **Seed 43 at 50% and 25%** (2026-10-12, on the laptop; scoring only, 112 s):
