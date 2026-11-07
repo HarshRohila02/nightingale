@@ -1,19 +1,16 @@
 # 05 — Evaluation Protocol (Pre-Registered)
 
-**Version:** 1.4 · 2026-10-02 (amendments 1–3 and 3a, §9) · **Owner:** P4
+**Version:** 1.5 · 2026-11-07 (amendments 1–3, 3a and 3b, §9) · **Owner:** P4
 **Status:** 🔒 **FROZEN** as of 2026-09-17, end of Phase 0 — before any model was trained.
 Amended on 2026-09-19 through §9, still before any model was trained or evaluated.
 Amended again on 2026-09-25 (amendment 3), **after** B0 and B1 had been trained and scored on the
-validation split; its §9 entry lists what was known when it was written. Amended on 2026-10-02
-(amendment 3a, the errata to amendment 3), with EXP-019's descriptive results known; its §9
-entry says so
+validation split; its §9 entry lists what was known when it was written. Amended on 2026-10-02 (amendment 3a, the errata to amendment 3), with EXP-019's descriptive results known; its §9 entry says so. Amended on 2026-11-07 (amendment 3b, the follow-ups to amendment 3a), with the validation results of EXP-019 to EXP-023 known; its §9 entry says what else was known *(amendment 3b)*
 
 > Frozen means: no metric, baseline, ablation, or success threshold in this document may change
 > without a dated entry in the amendment log (§9) **and** disclosure in the final report. No model
 > had been trained at the time of freezing, so nothing in the frozen text or in amendment 1 was
 > chosen with knowledge of results. Amendment 2 was made knowing EXP-014's red-flag rates, and
-> amendment 3 with some model results known; their §9 entries say which. Amendment 3a was
-> approved knowing EXP-019's descriptive results, and its §9 entry says so *(amendment 3a)*.
+> amendment 3 with some model results known; their §9 entries say which. Amendment 3a was approved knowing EXP-019's descriptive results, and its §9 entry says so *(amendment 3a)*. Amendment 3b was approved knowing the validation results of EXP-019 to EXP-023, those of the deep ranker included, and its §9 entry says so *(amendment 3b)*.
 
 > **Why this document is written first.** Choosing metrics after seeing results is how a project
 > talks itself into a conclusion. Everything measurable is fixed here, in advance. After the freeze
@@ -27,12 +24,12 @@ entry says so
 
 | # | Research question | Hypothesis |
 |---|---|---|
-| **RQ1** | Does fusing KG reasoning with an ML ranker improve differential accuracy over either alone? | **H1:** Fusion > ML-only and > KG-only on Top-3 accuracy and MRR. **H1-R** *(amendment 3)*: the same, at **both** 50% and 25% evidence (§3.7), against every ML-only system (B1-XGB, B1-LR and B1-DL, §4, and the B1 variants trained like A0's ML component *(amendment 3a)*) |
-| **RQ2** | Does the system improve **safety** over an ML-only baseline? | **H2:** Fusion + red flags > ML-only on must-not-miss recall@3. **H2-R** *(amendment 3)*: the same, at **both** 50% and 25% evidence, against every ML-only system, the B1 variants trained like A0's ML component included *(amendment 3a)* |
+| **RQ1** | Does fusing KG reasoning with an ML ranker improve differential accuracy over either alone? | **H1:** Fusion > ML-only and > KG-only on Top-3 accuracy and MRR. **H1-R** *(amendment 3)*: the same, at ~~**both** 50% and 25% evidence~~ 25% evidence, the 50% comparison reported beside it and not counted *(amendment 3b)* (§3.7), against every ML-only system (B1-XGB, B1-LR and B1-DL, §4, and the B1 variants trained like A0's ML component *(amendment 3a)*) |
+| **RQ2** | Does the system improve **safety** over an ML-only baseline? | **H2:** Fusion + red flags > ML-only on must-not-miss recall@3. **H2-R** *(amendment 3)*: the same, at ~~**both** 50% and 25% evidence~~ 25% evidence, the 50% comparison reported beside it and not counted *(amendment 3b)*, against every ML-only system, the B1 variants trained like A0's ML component included *(amendment 3a)* |
 | **RQ3** | Does evidence grounding reduce unsupported claims versus an unconstrained LLM? | **H3:** RAG-grounded explanation has a lower unsupported-claim rate than LLM-only |
 | **RQ4** | Which components actually contribute? | **H4:** Removing the medical KG degrades must-not-miss recall more than it degrades Top-1 |
 | **RQ5** | Are the confidence scores calibrated? | **H5:** Post-calibration ECE < 0.10 |
-| **RQ6** *(amendment 3)* | Does a deep ranker hold up better than classical ML when the history is incomplete? | **H6:** B1-DL > **each** B1 variant trained like it (§4) on Top-3 accuracy, MRR **and** must-not-miss recall@3, at **both** 50% and 25% evidence. At 100% the comparison is reported, and a tie is the expected result (R-16) |
+| **RQ6** *(amendment 3)* | Does a deep ranker hold up better than classical ML when the history is incomplete? | **H6:** B1-DL > **each** B1 variant trained like it (§4) on Top-3 accuracy, MRR **and** must-not-miss recall@3, at ~~**both** 50% and 25% evidence~~ 25% evidence, the 50% comparison reported beside it and not counted *(amendment 3b)*. At 100% the comparison is reported, and a tie is the expected result (R-16) |
 
 *Amendment 3.* H1–H5 keep their first-written meaning. They are judged at 100% evidence, H1 and H2
 against B1-XGB, and they are reported first. The same comparisons against B1-LR and B1-DL are
@@ -42,7 +39,9 @@ H1's and H2's metrics, not top-1, although EXP-017 found the widest gap between 
 top-1: choosing the metric where a gap is already known to exist would be choosing with knowledge
 of results. Top-1 is reported at every level.
 
-*Amendment 3a (errata item 17).* H1-R, H2-R and the reduced-evidence Target (§7) must hold against
+*Amendment 3b (errata item 4).* In H1, H1-R, H2, H2-R and H6, ">" means that every comparison the hypothesis lists (§4's tables) passes its test at α = 0.05, in the claimed system's favour (§6). H1 and H2 were first written with a bare ">", and amendment 3 says that H1–H5 "keep their first-written meaning"; amendment 3a's item 3 settled that a hypothesis needs every one of its comparisons to pass, and this entry records that this is how H1 and H2 are read. H3 and H4 are judged as §6 says *(amendment 3b)*.
+
+*Amendment 3a (errata item 17).* *(Amendment 3b, below, replaces this paragraph's consequence for H1-R, H2-R, H6 and the reduced-evidence rows: they are judged at 25%. The paragraph stays as the record of what amendment 3a disclosed.)* *(amendment 3b)* H1-R, H2-R and the reduced-evidence Target (§7) must hold against
 the plain B1 variants (B1-XGB, B1-LR) **and** against the B1 variants trained like A0's ML
 component (B1-XGB+aug and B1-LR+aug; for primed systems, B1-XGB′+aug and B1-LR′+aug, §4). Comparing a
 `+aug` A0 with a plain B1 alone would mix a change of model with a change of training data (§4).
@@ -60,10 +59,9 @@ comparisons can still be won. With H1, H2 and the Target already out of reach at
 the text as approved leaves **no comparative claim against B1 that can be supported at any level**.
 The verdicts are taken on the test split (§2), which has never been opened: the hypotheses and the
 Stretch there would need the comparators to miss at least six cases at 50%, and the point-estimate
-Target would need them to be imperfect. The approval cited only the 25% figures, although EXP-019
-had published the 50% ones, so the team is asked again (decision E-2,
-`docs/proposals/05-amendment-3b-errata.md`); until it answers, the text above stands as approved,
-and under it §8 rule 5 requires the report to state these failures plainly.
+Target would need them to be imperfect. The approval cited only the 25% figures, although EXP-019 had published the 50% ones, so the team ~~is asked~~ was asked again (decision E-2, `docs/proposals/05-amendment-3b-errata.md`)~~; until it answers, the text above stands as approved, and under it §8 rule 5 requires the report to state these failures plainly~~. The team's answer is amendment 3b, below *(amendment 3b)*.
+
+*Amendment 3b (decision E-2, item 1, option (b)).* H1-R, H2-R, H6 and the reduced-evidence Target and Stretch (§7) are judged at **25% evidence**. Every one of their comparisons is also run at 50%, with its test and its interval, and the 50% results are reported beside the 25% verdict, labelled *descriptive*: they are not counted in the verdict, and a 50% result that goes against the claim is reported plainly beside it (§8 rule 5). The report states, for each 50% comparison, how many cases its comparator misses on the test split, so that a reader can see where the comparator is at ceiling. H1–H5, the Minimum, the Target and the Stretch keep their level, 100% (amendment 3, above). This choice was made knowing EXP-019's comparator figures at 50% and 25%, and the other results the §9 entry lists *(amendment 3b)*.
 
 **Negative results are reportable results.** If H1 fails, that is a finding about hybrid
 architectures, not a project failure. It must be reported honestly.
@@ -181,15 +179,9 @@ DDXPlus does not list is decided with the encoder, not here. *(2026-09-24: the e
 answer is open decision A-9 in `docs/02` §9, for the team with this amendment. It does not change
 the kept tokens or the digest.)*
 
-**Drawn once.** `src/ml/evidence_masks.py` draws the masks for the validation split once. Their
-digest, the NumPy version and the commit are recorded in docs/08 before any fusion or deep-model
-result is scored on them. The digest is the SHA-256 of one UTF-8 line per patient and reduced
-level, `case_id<TAB>level<TAB>kept tokens joined by single spaces`, with the level written `0.5` or
+**Drawn once.** `src/ml/evidence_masks.py` draws the masks for the validation split once. Their digests (both, below), the NumPy version and the commit are recorded in docs/08 before any fusion or deep-model result is scored on them *(amendment 3b)*. The digest is the first 16 hexadecimal digits *(amendment 3b)* of the SHA-256 of one UTF-8 line per patient and reduced level, `case_id<TAB>level<TAB>kept tokens joined by single spaces`, with the level written `0.5` or
 `0.25`; the lines are sorted as strings (so by `case_id`, then level) and joined by `\n`, with no
-trailing newline. `scripts/check_mask_rules.py` computes it this way. A second digest, of the same
-lines with the questions asked (in evidence-code order) in place of the kept tokens, covers the
-input of models with the 'asked' channel; for them, a run that does not reproduce both digests is
-invalid *(amendment 3a)*.
+trailing newline. `scripts/check_mask_rules.py` computes it this way. A second digest, of the same lines with the questions asked (~~in evidence-code order~~ sorted by the number after `E_`, so that `E_2` comes before `E_10`, and joined by single spaces *(amendment 3b)*) in place of the kept tokens, covers the input of models with the 'asked' channel; for them, a run that does not reproduce both digests is invalid *(amendment 3a)*. `scripts/check_mask_rules.py` computes only the first digest; `digests()` in `scripts/evaluate_reduced_evidence.py` computes both, and `scripts/sweep_fusion.py` calls it *(amendment 3b)*.
 NumPy does not promise the same random stream across versions, so the recorded masks are the
 reference, not the code: a run whose masks do not reproduce the digest is invalid, and a test pins
 worked examples of the rule. The same code, at the same commit, draws the test split's masks when
@@ -199,8 +191,7 @@ opening (§2's test-access rule is unchanged *(amendment 3a)*).
 **Tuning.** §2's "validation only" covers the reduced levels. Whatever is tuned, such as fusion
 weights and calibration, is frozen before the test split opens. The report says whether one setting
 serves every level or each level has its own. H5 is judged at 100%. At 50% and 25%, ECE is
-reported for the calibrator fitted at 100%, applied unchanged; if a level has its own calibrator,
-fitted on validation at that level, its ECE is reported beside it *(amendment 3a)*.
+reported for the calibrator fitted at 100%, applied unchanged; if a level has its own calibrator, fitted on validation at that level, its ECE is reported beside it *(amendment 3a)*. The ECE counted against the target (§3.3) at 50% and 25% is that of the calibration setting the pipeline will use, declared in docs/08 before the test split opens (the calibrator fitted at 100% and applied unchanged, which may leave the score as it is, or a level's own); the other is reported beside it *(amendment 3b)*.
 
 **Training on masked patients** (mask augmentation) is allowed on the train split only, with masks
 drawn from the training seed, never from these evaluation masks. Such a model carries the suffix
@@ -243,7 +234,7 @@ early stopping (decision T-6); the first-written sentence is judged against that
 
 | Label | Meaning |
 |---|---|
-| B1-XGB, B1-LR | As trained in EXP-004: commit `68c14bd`, feature fingerprint `3a0d5a5e01d7f427`, full-evidence training rows. Always reported, and never retrained under the same label, except that §6's seeds 43–46 are trained on the same rows and encoder and reported beside the seed-42 model, which stays the one used *(amendment 3a)* |
+| B1-XGB, B1-LR | As trained in EXP-004: commit `68c14bd`, feature fingerprint `3a0d5a5e01d7f427`, full-evidence training rows. Always reported, and never retrained under the same label, except that ~~§6's~~ B1-XGB's seeds 43–46 (§6) are trained on the same rows and encoder and reported beside the seed-42 model, which stays the one used *(amendment 3a)*; B1-LR on fixed rows is deterministic and takes no seed, and a refit of seed 42 is a reproducibility check that is never reported under the label *(amendment 3b)* |
 | B1-DL | The deep ranker, on the same encoder and the same training rows |
 | `+aug` suffix | Trained on training rows with mask augmentation (§3.7), e.g. B1-XGB+aug |
 | ′ (prime) | Retrained on the encoder with the "asked" channel (R-18), which has a new fingerprint: B1-XGB′, B1-LR′, B1-DL′, and A0′ when the pipeline uses them. The unprimed models stay reported, and a primed model never replaces its original in any table |
@@ -255,6 +246,27 @@ systems are compared with the primed variants trained like them *(amendment 3a)*
 Two models are compared as models only when they share an encoder and training rows (the same prime
 and the same `+aug`). Any other pairing is reported as mixing a change of model with a change of
 encoding or data.
+
+*Amendment 3b (errata item 2).* The comparators of every claim are the models in the first table below, and no others; every model is the seed-42 model (§6). The second table gives, for each claim, the level it is judged at, the claimed system, its comparators and its metrics. "A0" stands for A0 and, in the primed column of the first table, A0′: §7 judges the two separately. A comparator's arm is fixed by these tables, not chosen by the reader. A primed system is compared with the plain models and with the primed models trained like it, an unprimed system with the plain models and the unprimed ones; no system is compared with the models of the other prime *(amendment 3b)*.
+
+| Comparator set | For an unprimed system (A0) | For a primed system (A0′) |
+|---|---|---|
+| Plain B1 | B1-XGB, B1-LR | B1-XGB, B1-LR |
+| Trained like it | B1-XGB+aug, B1-LR+aug | B1-XGB′+aug, B1-LR′+aug |
+| Deep ranker | B1-DL+aug | B1-DL′+aug |
+| KG-only | B2 | B2 |
+
+| Claim | Judged at | Claimed system | Compared with | Metrics |
+|---|---|---|---|---|
+| H1 | 100% | A0 | verdict: B1-XGB and B2; reported beside: B1-LR and the deep ranker | Top-3, MRR |
+| H2 | 100% | A0 with its red flags | verdict: B1-XGB; reported beside: B1-LR and the deep ranker | must-not-miss recall@3 |
+| H1-R | 25%; 50% beside | A0 | plain B1, trained like it, the deep ranker, KG-only | Top-3, MRR |
+| H2-R | 25%; 50% beside | A0 with its red flags | plain B1, trained like it, the deep ranker | must-not-miss recall@3 |
+| H6 | 25%; 50% beside | the deep ranker | trained like it | Top-3, MRR, must-not-miss recall@3 |
+| Target | 100% | A0 | B1-XGB; B1-LR beside | Top-3, must-not-miss recall@3 (point estimates); ECE below 0.10; unsupported-claim rate below 20% |
+| Stretch | 100% | A0 | B1-XGB; B1-LR beside | the Target's criteria, with every comparison significant; must-not-miss recall@3 ≥ 0.95; clinician-reviewed explainability |
+| Target, reduced evidence | 25%; 50% beside | A0 | plain B1, trained like it | Top-3, must-not-miss recall@3 (point estimates) |
+| Stretch, reduced evidence | 25%; 50% beside | A0 | plain B1, trained like it | the reduced Target, with every comparison significant; must-not-miss recall@3 ≥ 0.95 |
 
 ---
 
@@ -284,13 +296,12 @@ ranker's contribution inside the full system is measured, not assumed. A0's ML c
 changed only before the test split opens, on validation results, by a dated entry in §9. A7 is
 reported either way.
 
-*Amendment 3a.* Each fused configuration's weight is chosen for its own ML component by the rule
-EXP-006 records; A7 at A0's weight is reported beside it (errata item 18). A5 differs from A0 only
+*Amendment 3a.* Each fused configuration's weight is chosen for its own ML component by the rule EXP-006 records as committed in the commit that applies amendment 3b (the rule is fixed as EXP-006 reads there), which includes the dated note of 2026-10-13 (decision D-13: B1-DL′+aug and B1-DL+aug are swept like the other components, and the pipeline takes B1-DL′+aug's weight); any later change to that rule needs a §9 entry *(amendment 3b)*. A7 at A0's weight is reported beside it (errata item 18). A5 differs from A0 only
 in using uncalibrated scores (item 15). A1 also switches off the red flags, so it cannot isolate the
 medical KG: H4 is judged on A1 as first written, and A1b, which keeps the red flags, is reported
 beside it, so the KG's own contribution is separated from the red flags' (item 16). A1b removes the
 graph's scoring and the fusion but keeps the crosswalk, through which the red-flag rules read a
-DDXPlus patient's findings (`concepts_from_evidences`); without it no rule could fire.
+DDXPlus patient's findings (`concepts_from_evidences`); without it no rule could fire. A1 removes the same two things and also switches the red flags off; the crosswalk is not part of the medical KG, so neither configuration removes it *(amendment 3b)*.
 
 ---
 
@@ -312,6 +323,9 @@ DDXPlus patient's findings (`concepts_from_evidences`); without it no rule could
   - MRR is compared by a paired bootstrap of the per-case difference in reciprocal rank (1,000
     resamples, seed 42); it passes when the 95% interval excludes 0. For H1-R, McNemar and the MRR
     test are also run between A0 and B1-DL and between A0 and B2 *(amendment 3a)*.
+  - **Levels that count** *(amendment 3b)*. For H1-R, H2-R, H6 and the reduced-evidence Target and Stretch, the comparisons that count are those at 25% evidence. Those at 50% are run and reported as §1 says, and are not counted.
+  - **The tests of each claim** *(amendment 3b)*. For each comparison in §4's tables, Top-3 is compared by McNemar's test on paired top-3 correctness and MRR by the paired bootstrap above; for H1 and H1-R both are run against every comparator the table lists, including B2 and the deep ranker. Must-not-miss recall@3 is compared by McNemar's test on top-3 correctness restricted to must-not-miss cases; for H2 and H2-R it is the only test the verdict rests on, and the test on all patients is reported beside it. H6 tests all three metrics. A Target compares point estimates (above). The Stretch at 100% includes the Target's other criteria (ECE below 0.10, unsupported-claim rate below 20%) as well as its own. H3 and H4 have no test: they are judged on point estimates, each with its 95% bootstrap interval. H3 is supported when the grounded system's unsupported-claim rate is lower than the LLM-only baseline B3's, and H4 when removing the medical KG (A1) lowers must-not-miss recall@3 by more than it lowers Top-1; the report says whether the interval of each difference excludes 0, and neither is called significant.
+  - **A pass has a direction** *(amendment 3b)*. A comparison passes only when its test is significant at α = 0.05 (McNemar: two-sided p < 0.05; MRR: the 95% interval of the paired difference excludes 0) **and** the system the claim favours is the better one: the one that is right in more of the discordant pairs, or has the higher mean reciprocal rank. A significantly worse system fails the comparison, and the report says it is worse. This defines "passes" in the bullets above.
   - The five seeds are **42, 43, 44, 45 and 46**. They bind B1-DL in every arm, and every retrained
     XGBoost, whose row and column subsampling make it stochastic. A logistic regression on fixed
     rows is deterministic and fitted once; with mask augmentation its rows depend on the seed, so
@@ -322,8 +336,7 @@ DDXPlus patient's findings (`concepts_from_evidences`); without it no rule could
     best-scoring seed; the seed-42 `+aug` B1 models of EXP-018 predate this rule and are disclosed
     in §9 *(amendment 3a)*. Every seed's figures are kept. Each hypothesis verdict is for the seed-42
     model, and the report says for how many of the five seeds the verdict would also hold.
-  - This rule already applied to XGBoost, but EXP-004 trained it with seed 42 only. That gap is
-    disclosed, and it is closed when B1-XGB is next retrained.
+  - This rule already applied to XGBoost, but EXP-004 trained it with seed 42 only. That gap is disclosed, and it is ~~closed when B1-XGB is next retrained~~ closed by training B1-XGB's seeds 43–46 (EXP-020), reported beside the seed-42 model; EXP-020's refit of seed 42 is a reproducibility check and is never reported as B1-XGB *(amendment 3b)*.
 
 ---
 
@@ -334,8 +347,8 @@ DDXPlus patient's findings (`concepts_from_evidences`); without it no rule could
 | **Minimum** | Pipeline runs end-to-end; A0 beats B0; all metrics computed with CIs; ablations complete |
 | **Target** | A0 > B1 on Top-3 **and** must-not-miss recall; ECE < 0.10; unsupported-claim rate < 20% |
 | **Stretch** | A0 > B1 with statistical significance; must-not-miss recall ≥ 0.95; clinician-reviewed explainability |
-| **Target, reduced evidence** *(amendment 3)* | At **both** 50% and 25% evidence: A0 > **each** B1 variant on Top-3 **and** must-not-miss recall@3; the B1 variants include those trained like A0's ML component (§1) *(amendment 3a)* |
-| **Stretch, reduced evidence** *(amendment 3)* | The reduced-evidence Target with every comparison statistically significant (§6); must-not-miss recall@3 ≥ 0.95 at both levels |
+| **Target, reduced evidence** *(amendment 3)* | At ~~**both** 50% and 25% evidence~~ 25% evidence, the 50% comparison reported beside it *(amendment 3b)*: A0 > **each** B1 variant on Top-3 **and** must-not-miss recall@3; the B1 variants include those trained like A0's ML component (§1) *(amendment 3a)* |
+| **Stretch, reduced evidence** *(amendment 3)* | The reduced-evidence Target with every comparison statistically significant (§6); must-not-miss recall@3 ≥ 0.95 at ~~both levels~~ 25% evidence *(amendment 3b)* |
 
 *Amendment 3.* Minimum, Target and Stretch are judged at 100% evidence exactly as first written,
 with B1 = B1-XGB, and the same comparisons against B1-LR are reported beside them. The two
@@ -346,9 +359,7 @@ Target. Each criterion is judged separately for the unprimed and the primed syst
 verdicts are reported.
 
 *Amendment 3a.* The reduced-evidence rows' B1 variants include those trained like A0's ML component
-(§1). On EXP-019's validation figures those are perfect or within four misses at 50%, and both rows
-need 50% and 25%, so on those figures neither row can be met, as §1 discloses with what it means
-on the test split (decision E-2 asks the team whether that stands).
+(§1). On EXP-019's validation figures those are perfect or within four misses at 50%~~, and both rows need 50% and 25%, so on those figures neither row can be met, as §1 discloses with what it means on the test split (decision E-2 asks the team whether that stands)~~. Amendment 3b (decision E-2) judges both rows at 25%, with the 50% comparison reported beside them (§1) *(amendment 3b)*.
 
 Failing "Target" while meeting "Minimum" is an acceptable, publishable outcome provided the analysis
 explains *why*.
@@ -372,7 +383,7 @@ explains *why*.
    [10-spike-r01-crosswalk.md](10-spike-r01-crosswalk.md).
 8. *(Amendment 3)* **Every figure names its evidence level and its model label (§4).** A
    reduced-evidence result is never reported without the same system's full-evidence result beside
-   it, and never without the amendment-3 disclosure (§9). Reduced evidence removes answers at
+   it, and never without the amendment-3 and 3a disclosures (§9) *(amendment 3b)*. Reduced evidence removes answers at
    random, and a clinician does not ask at random, so these results measure robustness to missing
    answers. They must not be presented as a simulation of history-taking. The mask cannot move a
    patient's kept answers outside their own condition's DDXPlus evidence list, so R-16's cause is
@@ -391,5 +402,6 @@ explains *why*.
 | 2026-09-19 | **Amendment 2, §3.2.** Red-flag sensitivity is measured against the true condition: of cases whose true condition is must-not-miss, the fraction where a flag fired for that condition, overall and per condition. A must-not-miss condition without a rule counts as missed. The target is unchanged (≥ 0.95) | As first written (of cases matching a red-flag pattern, the fraction where the flag fired), the metric is 1.0 by construction for fixed rules on structured input, so it could never fail. Counting any flag instead of the condition's own would reward the over-firing EXP-014 found (R-15). Disclosure: EXP-014 had already measured each rule on its own patients on validate (MI 91%, PE 79%, Boerhaave 75%, pneumothorax 32%; unstable angina, myocarditis and acute pulmonary edema have no rule yet). The amended metric is therefore harder to meet than the original, and the target was not changed | The team, 2026-09-19 (relayed by the owner) |
 | 2026-09-25 | **Amendment 3 (decisions D-10 and D-11): §§1, 2, 3.7 (new), 4, 5, 6, 7, 8.** Every system in §4 and every configuration in §5 is also scored at 50% and 25% of each patient's evidence. The mask is defined in §3.7: whole questions, the initial evidence always kept, a kept follow-up's parent kept, one permutation per patient keyed by `case_id` and seed 42, drawn once, digest recorded. `initial_evidence` defines the mask and is never an input. H1-R, H2-R, H6 (new, RQ6) and a reduced-evidence Target and Stretch are added **beside** the first-written H1, H2, Target and Stretch. Those are still judged at 100% against B1-XGB and are reported first. B1 is not redefined: it is reported as two variants (B1-XGB, as first written; B1-LR, EXP-004's linear reference) at every level, and a claim of beating B1 must hold against each. B1-DL, a deep ranker, is added as an ML-only baseline and as A0's ML component, and A7 swaps B1 back in. §6's five seeds are 42–46 for every stochastic model. The model used is the seed-42 model, fixed before ~~any such model exists~~ any B1-DL model exists *(corrected by amendment 3a)*. A prime (′) marks models retrained with the encoder's "asked" channel (R-18); the originals stay reported | **Unlike amendments 1 and 2, this amendment was written after models had been trained and evaluated.** When it was drafted (2026-09-23), B0 and both B1 models had been scored on the validation split (EXP-003, EXP-004). B1's saturation of full-evidence DDXPlus was known (R-16), so H1, H2 and the Target cannot be met at 100%. EXP-017 had scored both B1 models at these exact levels, under a token-level version of this mask: at 25%, XGBoost's top-1 was 0.27 and its must-not-miss recall@3 0.935, while logistic regression held 0.86 and 0.974. The KG-only graph had been scored at 100% (EXP-015, EXP-016, and with the 2a score EXP-005). The 50% and 25% levels themselves had been proposed in decision D-10 on 2026-09-20 (commit `98c746b`), before any model was scored at them; EXP-017 used them three days later. The causes are R-16 and the project supervisor's email of 2026-09-20, which suggested deep learning for a more robust model. The mask works by question rather than by token because, at 25%, EXP-017's token mask left 53% of validation patients with a positive follow-up answer whose parent "yes" had been dropped, which never happens at full evidence. This was measured on the masks alone; no model was scored under the new rule before it was fixed. **Between the proposal and its approval** (2026-09-24 to 2026-09-25): the red-flag rules were revised and scored on validation at 100% (EXP-008); and B1-LR+aug, B1-XGB+aug, B1-LR′+aug and B1-XGB′+aug were trained, with seed 42 only (EXP-018; B1-LR and B1-XGB themselves are unchanged). Those four were scored on validation at 100% only, and on two short inputs that use no mask: a patient with no findings, and the four golden cases. The short inputs showed that the `+aug` models no longer answer atrial fibrillation to short input, and that they are overconfident on it; this bears on H6 and on the `+aug` arm chosen for A0. The XGBoost `+aug` models chose their stopping round on held-out training patients, half of them masked copies (§3.7 allows masks on the train split). Before approval, models had been scored on masked **validation** patients only in EXP-017, under the token rule; EXP-017 also probed a patient with no findings. What keeps the amendment honest: the levels, the mask and the new hypotheses are fixed before any fusion result on DDXPlus data or any deep-model result exists; the test split has never been read; the first-written hypotheses and Target are kept and reported first; and every claim against B1 must hold against both variants, so knowing that XGBoost degrades at reduced evidence cannot flatter any system. The reduced-evidence validation figures of B0, B1 and B2 are descriptive, not pre-registered | The team, 2026-09-25 (relayed by the owner) |
 | 2026-10-02 | **Amendment 3a (decision E-1, the errata to amendment 3): the header and §§1, 3.7, 4, 5, 6 and 7, and amendment 3's row in §9 (item 7, struck through rather than replaced), as listed in `docs/proposals/05-amendment-3-errata.md`, items 1–18; each changed passage is marked *(amendment 3a)*.** Corrections of contradictions and gaps in amendment 3's approved wording, and of the B2 description: one verdict rule at 100% (item 2); what significance a hypothesis, a Stretch and a Target need (3); a test for MRR (4); `+aug` logistic regressions take the five seeds (5); what an arm is (6); a second mask digest for the 'asked' input (8); no ML model tuned beyond early stopping (11, decision T-6). **Item 17, option (b):** H1-R, H2-R and the reduced-evidence Target must also hold against the B1 variants trained like A0's ML component. **Item 18:** each fused configuration's weight is chosen for its own ML component, with A7 at A0's weight reported beside it. A1b (no medical KG, red flags kept) is added beside A1 (item 16). No metric, level, mask or threshold value changes; an ablation (A1b) is added, B2's definition corrected, the reduced-evidence criteria's comparators widened, and a second digest made a validity condition | Items 1–16 were found by an independent review of the applied text on 2026-09-25, the day amendment 3 was approved; item 17 was raised by EXP-019's results the same day, and said so; item 18 came from the review of 2c's fusion on 2026-09-30. **What was known when the errata were approved:** EXP-019 had scored B0, B1, B2, the four `+aug` B1 variants and the red-flag layer at the three levels (descriptive), so item 17's choice was made knowing that the `+aug` variants nearly saturate top-3 and must-not-miss recall@3 at 25%; it makes the claims harder to meet, not easier. Item 3 was approved knowing the same results, and it settles the Target's test in the easier of the two readings amendment 3 allowed (point estimates; the hypotheses and the Stretch need significance), as the first-written Target and Stretch wording implies. **Found after the approval, when it was applied:** at 50% the `+aug` comparators are perfect or within four misses on validation, and H1-R, H2-R, H6 and the reduced Target and Stretch each need both 50% and 25%, so on these figures none of them can be met as a whole, and with R-16 at 100% no comparative claim against B1 could be supported at any level (§1). EXP-019 had published the 50% figures before the approval, but the recommendation cited only the 25% ones, so the team is asked again (E-2). The fusion's design and the rule that picks its weight were recorded in EXP-006, with the fused ranks of the four hand-written golden cases; no fused ranking of a DDXPlus patient had been scored, and no deep model existed. **Not settled by the approval itself:** the team approved the recommendations as a whole ("go with recommendations"), but items 15 and 16 offered two options with no recommendation, so Claude chose (15: the note, not a calibration column; 16: A1b, with H4 still judged on A1 as first written, which applies both of item 16's options); the request sent to the team had named only items 17 and 18 as choices. Item 17 (b) had no drafted wording, so the §1 and §7 text implementing it is Claude's. Item 7's replacement text omits "never replaced by the best-scoring seed"; Claude kept the clause, since the item corrects only the "fixed before" claim and the errata change no rule. The team may change any of these by a further entry before a result depends on it | The team, 2026-10-02 (relayed by the owner) |
+| 2026-11-07 | **Amendment 3b (decision E-2): the header and §§1, 3.7, 4, 5, 6, 7 and 8, as listed in `docs/proposals/05-amendment-3b-applied-draft.md` (from `docs/proposals/05-amendment-3b-errata.md`); each changed passage is marked *(amendment 3b)*.** Item 1, option (b): H1-R, H2-R, H6 and the reduced-evidence Target and Stretch are judged at 25% evidence, and their 50% comparisons are run and reported beside them, labelled descriptive and not counted. Items 2–11: one pair of tables naming the comparators of every claim and its metrics (2); the test of each claim, with H3 and H4 judged on point estimates and intervals, and the 100% Stretch including the Target's criteria (3); what ">" means in a hypothesis (4); that a pass needs the claimed system to be the better one (5); which ECE is counted against the target at reduced levels (6); the digests' exact form and the scripts that compute them (7); the seed bullets (8); what A1 removes (9); EXP-006's rule pinned (10, wording 10-ii); the disclosures that accompany a reduced-evidence result (11). No metric, threshold, level, mask, baseline or ablation changes; the level at which six claims are judged, and the comparators of each claim, are fixed. | Items 2–11 were found by the independent verifiers of amendment 3a's applied text on 2026-10-02, the day it was approved and applied. Item 1 comes from EXP-019's 50% figures, published on 2026-09-25 before amendment 3a was approved but not cited in its approval: at 50% the `+aug` comparators miss at most four of 33,963 top-3 cases and three of 16,943 must-not-miss cases, so a comparison there tests nothing, as at 100% (R-16), while at 25% they miss 57–111 and 38–71. **What was known when E-2 was answered**: the validation results of EXP-019 (B0, B1, the four `+aug` B1 variants, B2 and the red-flag layer at the three levels), EXP-020 (seeds 43–46 of the same B1 variants; every EXP-019 conclusion holds at every seed), EXP-021 (the small transformer B1-DL, all ten networks scored on validation at the three levels; D-13 passed on 2026-10-13, so A0's ML component is B1-DL+aug and A0′'s B1-DL′+aug; at 50% its top-3 is saturated, at 25% its MRR is higher than the logistic regression's at nine of ten networks and level with XGBoost trained like it), EXP-022 (latency), EXP-023 (the components' errors at the three levels), EXP-007's first stage, and the four hand-written golden cases' fused ranks (EXP-006, red flags off). No fused ranking over the whole validation split had been scored, and the test split had never been opened. The ablation runner's plumbing runs had scored fused rankings of a 2,000-patient subset of validation with an untuned α = 0.5 (2026-10-21 and 2026-11-03) and had displayed the verdicts under both readings of item 1; they are stamped as not a result. EXP-006's sweep and EXP-012's rehearsal had been started on Kaggle and their output had not been read. Option (b) is the one recommended on 2026-10-02, before any deep result existed; E-2 was answered with EXP-021's figures on record, which were read on 2026-10-13. Choosing 25% as the only level at which H6 is judged means choosing the level at which EXP-021 already shows a small MRR gain over the logistic regression (+0.0018 [+0.0009, +0.0026] for B1-DL′+aug), the kind of choice amendment 3 warns about. The answer was given as “go with the recommendation”; whether this was weighed separately is not recorded. **Choices the errata left open, made when the wording was drafted, and in force with this entry:** the comparator tables (an unprimed system is not compared with the ′+aug models; the reduced Target and Stretch have no deep-ranker or KG-only comparator), H2 and H2-R resting on the restricted must-not-miss test alone, H3 and H4 on point estimates and intervals with B3 named as H3's comparator, the cumulative 100% Stretch, two-sided tests, the ECE counted being the pipeline's declared setting, and the version number 1.5. They may be changed by a further entry before a result depends on it | The owner, 2026-11-07, answering “go with the recommendation”: item 1 option (b) and items 2–11 as drafted, with the draft's choices. The other team members' agreement is not recorded here |
 
 *Amendments after the freeze date require an entry here and must be disclosed in the final report.*

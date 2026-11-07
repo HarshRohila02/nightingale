@@ -20,14 +20,18 @@ opened. Where the protocol leaves a choice open, the function says so in its doc
   won (a point estimate cannot exceed 1, and McNemar cannot reach 0.05): the check fails and is
   marked ``ceiling`` so the report can say why (docs/05 §1).
 
-**E-2.** H1-R, H2-R, H6 and the reduced-evidence Target and Stretch need ``reduced_levels``. As
-approved (amendment 3a) that is both 50% and 25%; the team may judge them at 25% only (E-2 item 1
-(b)). The runner computes the verdicts under each reading and records which one is in force.
+**E-2** was answered on 2026-11-07 (amendment 3b, option (b)): H1-R, H2-R, H6 and the
+reduced-evidence Target and Stretch are judged at 25% (``POLICIES["25-only"]``), and their 50%
+comparisons are run and reported beside them, labelled descriptive and not counted. The older
+reading, both levels as amendment 3a approved it, is still computed, for the record.
 
-**Not decided here, so pre-registered in EXP-012:** H4's test of "more than"
-(``ablation.degradation_contrast``), and how H5's "ECE < 0.10" is read (the point estimate; the
-interval is reported). H3 and the Target's unsupported-claim rate come from EXP-009/010, and the
-Stretch's clinician-reviewed explainability from a clinically trained reviewer, if there is one.
+**Amendment 3b, item 3.** H3 and H4 have no test: they are judged on point estimates, each with its
+95% interval, and the report says whether the interval excludes 0 (neither is called significant).
+H4 is supported when removing the medical graph (A1) lowers must-not-miss recall@3 by more than it
+lowers top-1. The Stretch at 100% includes the Target's other criteria (ECE below 0.10,
+unsupported-claim rate below 20%) as well as its own. H5 is read as the point estimate of A0's ECE at
+100% (EXP-012, choice 2). H3 and the unsupported-claim rate come from EXP-009/010, and the Stretch's
+clinician-reviewed explainability from a clinically trained reviewer, if there is one.
 """
 
 from __future__ import annotations
@@ -247,11 +251,14 @@ def evaluate_claims(
     beside_h4 = table.h4.get((a, "A1b"))
     h4 = {
         "claim": "H4",
-        "status": "supported" if contrast["more_on_must_not_miss"] else "not supported",
-        "rule": "the interval of (must-not-miss degradation − top-1 degradation) is above 0",
-        # The reading by point estimate, beside it: the protocol does not say how "more than" is
-        # tested, and amendment 3b's draft reads H3 and H4 as point estimates with intervals.
-        "status_by_point_estimate": "supported" if contrast["contrast"] > 0 else "not supported",
+        # Amendment 3b, item 3: a point estimate with its interval. There is no test, so it is
+        # never called significant; the report says whether the interval excludes 0.
+        "status": "supported" if contrast["contrast"] > 0 else "not supported",
+        "rule": (
+            "removing the medical graph lowers must-not-miss recall@3 by more than it lowers top-1 "
+            "(the point estimates); the interval of the difference is reported beside it"
+        ),
+        "interval_excludes_zero": bool(contrast["more_on_must_not_miss"]),
         "against": "A1",
         "figures": dict(contrast),
         "reported_beside": [{"against": "A1b", **dict(beside_h4)}] if beside_h4 else [],
@@ -275,7 +282,7 @@ def evaluate_claims(
         "H6": h6,
         "Minimum": _minimum(table, a),
         "Target": _target(table, a, unsupported_rate),
-        "Stretch": _stretch(table, a, clinician_review),
+        "Stretch": _stretch(table, a, clinician_review, unsupported_rate),
         "Target, reduced evidence": _reduced_target(table, family, levels),
         "Stretch, reduced evidence": _reduced_stretch(table, family, levels),
     }
@@ -339,7 +346,11 @@ def _target(table: Table, a: str, unsupported_rate: float | None) -> dict[str, A
     }
 
 
-def _stretch(table: Table, a: str, clinician_review: bool | None) -> dict[str, Any]:
+def _stretch(
+    table: Table, a: str, clinician_review: bool | None, unsupported_rate: float | None
+) -> dict[str, Any]:
+    """The Stretch at 100%: every test passes, must-not-miss recall@3 at least 0.95, and (amendment
+    3b, item 3) the Target's other criteria too: ECE and the unsupported-claim rate."""
     checks = _checks(table, a, (FIRST_WRITTEN,), (FULL,), (TOP3, MNM), significant=True)
     recall = float(table.points[(a, FULL)]["must-not-miss recall@3"])
     checks.append(
@@ -352,7 +363,33 @@ def _stretch(table: Table, a: str, clinician_review: bool | None) -> dict[str, A
             "passed": recall >= MUST_NOT_MISS_TARGET,
         }
     )
-    unassessed = [] if clinician_review else ["clinician-reviewed explainability"]
+    ece = table.ece[(a, FULL)]
+    checks.append(
+        {
+            "level": FULL,
+            "against": "—",
+            "metric": "ECE",
+            "rule": f"below {ECE_TARGET}",
+            "a": ece["value"],
+            "passed": float(ece["value"]) < ECE_TARGET,
+        }
+    )
+    unassessed = []
+    if unsupported_rate is None:
+        unassessed.append("unsupported-claim rate (EXP-009/010 not run)")
+    else:
+        checks.append(
+            {
+                "level": FULL,
+                "against": "—",
+                "metric": "unsupported-claim rate",
+                "rule": f"below {UNSUPPORTED_TARGET}",
+                "a": unsupported_rate,
+                "passed": unsupported_rate < UNSUPPORTED_TARGET,
+            }
+        )
+    if not clinician_review:
+        unassessed.append("clinician-reviewed explainability")
     return {
         "claim": "Stretch",
         "status": _status(checks, unassessed),

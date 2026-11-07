@@ -2,9 +2,10 @@
 
     python scripts/sweep_fusion.py
 
-**This is tuning on project data, so it runs only where the owner says (D-7), and only after
-the team answers E-2's first item** (which level the reduced-evidence claims are judged at). The
-team settled the errata to amendment 3 (E-1) on 2026-10-02, as `docs/05` amendment 3a. By its item
+**This is tuning on project data, so it runs only where the owner says (D-7).** E-2's first item
+(which level the reduced-evidence claims are judged at) was answered on 2026-11-07 by amendment 3b:
+25%, with 50% reported beside. The team settled the errata to amendment 3 (E-1) on 2026-10-02, as
+`docs/05` amendment 3a. By its item
 17 (b) the reduced-evidence claims must also hold against the `+aug` B1 variants, the very
 components this fuses and compares with; by its item 4, MRR has a paired test beside McNemar's.
 Nothing is trained. It reuses EXP-019's masks (``scripts/evaluate_reduced_evidence.py``) and

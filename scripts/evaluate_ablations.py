@@ -5,7 +5,7 @@
     python scripts/evaluate_ablations.py --alpha-file data/interim/exp006_fusion.json   # the dry run (5.2)
     python scripts/evaluate_ablations.py --split test --confirm-single-opening \\
         --expect-digests TOKENS,ASKED --alpha-file data/interim/exp006_fusion.json \\
-        --reduced-claims both                                               # the single opening (5.5)
+        --reduced-claims 25-only                                            # the single opening (5.5)
 
 **This is a scoring run, not a training run, but it is long** (about 20-40 minutes on the full
 validation split, most of it the transformer's forward pass and the bootstrap), so it runs only
@@ -21,8 +21,11 @@ What it does, for each seed 42-46 (``docs/05`` §6):
   at the α EXP-006 chose for its component (a seed's models are fused at the **seed-42 α**, never
   re-swept);
 * compares them with McNemar's test and the paired MRR bootstrap, and judges H1-H6, the Minimum,
-  Target and Stretch (``src/eval/verdicts.py``) under **both** readings of E-2, recording which is
-  in force; the seed-42 model's verdict is the verdict, and the others say how many seeds agree;
+  Target and Stretch (``src/eval/verdicts.py``). E-2 was answered by amendment 3b: the claims that
+  need a reduced level are judged at 25% (``--reduced-claims 25-only``, the default), the 50%
+  comparisons reported beside them. The verdicts under both readings are kept, and the reading in
+  force is recorded; the seed-42 model's verdict is the verdict, and the others say how many
+  seeds agree;
 * writes every system's metrics with 95% intervals (seed 42), the seed means and spreads, and the
   breakdowns by condition and by sex, to ``data/interim/exp012_<split>.json``.
 
@@ -222,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--reduced-claims",
         choices=sorted(POLICIES),
-        help="the reading of E-2 in force (default: both, as approved); verdicts under both are kept",
+        help="the reading of E-2 in force (default: 25-only, amendment 3b); verdicts under both are kept",
     )
     parser.add_argument(
         "--calibrator", action="append", metavar="FAMILY=PATH", help="EXP-007 stage 2's calibrator"
@@ -391,7 +394,7 @@ def main(argv: list[str] | None = None) -> int:
 
     primary = runs[42] if 42 in runs else runs[min(runs)]
     results = summarise(args, primary, runs, records, levels, frames, say)
-    in_force = args.reduced_claims or "both"
+    in_force = args.reduced_claims or "25-only"
     results.update(
         {
             "experiment": "EXP-012",

@@ -174,6 +174,31 @@ reading of the text, and the team may change any of them by a dated note **befor
     offers a cumulative reading that adds the Target's ECE and unsupported-claim criteria; the
     runner follows the team's answer.
 
+**Dated note, 2026-11-07: amendment 3b settles choices 1, 7 and 10 (before the freeze, as the
+paragraph above allows).** E-2 was answered by the owner ("go with the recommendation"; the other
+team members' agreement is not recorded) and applied to `docs/05` as amendment 3b (v1.5). The
+earlier wording of each choice is kept above; what is in force now:
+- **Choice 1 (H4):** judged on the point estimates, with the 95% interval of the difference reported
+  beside it and never called significance (`docs/05` §6, "The tests of each claim"). The runner's
+  `H4` verdict now reads the point estimate; `interval_excludes_zero` carries the interval's
+  answer. This is the reading the draft of amendment 3b gave, and the one this pre-registration had
+  kept beside the interval rule.
+- **Choice 7 (E-2):** the claims that need a reduced level (H1-R, H2-R, H6, the reduced Target and
+  Stretch) are judged at **25%**, the 50% comparisons run and reported beside them, labelled
+  descriptive. `--reduced-claims 25-only` is the runner's default, and the single opening names it
+  explicitly. The verdicts under the older reading (both levels) are still computed and kept in the
+  output, for the record.
+- **Choice 10 (Stretch):** the 100% Stretch is now cumulative: it includes the Target's ECE and
+  unsupported-claim criteria as well as its own (`docs/05` §7). The runner takes the unsupported-claim
+  rate for it as it does for the Target, and reads **incomplete** until EXP-009/010 give one.
+- **Choice 9 (a tie):** `docs/05` §6, "A pass has a direction", defines a pass for a test
+  comparison; it does not say which way a tie goes for a Target's point-estimate comparison, so a
+  tie still fails there, as in this pre-registration.
+
+*Disclosed:* the ablation runner's plumbing runs (2026-10-21 and 2026-11-03, 2,000 validation
+patients, an untuned α of 0.5) had already printed the fused verdicts under both readings of E-2 before
+this answer. They are stamped as not a result and nothing in them is quoted.
+
 The output also lists, for every system at every level, how many patients it misses in the top 3
 (and how many must-not-miss ones), so a comparator at a ceiling is visible: McNemar's test
 cannot reach 0.05 against a comparator that misses five or fewer.
@@ -221,9 +246,10 @@ the owner says where it runs.
 
 **Results.** *Pending: the rehearsal waits for E-2 and EXP-006; the test split is unread.*
 
-**Next action.**
-1. The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007
-   stage 2.
+**Next action.** *(2026-11-07: E-2 is answered and amendment 3b applied; EXP-006's sweep and the
+rehearsal are the owner's Kaggle run of `notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8.)*
+1. ~~The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007
+   stage 2.~~ Amendment 3b applied 2026-11-07; EXP-006, then EXP-007 stage 2.
 2. The owner says where the full rehearsal runs.
 3. The team ratifies or amends the ten choices above before the freeze.
 
@@ -1780,6 +1806,15 @@ data, nothing trained, about 3–5 minutes on the laptop's CPU. These fused resu
 until both are settled, unless the team or the owner says to run it first, which would then be
 recorded here.
 
+**Dated note, 2026-11-07.** (1) E-2's first item is answered: amendment 3b (`docs/05` v1.5, option
+(b)) judges the reduced-evidence claims at 25%, with 50% reported beside. **The sweep's rule is
+unchanged**: it already scored all three levels (the objective is the mean MRR over the three, one α
+for every level); amendment 3b pins the rule as this entry reads at the commit that applies it,
+with the 2026-10-13 dated note (item 10, wording 10-ii). (2) D-7: the sweep runs on
+Kaggle (the owner, 2026-11-03), in the same notebook as EXP-012's rehearsal
+(`notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8), not on the laptop. Both conditions
+above are therefore met; the results arrive with the notebook's output.
+
 **Results:** to follow.
 
 
@@ -3078,7 +3113,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-003 | B0 prevalence baseline | 1 | Metric floor. *Run 2026-09-19 on Colab by the owner; logged* |
 | EXP-004 | B1 ML-only (LogReg → XGBoost) | 1–2 | The competitor to beat. *Run with EXP-003; logged.* B1 reaches the ceiling of top-3 and must-not-miss recall (R-16 → D-10) |
 | EXP-005 | B2 KG-only scoring | 2 | Is the graph useful alone? *Run 2026-09-24 as 2a's design experiment: the overlap score replaced by naive-Bayes over a crosswalk-closed graph; every golden case holds on graph score alone. Validate figures circular (R-12)* |
-| EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; ~~waits for E-1 and D-7~~ E-1 settled 2026-10-02 (amendment 3a); waits for E-2's first item, then D-7)* | 2 | The graph's weight α (validation only), one for every level |
+| EXP-006 | Fusion, weight sweep *(2c; design and rule recorded before the sweep, revised after review 2026-09-30; A7-style with the `+aug` B1 until B1-DL exists; ~~waits for E-1 and D-7~~ E-1 settled 2026-10-02 (amendment 3a); ~~waits for E-2's first item, then D-7~~ E-2 answered 2026-11-07 (amendment 3b), D-7: Kaggle; waits for the owner's run)* | 2 | The graph's weight α (validation only), one for every level |
 | EXP-007 | Calibration (Platt vs isotonic) *(pre-registered 2026-10-13, with temperature scaling and "none" beside them; stage 1 on the components and the graph alone, run 2026-10-13: the logistic regressions stay raw (already calibrated), the graph takes Platt, isotonic is unsafe at 25%; stage 2 on A0's fused score after D-13 and EXP-006)* | 2 | H5; what may be shown as a probability |
 | EXP-008 | Red-flag sensitivity/precision | 2 | Safety layer tuning. *Run 2026-09-25 with 2d: sensitivity 0.449 → 0.823 (target 0.95 not met), the dissection rule's false alarms 50% → 8%; logged* |
 | EXP-009 | B3 LLM-only *(pre-registered 2026-10-21 with the trial's shared design: the 50-patient sample, `llama3.1:8b` at temperature 0, the prompts, the parser, the claim check, H3's test, D-5's checkpoint of 2026-11-03 and the ratings; B3r, B3 told to use only its facts, runs beside it; the Kaggle notebook is `notebooks/kaggle_llm_explain.ipynb`, `docs/11` §4.9; waits for the owner's run)* | 3 | H3 |

@@ -58,6 +58,7 @@ def build(
     *,
     ece: float = 0.02,
     h4_more: bool = True,
+    h4_contrast: float = 0.1,
 ) -> Table:
     family = FAMILIES[family_name]
     names = labels(family)
@@ -82,7 +83,11 @@ def build(
             )
         points[(family.system, level)] = ablation.point_metrics(a)
         eces[(family.system, level)] = {"value": ece, "ci": [ece - 0.01, ece + 0.01]}
-    contrast = {"more_on_must_not_miss": h4_more, "contrast": 0.1, "contrast_ci": [0.05, 0.15]}
+    contrast = {
+        "more_on_must_not_miss": h4_more,
+        "contrast": h4_contrast,
+        "contrast_ci": [-0.05, 0.15],
+    }
     h4 = {(family.system, "A1"): contrast, (family.system, "A1b"): contrast}
     return Table(comparisons=comparisons, points=points, ece=eces, h4=h4)
 
@@ -179,18 +184,37 @@ def test_the_target_is_incomplete_without_the_explanation_results():
 
 
 def test_the_stretch_is_incomplete_without_a_clinically_trained_reviewer():
-    out = judge(build())
+    out = judge(build(), unsupported_rate=0.12)
     assert out["Stretch"]["status"] == "incomplete"
     assert out["Stretch"]["not_assessed"] == ["clinician-reviewed explainability"]
-    assert judge(build(), clinician_review=True)["Stretch"]["status"] == "met"
+    assert (
+        judge(build(), unsupported_rate=0.12, clinician_review=True)["Stretch"]["status"] == "met"
+    )
+
+
+def test_the_stretch_includes_the_targets_other_criteria():
+    """Amendment 3b, item 3 (docs/05 §7): the Stretch at 100% is the Target's criteria with every
+    comparison significant, so the ECE and the unsupported-claim rate count there too."""
+    out = judge(build(), clinician_review=True)
+    assert out["Stretch"]["status"] == "incomplete"
+    assert out["Stretch"]["not_assessed"] == ["unsupported-claim rate (EXP-009/010 not run)"]
+    assert (
+        judge(build(), unsupported_rate=0.25, clinician_review=True)["Stretch"]["status"]
+        == "not met"
+    )
+    bad_ece = judge(build(ece=0.12), unsupported_rate=0.1, clinician_review=True)["Stretch"]
+    assert bad_ece["status"] == "not met"
+    assert [c["metric"] for c in bad_ece["checks"] if not c["passed"]] == ["ECE"]
 
 
 def test_the_stretch_needs_must_not_miss_recall_of_at_least_95_percent():
     # A0 misses 12 of the 200 must-not-miss patients (recall 0.94) but beats the weaker B1-XGB.
-    out = judge(build(overrides={("A0", 1.0): (12, 0)}), clinician_review=True)
+    out = judge(
+        build(overrides={("A0", 1.0): (12, 0)}), unsupported_rate=0.1, clinician_review=True
+    )
     assert out["Stretch"]["status"] == "not met"
-    recall = out["Stretch"]["checks"][-1]
-    assert recall["metric"] == "must-not-miss recall@3" and recall["a"] == pytest.approx(0.94)
+    recall = [c for c in out["Stretch"]["checks"] if c["metric"] == "must-not-miss recall@3"][-1]
+    assert not recall["passed"] and recall["a"] == pytest.approx(0.94)
 
 
 def test_h5_reads_the_point_estimate_of_the_ece():
@@ -200,19 +224,18 @@ def test_h5_reads_the_point_estimate_of_the_ece():
     assert bad["Target"]["status"] == "not met"
 
 
-def test_h4_follows_the_degradation_contrast():
-    assert judge(build(h4_more=True))["H4"]["status"] == "supported"
-    out = judge(build(h4_more=False))
-    assert out["H4"]["status"] == "not supported"
-    assert out["H4"]["reported_beside"][0]["against"] == "A1b"
-
-
-def test_h4_is_also_read_by_point_estimate_beside_the_interval_rule():
-    """The protocol does not say how "more than" is tested: both readings are kept."""
-    table = build(h4_more=False)  # the interval does not clear 0 ...
-    out = judge(table)["H4"]
-    assert out["status"] == "not supported"
-    assert out["status_by_point_estimate"] == "supported"  # ... but the point estimate is above 0
+def test_h4_is_judged_by_the_point_estimate_and_reports_its_interval():
+    """Amendment 3b, item 3: no test. Supported when the contrast's point estimate is above 0; whether
+    its interval excludes 0 is reported beside it and never called significance."""
+    clear = judge(build(h4_more=True))["H4"]
+    assert clear["status"] == "supported" and clear["interval_excludes_zero"] is True
+    unclear = judge(build(h4_more=False))["H4"]  # the interval does not clear 0 ...
+    assert unclear["status"] == "supported"  # ... but the point estimate is above 0
+    assert unclear["interval_excludes_zero"] is False
+    assert unclear["reported_beside"][0]["against"] == "A1b"
+    wrong_way = judge(build(h4_more=False, h4_contrast=-0.02))["H4"]
+    assert wrong_way["status"] == "not supported"
+    assert judge(build(h4_more=False, h4_contrast=0.0))["H4"]["status"] == "not supported"
 
 
 def test_a_tie_is_not_a_win_for_a_point_estimate():

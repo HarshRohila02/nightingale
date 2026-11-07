@@ -38,6 +38,9 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
     CPU unless `compute.device` in `configs/config.yaml` says otherwise.
 - **Commit and push at every sub-phase boundary**, with `PROGRESS.md` updated in the same commit.
 - **Do not delete or move files** without explicit approval.
+- **Commit messages and pull-request descriptions carry no attribution line** (no co-author
+  trailer, no "generated with" line), and the project's new records name people, not tools (the
+  owner, 2026-11-07).
 - If something contradicts what was previously reported to the user, say so plainly.
 
 ## Hard rules
@@ -62,6 +65,12 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   bootstrap (`paired_bootstrap_difference`); `+aug` logistic regressions take seeds 42–46; no ML
   model is tuned beyond early stopping (T-6); a model with the "asked" channel needs both mask
   digests to reproduce.
+  **Amendment 3b (v1.5, 2026-11-07, E-2 answered)**: H1-R, H2-R, H6 and the reduced-evidence Target
+  and Stretch are judged at **25% evidence only**; their 50% comparisons are run and reported
+  beside them, labelled descriptive and not counted. H3 and H4 are point estimates with their
+  intervals (no test); the 100% Stretch includes the Target's ECE and unsupported-claim criteria;
+  a pass needs the claimed system to be the better one. The runner's default is
+  `--reduced-claims 25-only`.
 - Golden clinical cases (`tests/fixtures/golden_cases.yaml`) must stay green. If one fails, fix the
   component, not the expectation.
 
@@ -118,8 +127,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   overconfident model cannot veto the graph; a degraded model, or one whose scores are not finite,
   non-negative probabilities, leaves the graph's order exactly. GC-003's dissection is now first
   with red flags off. `fused_score` is a log-probability, not calibrated. The one tuned quantity,
-  the graph's weight α, will come from EXP-006's pre-registered sweep (it waits for E-2's first item,
-  then D-7; until then an untuned 0.5) and lives in `configs/config.yaml`'s `ranking:` block, which the
+  the graph's weight α, will come from EXP-006's pre-registered sweep (E-2 is answered; it runs on
+  Kaggle with EXP-012's rehearsal, `docs/11` §4.8; until then an untuned 0.5) and lives in `configs/config.yaml`'s `ranking:` block, which the
   scripts and the golden tests read: never retune it by hand.
 - **BODHI-S is CC-BY-NC: never commit its text.** `src/medical_kg/bodhi_s.py` keys facts by
   BODHI-S's ids, with paraphrased notes, and the KG card prints counts only.

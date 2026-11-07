@@ -1,9 +1,12 @@
 # `docs/05` amendment 3b: the exact wording, ready to apply (draft for the team)
 
-**Drafted:** 2026-10-21, by Claude (a side session of the main session) · **Status:** **a draft
-only. Nothing in this file is in force.** `docs/05` v1.4 (amendment 3a) stands as approved until the
-team approves an amendment and the main session applies it, with a §9 entry · **Approval:** none yet;
-the "approved by" cell of the §9 row (Part B) is left for the owner · **Decision:** E-2 in
+**Drafted:** 2026-10-21 (a side session of the main session) · **Status:** ~~a draft
+only. Nothing in this file is in force. `docs/05` v1.4 (amendment 3a) stands as approved until the
+team approves an amendment and the main session applies it, with a §9 entry~~ **applied to `docs/05`
+on 2026-11-07 as amendment 3b (v1.5): option (b) of item 1, items 2–11 as drafted, wording 10-ii.
+This file is kept as the record of what was drafted; `docs/05` is the text in force** ·
+**Approval:** the owner, 2026-11-07 ("go with the recommendation"); the other team members' agreement
+is not recorded (see the §9 row) · **Decision:** E-2 in
 `PROGRESS.md` §3 (due 2026-10-23) · **Source:** [05-amendment-3b-errata.md](05-amendment-3b-errata.md)
 
 This file turns the errata proposal (item 1's four options, items 2–11) into the exact words to put
