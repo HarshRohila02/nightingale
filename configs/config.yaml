@@ -118,7 +118,7 @@ retrieval:
   # data/raw/retrieval_corpus (gitignored, never committed, docs/03 §1.4). null switches retrieval
   # off, and every result then reports degraded_components: ["rag"], as does a missing bundle or
   # one that fails its manifest's SHA-256 checks.
-  bundle: null
+  bundle: data/raw/retrieval_corpus # built on Kaggle 2026-11-07: 2,067 articles, 26,190 passages
   embedding_model: pritamdeka/S-PubMedBert-MS-MARCO # the notebook's; the laptop runs no model
   chunk_size: 512 # tokens per passage, [CLS] and [SEP] included (capped at the model's maximum)
   chunk_overlap: 64

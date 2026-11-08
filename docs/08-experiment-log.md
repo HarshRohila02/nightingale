@@ -726,9 +726,63 @@ You explain a ranked differential diagnosis to a clinician, in at most five shor
 poor passage lowers B4 without telling us why; the corpus is what PMC's title searches returned;
 the pipeline's graph differs on Kaggle (above); and A0+LLM's ranking here is not A0's.
 
-**Next action.** As EXP-009. B4 and A0+LLM are run in the same notebook as soon as the bundle is
+**Next action.** ~~As EXP-009. B4 and A0+LLM are run in the same notebook as soon as the bundle is
 complete; if it is late, B3 and B3r are run first and B4 and A0+LLM are added by resuming the notebook
-(its results file is resumable).
+(its results file is resumable).~~ Run on 2026-11-07; results below.
+
+#### Results of EXP-009 and EXP-010, run together · 2026-11-07, validation only
+
+**What ran.** The owner's Kaggle run of `notebooks/kaggle_llm_explain.ipynb` (GPU T4 x2, 47 minutes, commit
+`046f9ac`), `llama3.1:8b` (Ollama 0.40.15, digest `46e0c10c…`, Q4_K_M) at temperature 0, seed 42; all four
+arms; the retrieval bundle (the corpus of 2026-11-07), the transformer's bundle and BODHI-S were all found.
+50 validation patients and the four golden cases; 0 calls failed in any arm. Files, kept under `data/`
+and never committed: `data/interim/llm_explain/` (`summary.json`, `results.jsonl`, `rating_sheet/`).
+
+**The checkpoint of 2026-11-03 FAILS** (rule 1 only): A0+LLM's raw answers hold an unsupported-claim rate
+of **0.741 [0.663, 0.803]** (163 of 220 claims), not under 0.20. Under D-5 and the rule above, **the
+template explainer stays** (`llm.enabled` remains false), and **B3 and B4 are reported as not carried into
+the evaluation**, with this entry as the record of what they scored. Rules 2 to 4 held: no call failed, the
+run finished, and nothing the guardrails delivered held an unsupported claim or treatment language.
+
+**The guardrails did their job.** In all 50 cases the grounded explainer's answer failed guardrails v1
+(1 to 11 unsupported claims each), so the template's text was delivered and `llm` was reported as
+degraded: 50 of 50 fell back, 0 delivered an unsupported claim, 0 delivered treatment language, 0 delivered
+an answer that was not grounded. The model's prose never reached a user.
+
+**Unsupported-claim rates (the claim check is lexical, see Limits; 100% evidence, 50 patients):**
+
+| Arm | Claims | Unsupported | Rate [95% interval] |
+|---|---|---|---|
+| B3, the model alone | 247 | 247 | 1.000 [1.000, 1.000] |
+| B3r, told to use only the facts it is given | 248 | 248 | 1.000 [1.000, 1.000] |
+| B4, retrieval and the model | 244 | 243 | 0.996 [0.984, 1.000] |
+| A0+LLM, raw answer, before the guardrails | 220 | 163 | 0.741 [0.663, 0.803] |
+
+**H3 is not supported:** two of its four comparisons pass. B3 − A0+LLM and B3r − A0+LLM are +0.259
+[+0.191, +0.333] each; B3 − B4 and B3r − B4 are +0.004 [+0.000, +0.012], whose interval touches 0. The text
+of B4 cites passages (77 citations, none invented) but all 72 of its cited sentences, and all 22 of A0+LLM's,
+were unsupported by the check.
+
+**Ranking, the model's own list (B3, B4) and the pipeline's (A0+LLM):**
+
+| Arm | Evidence | Top-1 | Top-3 | MRR |
+|---|---|---|---|---|
+| A0+LLM (the pipeline's ranking, via the crosswalk inversion, R-17: not EXP-012's A0) | 100% | 0.80 [0.68, 0.90] | 1.00 [1.00, 1.00] | 0.88 [0.82, 0.94] |
+| B3 | 100 / 50 / 25% | 0.44 / 0.38 / 0.28 | 0.78 [0.66, 0.90] / 0.66 / 0.62 | 0.62 [0.52, 0.72] / 0.52 / 0.43 |
+| B3r | 100% | 0.50 [0.36, 0.64] | 0.84 [0.74, 0.94] | 0.67 [0.57, 0.76] |
+| B4 | 100 / 50 / 25% | 0.20 / 0.22 / 0.24 | 0.58 [0.44, 0.72] / 0.46 / 0.42 | 0.40 [0.31, 0.50] / 0.38 / 0.33 |
+
+A language model asked for a ranked list of the 14 conditions ranks worse than the pipeline at every
+level, and adding retrieved passages to its prompt made it worse (B4 below B3). The 50-patient sample gives
+wide intervals, a condition having 2 to 6 patients, and the sample is drawn by hash order, not stratified.
+
+**Limits specific to this run.** The claim check asks each sentence to trace to what the arm was given, so
+a correct paraphrase fails (as the pre-registration says above), and the rates measure staying within the
+inputs, not correctness. The pipeline's graph on Kaggle includes BODHI-S's enrichment. One model, one run.
+The rating sheet exists (150 items in `data/interim/llm_explain/rating_sheet/`); **the ratings are not done**,
+and until they are, no rated figure exists. If the rate is judged to come from paraphrase alone, the only
+route the pre-registration allows is a new, pre-registered EXP-009b on fresh patients; none is planned, and
+the first result stays reported.
 
 ---
 
@@ -942,6 +996,27 @@ running a model. Reported:
 2. Claude reports the corpus and the mix's fidelity, re-measures the cost, and prepares the pool.
 3. Two team members judge it.
 4. The metrics and the rule are applied as written here.
+
+**Dated note, 2026-11-08: the corpus is built and the pool is made; nothing is judged.**
+- **The corpus** (the owner's Kaggle run of 2026-11-07, commit `46f76eb`, `STATUS.txt` DONE): 2,067 articles
+  and 26,190 passages from PMC Open Access, 446 articles skipped, 20 searches, `S-PubMedBert-MS-MARCO`
+  (768 dimensions, float16). Every article carries a Creative Commons licence in its XML, 15 licence
+  strings in all: the largest is CC BY 4.0 (979), and 844 carry a non-commercial term (CC BY-NC and
+  CC BY-NC-ND and -SA variants), shown with each excerpt. The screen hides 0 passages on the laptop.
+- **The query-vector mix** (the laptop embeds no model): against embedding the full sentence, the mixed
+  vector has a mean cosine of 0.963, and its top-10 overlaps the full sentence's by 0.40 on average. The
+  mix is therefore close in direction and only moderately faithful in which ten passages it ranks first.
+- **Cost on the laptop** (`scripts/measure_retrieval.py`, `scripts/measure_latency.py`): start-up 1.8 s;
+  one candidate's retrieval p50 0.78 ms, p95 1.22 ms; the whole pipeline with evidence p95 4.9 ms against
+  0.9 ms without. With the transformer, the pipeline's p95 on the golden cases is 13.6 to 16.9 ms, 2.5 to 3.3
+  ms of it retrieval (EXP-022 re-measured; `data/interim/exp022_latency.json`).
+- **The pool** (`scripts/judge_retrieval.py pool`): 26 queries, **489 rows to judge**, 17 to 20 per query,
+  the same pool for both judges, no method named. 489 rows is more than the two judges were expected to
+  face: `docs/05` §3.4 asks for 100 judged pairs. A reduction would be a change to this design and needs a
+  dated note here before judging starts. *The sheets, and the private key that names the methods, are in
+  `data/interim/exp011/` (never committed).*
+- **Still to do:** the two team members judge, blind; `scripts/judge_retrieval.py score` applies the metrics
+  and the rule above.
 
 ### EXP-007 — Calibration: Platt scaling against isotonic regression, and when a score may be shown as a probability (2b) (validation split) · *pre-registered 2026-10-13, before any calibrator was fitted on project data*
 
@@ -1206,6 +1281,29 @@ Platt (0.014). B1-LR+aug gives much the same.
   dated note.
 - **The transformer:** when the Kaggle bundle arrives, B1-DL′+aug and B1-DL+aug alone, by this rule,
   in the D-13 report.
+
+#### Stage 2: A0′'s fused score (2026-11-08, as pre-registered above)
+
+Run on the laptop CPU, where the owner placed the calibrators (D-7, 2026-10-12): 150 s, both mask digests
+reproduced, the component B1-DL′+aug at EXP-006's α = 0.05 (`data/interim/exp006_fusion.json`, copied from the
+Kaggle run's `exp012_rehearsal/`; output `data/interim/exp007_stage2_dl.json`; the fitted calibrator
+`models/calibration/exp007_a0__b1_dl__aug__α___0_05.json`, gitignored). The graph's contribution is the
+real graph, with BODHI-S. **The rule chose temperature scaling** (the lowest mean Brier over the three levels,
+0.0338 against isotonic's 0.0342, Platt's 0.0381 and the raw score's 0.0365).
+
+| A0′ fused score | Brier 100 / 50 / 25% | ECE 100% | ECE 50% | ECE 25% |
+|---|---|---|---|---|
+| raw (A5) | 0.0052 / 0.0258 / 0.0786 | 0.0327 [0.0324, 0.0329] | 0.0603 [0.0595, 0.0614] | 0.0773 [0.0757, 0.0793] |
+| temperature (chosen) | 0.0030 / 0.0224 / 0.0759 | 0.0008 [0.0008, 0.0008] | 0.0051 [0.0041, 0.0062] | 0.0176 [0.0156, 0.0195] |
+
+- **Calibrated against DDXPlus, the raw fused score is already under H5's 0.10 at every level**, so the
+  calibrator changes no verdict. It improves the probabilities, never the order.
+- **On the hand-written cases it does what EXP-007 warned of:** the first listed condition's probability
+  goes GC-001 (infarction, red-flagged first, while the model ranks unstable angina) 0.012 → 0.001, GC-002
+  0.936 → 0.998, GC-004 0.915 → 0.997, GC-003 (dissection, the graph's own) 0.677 unchanged. A short
+  hand-written history is near-certain under the model whatever the calibration (R-17).
+- **Whether the dashboard or the API shows a probability is the owner's decision** (`calibration.file`,
+  `configs/config.yaml`), recorded in `PROGRESS.md` when made. Until then no probability is shown.
 
 #### The transformer arms (2026-10-13, as pre-registered above)
 
