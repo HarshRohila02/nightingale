@@ -205,6 +205,23 @@ note of this date), so the by-construction list's "when a calibrator is set" doe
 exactly. A0's ECE
 is the raw fused score's. The freeze tag `v0.9-freeze` is made after this note.
 
+**Dated note, 2026-11-09, after the freeze and before anything is scored: the test split's masks.** The
+owner said yes to downloading `test.csv` and that the single scoring runs on Kaggle. `test.csv` (88,582,473
+bytes, Hugging Face `aai530-group6/ddxplus`, revision `2ad986ac…`) was downloaded to the laptop and built
+through the freeze gate (`build_ddxplus_chestpain.py --split test --open-test-split`, frozen at
+`808bceb`): 134,529 source rows, **34,657 in scope**. The masks were then drawn with
+`evaluate_ablations.py --split test --digest-only`, which reads no label and records no opening:
+- **mask digest (`docs/05` §3.7): `0136f67f1ca6542f`**
+- **asked-set digest (A-9): `795acf2689f1415e`**
+- realised: 21.85 / 11.83 / 6.68 tokens and 15.43 / 8.61 / 5.09 questions a patient at 100 / 50 / 25%.
+
+The Kaggle run (`notebooks/kaggle_exp012_test.ipynb`) rebuilds the parquet from the same pinned file, draws
+the masks again, **stops unless both digests equal these two**, and only then scores, once, with
+`--confirm-single-opening --expect-digests 0136f67f1ca6542f,795acf2689f1415e`, EXP-006's α (the committed
+copy `docs/results/exp006_fusion.json`) and `--reduced-claims 25-only`. The opening is recorded by the
+runner in the Kaggle session and returned in the output (`test_split_opened.json`); the laptop has built the
+parquet but has not scored it. A second scoring needs `--reopen-because` and is disclosed.
+
 The output also lists, for every system at every level, how many patients it misses in the top 3
 (and how many must-not-miss ones), so a comparator at a ceiling is visible: McNemar's test
 cannot reach 0.05 against a comparator that misses five or fewer.

@@ -42,12 +42,44 @@ def test_every_code_cell_parses(path):
         ast.parse(python_of(cell))
 
 
-@pytest.mark.parametrize("path", NOTEBOOKS, ids=[p.name for p in NOTEBOOKS])
+TEST_READ = "kaggle_exp012_test.ipynb"
+"""The one notebook that opens the test split, once, after the freeze (docs/05 §2)."""
+OTHERS = [p for p in NOTEBOOKS if p.name != TEST_READ]
+
+
+@pytest.mark.parametrize("path", OTHERS, ids=[p.name for p in OTHERS])
 def test_no_notebook_downloads_the_test_split(path):
-    """docs/05 §2: the test split stays closed until Phase 4."""
+    """docs/05 §2: the test split stays closed until Phase 4, and only the test-read notebook opens it."""
     for cell in code_cells(path):
         code = "\n".join(line.split("#", 1)[0] for line in cell.splitlines())
         assert "test.csv" not in code, f"{path.name} mentions test.csv outside a comment"
+
+
+def test_the_test_read_notebook_opens_the_split_once_and_through_the_gate():
+    """It goes through the freeze gate, stops unless both recorded digests reproduce, and scores once."""
+    source = "\n".join(code_cells(REPO_ROOT / "notebooks" / TEST_READ))
+    for needed in (
+        "--open-test-split",
+        "--digest-only",
+        "--expect-digests",
+        '"--reduced-claims", "25-only"',
+        "exp006_fusion.json",
+    ):
+        assert needed in source, f"{TEST_READ} lacks {needed}"
+    assert (
+        source.count('"--confirm-single-opening"') == 1
+    ), "it must score the test split exactly once"
+    assert "--reopen-because" not in source, "a second opening is never automatic"
+    accepted = script_flags("evaluate_ablations.py")
+    git_flags = {"--tags", "--short", "--oneline"}  # git's own, not the runner's
+    used = (
+        set(re.findall(r'"(--[a-z0-9-]+)"', source)) - {"--split", "--open-test-split"} - git_flags
+    )
+    assert used <= accepted | {"--limit"}, sorted(used - accepted)
+    log = (REPO_ROOT / "docs" / "08-experiment-log.md").read_text(encoding="utf-8")
+    for name in ("EXPECT_TOKENS", "EXPECT_ASKED"):
+        digest = re.search(rf'{name} = "(\w{{16}})"', source).group(1)
+        assert digest in log, f"{name} ({digest}) was never recorded in docs/08"
 
 
 @pytest.mark.parametrize(

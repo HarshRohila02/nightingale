@@ -567,6 +567,32 @@ model is Meta's Llama 3.1, used under its community licence for this university 
 
 ---
 
+### 4.10 EXP-012's single scoring of the test split · *ready 2026-11-09 · Kaggle (the owner, 2026-11-09)*
+
+The code is frozen at `v0.9-freeze` (`808bceb`). This job opens the test split **once** and scores every
+system and ablation at 100%, 50% and 25% evidence, seeds 42-46, with the verdicts under `--reduced-claims
+25-only` (amendment 3b). It is `notebooks/kaggle_exp012_test.ipynb`; its design is in `docs/08` (EXP-012,
+the dated notes of 2026-11-09). Nothing is trained or tuned.
+
+**What stops it before anything is opened:** the graph's fingerprint (`de349201157a`), the freeze gate
+(the tag is an ancestor of `HEAD`, nothing in `configs/`, `src/` outside `src/eval/` or `tests/fixtures/`
+changed, the tree is clean), and the two mask digests, which must equal the ones recorded in `docs/08`
+(`0136f67f1ca6542f`, `795acf2689f1415e`). The runner records the opening before it reads a label.
+
+**Steps (about 10 minutes of your time, then 45 to 90 minutes of Kaggle):**
+1. Kaggle: **Create → New Notebook → File → Import Notebook**: `D:\PRJ-1\medical
+otebooks\kaggle_exp012_test.ipynb`.
+2. **Add Input → Your Datasets → `nightingale-models-exp012`** (the rehearsal's; nothing to upload).
+3. **Session options:** Accelerator **None**, Internet **On**.
+4. **Save Version → Save & Run All (Commit) → Save**, then close the browser.
+5. When it ends: the version's **Output → `exp012_test.zip`**, unzipped into
+   `D:\PRJ-1\medical\data\interim\exp012_test\`. It holds `exp012_test.json`, `test_split_opened.json`,
+   `scoring.log` and `STATUS.txt`, and **no test row**. Tell Claude.
+
+**Run it once.** If a step before the scoring fails, nothing has been opened and it can be run again. If it
+stops during the scoring, do not run it again: tell Claude first, because a second opening needs a stated
+reason (`--reopen-because`) and is disclosed in the results.
+
 ## 5. Neo4j AuraDB Free: one-time setup (the owner, ~10 minutes)
 
 Neo4j runs in Neo4j's own cloud, so nothing extra runs on the laptop. The knowledge graph holds no
