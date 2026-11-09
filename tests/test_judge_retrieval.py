@@ -7,7 +7,8 @@ bundle of ``tests/rag_fixture.py``. The judges are simulated by filling the shee
 What is checked:
 
 * the 26 queries of EXP-011, and the pool built from them: reproducible with seed 42 (the shuffle
-  re-derived here independently), at most 30 passages a query, exactly what each method shows;
+  re-derived here independently), each method's top 3 (the dated note of 2026-11-09; the first
+  registration's top 10 still reproducible), exactly what each method shows;
 * the blind: no method name, rank or score in any judge sheet or in the instructions;
 * the sheets: safe to open in a spreadsheet, never written inside the repository outside data/,
   never over a pool a judge may have started on;
@@ -69,7 +70,7 @@ def bundle_dir(tmp_path_factory) -> Path:
 
 @pytest.fixture(scope="module")
 def retriever(bundle_dir: Path) -> HybridRetriever:
-    return HybridRetriever(load_bundle(bundle_dir), depth=jr.POOL_DEPTH)
+    return HybridRetriever(load_bundle(bundle_dir), depth=jr.RETRIEVER_DEPTH)
 
 
 @pytest.fixture(scope="module")
@@ -242,11 +243,51 @@ def test_the_methods_really_differ_on_the_synthetic_bundle(pooled):
     assert any(all(v is not None for v in r["ranks"].values()) for r in rows)
 
 
+def test_the_top_3_pool_is_exactly_the_deeper_pools_top_3(retriever, queries):
+    """The revised pool (docs/08, 2026-11-09) is a part of the first registration's: the passages
+    some method ranks in its first 3, with the ranks they had."""
+    shallow, returned = jr.build_pool(retriever, queries, depth=3)
+    deep, _ = jr.build_pool(retriever, queries, depth=10)
+    wanted = {
+        (r["query_id"], r["passage_index"]): r["ranks"]
+        for r in deep
+        if any(v is not None and v <= 3 for v in r["ranks"].values())
+    }
+    got = {(r["query_id"], r["passage_index"]): r["ranks"] for r in shallow}
+    assert set(got) == set(wanted) and len(got) == len(shallow) < len(deep)
+    for identity, ranks in got.items():
+        assert ranks == {
+            m: (v if v is not None and v <= 3 else None) for m, v in wanted[identity].items()
+        }
+    assert all(0 < n <= 3 for counts in returned.values() for n in counts.values())
+
+
+def test_the_pool_depth_is_bounded(retriever, queries, bundle_dir, queries_file, tmp_path):
+    with pytest.raises(ValueError, match="retriever of depth"):
+        jr.run_methods(retriever, queries[0], depth=jr.RETRIEVER_DEPTH + 1)
+    for bad in ("2", "11"):
+        with pytest.raises(SystemExit, match="--depth"):
+            run_pool(bundle_dir, queries_file, tmp_path / bad, "--depth", bad)
+
+
+def test_depth_10_still_reproduces_the_first_registration(
+    bundle_dir, queries_file, tmp_path, retriever, queries
+):
+    out = tmp_path / "first"
+    assert run_pool(bundle_dir, queries_file, out, "--depth", "10") == 0
+    key = json.loads((out / jr.KEY_NAME).read_text(encoding="utf-8"))
+    deep, _ = jr.build_pool(retriever, queries, depth=10)
+    assert key["depth"] == 10
+    assert [(r["query_id"], r["passage_index"]) for r in key["rows"]] == [
+        (r["query_id"], r["passage_index"]) for r in deep
+    ]
+
+
 def test_a_passage_the_retriever_would_not_show_is_never_pooled(tmp_path, queries):
     """The tiny bundle holds a passage with treatment language and an article whose title names a
     drug: neither can reach the dashboard, so neither may reach a judge."""
     bundle = write_fake_bundle(tmp_path / "bundle")
-    retriever = HybridRetriever(load_bundle(bundle), depth=jr.POOL_DEPTH)
+    retriever = HybridRetriever(load_bundle(bundle), depth=jr.RETRIEVER_DEPTH)
     pericarditis = next(q for q in queries if q["condition_id"] == "COND:pericarditis")
     rows, _ = jr.build_pool(retriever, [pericarditis])
     texts = " ".join(r["passage"] for r in rows).lower()
@@ -284,7 +325,7 @@ def test_the_sheets_are_blank_and_cover_the_whole_pool(bundle_dir, queries_file,
     out = tmp_path / "exp011"
     run_pool(bundle_dir, queries_file, out, "--judges", "Asha", "Ben")
     key = json.loads((out / jr.KEY_NAME).read_text(encoding="utf-8"))
-    assert key["judges"] == ["Asha", "Ben"] and key["seed"] == 42 and key["depth"] == 10
+    assert key["judges"] == ["Asha", "Ben"] and key["seed"] == 42 and key["depth"] == 3
     rows = read_csv(out / "sheets" / "judge_Asha.csv")
     assert [r["row_id"] for r in rows] == [r["row_id"] for r in key["rows"]]
     assert [r["pmcid"] for r in rows] == [r["pmcid"] for r in key["rows"]]
@@ -429,7 +470,8 @@ def tiny_key() -> tuple[dict, dict[str, int]]:
         for n, (rid, r) in enumerate(ranks.items(), start=1)
     ]
     grades = dict(zip(ranks, [2, 0, 1, 0, 2, 0, 0, 0], strict=True))
-    return {"queries": [{"id": "Q-1"}, {"id": "Q-2"}], "rows": rows, "judges": ["A", "B"]}, grades
+    key = {"queries": [{"id": "Q-1"}, {"id": "Q-2"}], "rows": rows, "judges": ["A", "B"]}
+    return {**key, "depth": 10}, grades
 
 
 def test_the_metrics_match_the_hand_computation():
@@ -477,9 +519,59 @@ def test_the_metrics_match_the_hand_computation():
     difference = (
         (2 / log2(2) + 0 + 1 / log2(4) + 2 / log2(5)) - (1 / log2(2) + 2 / log2(3) + 2 / log2(4))
     ) / ideal10
-    bm25 = scores["comparison_alone_minus_hybrid_ndcg10"]["bm25"]
+    bm25 = scores["comparison_alone_minus_hybrid"]["bm25"]
     assert bm25["difference"] == pytest.approx(difference) and bm25["cases"] == 1
     assert bm25["better"] == "a"
+
+
+def tiny_key_top3() -> tuple[dict, dict[str, int]]:
+    """``tiny_key`` as a pool of each method's top 3: ranks beyond 3 are not in it (R005 leaves
+    BM25's list, where it was 4th)."""
+    key, grades = tiny_key()
+    rows = [
+        {
+            **r,
+            "ranks": {m: (v if v is not None and v <= 3 else None) for m, v in r["ranks"].items()},
+        }
+        for r in key["rows"]
+    ]
+    return {**key, "rows": rows, "depth": 3}, grades
+
+
+def test_a_top_3_pool_reports_what_it_judged_and_compares_on_ndcg_3():
+    key, grades = tiny_key_top3()
+    scores = jr.score_methods(key, grades)
+    m = scores["methods"]
+    log2 = math.log2
+    ideal3 = 2 / log2(2) + 2 / log2(3) + 1 / log2(4)
+    assert scores["pool_depth"] == 3 and scores["decisive_metric"] == "ndcg3"
+    for method in jr.METHODS:
+        # Ranks 4 to 10 were never judged, so nothing that needs them is reported.
+        assert set(m[method]) == {"p3", "p3_strict", "ndcg3", "queries_showing_under_3"}
+        assert all(
+            m[method][name]["ci_low"] <= m[method][name]["value"] for name in ("p3", "ndcg3")
+        )
+    bm25 = (2 / log2(2) + 0 + 1 / log2(4)) / ideal3  # r1, r2, r3: grades 2, 0, 1
+    dense = (2 / log2(4)) / ideal3  # r2, r4, r5: grades 0, 0, 2
+    hybrid = (1 / log2(2) + 2 / log2(3) + 2 / log2(4)) / ideal3  # r3, r5, r1: grades 1, 2, 2
+    assert m["bm25"]["ndcg3"]["value"] == pytest.approx(bm25)
+    assert m["dense"]["ndcg3"]["value"] == pytest.approx(dense)
+    assert m["hybrid"]["ndcg3"]["value"] == pytest.approx(hybrid)
+    assert m["bm25"]["p3"]["value"] == pytest.approx((2 / 3 + 0) / 2)
+    comparison = scores["comparison_alone_minus_hybrid"]
+    assert set(comparison) == {"bm25", "dense"}
+    assert comparison["bm25"]["difference"] == pytest.approx(bm25 - hybrid)
+    assert comparison["dense"]["difference"] == pytest.approx(dense - hybrid)
+    assert comparison["bm25"]["cases"] == 1
+
+
+def test_a_key_that_does_not_say_its_depth_is_the_first_registrations():
+    assert jr.pool_depth({}) == 10 and jr.pool_depth({"depth": 3}) == 3
+    assert jr.decisive_metric(10) == "ndcg10" and jr.decisive_metric(3) == "ndcg3"
+    assert [m[0] for m in jr.metrics_at(3)] == ["p3", "p3_strict", "ndcg3"]
+    assert [m[0] for m in jr.metrics_at(10)] == [m[0] for m in jr.METRICS]
+    with pytest.raises(ValueError):
+        jr.metrics_at(2)
 
 
 def test_a_method_that_shows_fewer_than_three_is_counted_and_penalised():
@@ -503,7 +595,7 @@ def test_a_method_that_shows_fewer_than_three_is_counted_and_penalised():
 
 
 def test_the_rule_as_pre_registered():
-    def scores(better: str | None, p3: float) -> dict:
+    def scores(better: str | None, p3: float, decisive: str = "ndcg3") -> dict:
         comparison = {
             m: {"better": "a" if m == better else None, "difference": 0.1}
             for m in ("bm25", "dense")
@@ -511,12 +603,19 @@ def test_the_rule_as_pre_registered():
         methods = {m: {"p3": {"value": 0.8}} for m in jr.METHODS}
         methods["hybrid"]["p3"]["value"] = p3
         methods["dense"]["p3"]["value"] = 0.3
-        return {"comparison_alone_minus_hybrid_ndcg10": comparison, "methods": methods}
+        return {
+            "comparison_alone_minus_hybrid": comparison,
+            "decisive_metric": decisive,
+            "methods": methods,
+        }
 
     stays = jr.apply_rule(scores(None, 0.6))
     assert stays["configured"] == "hybrid" and not stays["evidence_decision_for_the_team"]
+    assert "nDCG@3" in stays["verdict"]
     swapped = jr.apply_rule(scores("dense", 0.9))
     assert swapped["configured"] == "dense" and "replaces the hybrid" in swapped["verdict"]
+    assert "nDCG@3" in swapped["verdict"]
+    assert "nDCG@10" in jr.apply_rule(scores("dense", 0.9, "ndcg10"))["verdict"]
     assert swapped["evidence_decision_for_the_team"]  # dense's Precision@3 is 0.3: under 0.5
     assert jr.apply_rule(scores(None, 0.49))["evidence_decision_for_the_team"]
     assert not jr.apply_rule(scores(None, 0.5))["evidence_decision_for_the_team"]
@@ -632,8 +731,10 @@ def test_a_consensus_gives_the_final_figures_and_the_rule(round_dir, capsys):
     assert jr.main(score_args(round_dir, "--consensus", str(consensus))) == 0
     out = capsys.readouterr().out
     assert "labels: CONSENSUS" in out and "The pre-registered rule" in out
+    assert "Hybrid against each method alone, nDCG@3" in out  # the top-3 pool's decisive metric
 
     scores = json.loads((round_dir / jr.SCORES_NAME).read_text(encoding="utf-8"))
+    assert scores["scores"]["decisive_metric"] == "ndcg3" and scores["scores"]["pool_depth"] == 3
     key = json.loads((round_dir / jr.KEY_NAME).read_text(encoding="utf-8"))
     by_a = {r["row_id"]: i % 3 for i, r in enumerate(key["rows"])}
     expected = jr.score_methods(key, by_a)

@@ -22,13 +22,16 @@ corpus text, which is never committed):
 * ``exp011_queries.json``: the 26 queries as run, so a later ``pool --queries`` reproduces them
   without the graph or the model.
 
-**The pool** (EXP-011, "Pooling and judging"). For each query, the top 10 of BM25 alone, dense search
-alone and the hybrid, one passage per article, exactly as the dashboard would show them (a passage
-whose excerpt or article title fails the treatment screen is never shown, so never pooled): at most
-30 distinct passages, shuffled with seed 42, the method hidden. The shuffle starts from the passages
-in index order, so the order cannot depend on how any method ranked them. **Every pooled passage is
-judged by both judges**, which covers ``docs/05`` §3.4's 100 sampled pairs several times over (the
-script says if a pool is under 100).
+**The pool** (EXP-011, "Pooling and judging", as lightened by the dated note of 2026-11-09). For each
+query, the top ``--depth`` of BM25 alone, dense search alone and the hybrid, one passage per article,
+exactly as the dashboard would show them (a passage whose excerpt or article title fails the
+treatment screen is never shown, so never pooled). **The depth is 3 by default** (at most 9 distinct
+passages a query, 159 rows over the 26 queries on the real bundle); the design as first registered
+pooled the top 10 (``--depth 10``: at most 30 a query, 489 rows). The pool is shuffled with seed 42,
+the method hidden. The shuffle starts from the passages in index order, so the order cannot depend
+on how any method ranked them. The retriever itself always runs at its configured depth (10), so the
+hybrid's top 3 are the ones the dashboard shows. **Every pooled passage is judged by both judges**,
+which covers ``docs/05`` §3.4's 100 sampled pairs (the script says if a pool is under 100).
 
 **The 26 queries.**
 
@@ -54,8 +57,10 @@ independently and blind; disagreements are settled afterwards by discussion.
 
 **Scoring.** ``score`` joins the judges' two filled sheets to the key and reports, for BM25, dense
 search and the hybrid, each with a 95% bootstrap interval over queries (1,000 resamples, seed 42,
-``src/eval/metrics.py``): Precision@3 (judged at least 1, and strictly 2), nDCG@3, nDCG@10 and
-pooled Recall@10 (passages judged at least 1, relative to the pool, not to the corpus); the weighted
+``src/eval/metrics.py``): Precision@3 (judged at least 1, and strictly 2) and nDCG@3, which a pool
+of depth 3 judges completely; only a pool of depth 10 (the first registration) also gives nDCG@10
+and pooled Recall@10 (passages judged at least 1, relative to the pool, not to the corpus), and
+``score`` reads the depth from the key and reports what that depth supports; the weighted
 Cohen's kappa **before discussion**; the rows the judges disagree on, in
 ``exp011_disagreements.csv`` with a blank ``consensus`` column to fill; the rows flagged as
 treatment; and ``data/interim/exp011_judgements.csv`` (PMCIDs and labels only, no article text).
@@ -65,7 +70,8 @@ rule is not applied. The judges then fill the ``consensus`` column of ``exp011_d
 with ``row_id`` and ``consensus`` columns covering every disagreement works, and a consensus grade
 for a row the judges agreed on in another grade is refused, since only disagreements are settled
 by discussion. With it, the final figures, the hybrid's paired comparison with each method alone
-on nDCG@10 (``paired_bootstrap_difference``) and the pre-registered rule are reported.
+on the decisive metric (nDCG@3 at depth 3, nDCG@10 at depth 10; ``paired_bootstrap_difference``)
+and the pre-registered rule are reported.
 
 Definitions the pre-registration leaves open, fixed here and printed in every report: Precision@k
 divides by k (a method that shows fewer is penalised; the report counts those queries); nDCG's gain
@@ -109,8 +115,14 @@ GOLDEN = REPO_ROOT / "tests" / "fixtures" / "golden_cases.yaml"
 
 SEED = 42
 RESAMPLES = 1_000
-POOL_DEPTH = DEPTH
-"""How far down each method's list enters the pool: 10 (EXP-011)."""
+RETRIEVER_DEPTH = DEPTH
+"""The retriever's own depth, as configured (10): the hybrid's top 3 are what the dashboard shows,
+and they depend on it, so the pool is always drawn from a retriever at this depth."""
+FIRST_REGISTERED_DEPTH = 10
+"""How far down each method's list entered the pool in EXP-011 as first registered (2026-10-14)."""
+POOL_DEPTH = 3
+"""How far down each method's list enters the pool: 3, by the dated note of 2026-11-09 (docs/08
+EXP-011), before any judging. A pool this deep judges Precision@3 and nDCG@3 completely."""
 CASE_CANDIDATES = 3
 """Candidates per golden case that become queries: the three ranked first (EXP-011)."""
 MIN_PAIRS = 100
@@ -313,6 +325,9 @@ def run_methods(
     """
     cid, concepts = query["condition_id"], list(query["concepts"])
     terms = retriever.bm25.query_terms(compose_query_text(cid, concepts))
+    if not 1 <= depth <= retriever.depth:
+        # The retriever's depth caps what ``rank`` returns, so a pool cannot be deeper than it.
+        raise ValueError(f"pool depth {depth} needs a retriever of depth {depth} or more")
     found: dict[str, list[tuple[int, Any]]] = {}
     for name, methods in METHODS.items():
         shown: list[tuple[int, Any]] = []
@@ -668,6 +683,26 @@ def _dcg(gains: Sequence[int], k: int) -> float:
     return sum(g / math.log2(i + 1) for i, g in enumerate(gains[:k], start=1))
 
 
+def pool_depth(key: Mapping[str, Any]) -> int:
+    """The depth a key's pool was drawn at; a key that does not say is the first registration's."""
+    return int(key.get("depth", FIRST_REGISTERED_DEPTH))
+
+
+def metrics_at(depth: int) -> tuple[tuple[str, str, bool], ...]:
+    """The metrics a pool of this depth judges completely: Precision@3 and nDCG@3 need each
+    method's top 3 judged; nDCG@10 and Recall@10 need its top 10, so only a depth-10 pool has them.
+    """
+    if depth < 3:
+        raise ValueError("a pool needs a depth of at least 3 for Precision@3 and nDCG@3")
+    return tuple(m for m in METRICS if depth >= 10 or m[0] not in DEEP_METRICS)
+
+
+def decisive_metric(depth: int) -> str:
+    """The metric the rule compares the methods on: nDCG@10 as first registered, nDCG@3 when the
+    pool is the top 3 (docs/08 EXP-011, dated note of 2026-11-09)."""
+    return "ndcg10" if depth >= 10 else "ndcg3"
+
+
 def per_query_metrics(key: Mapping[str, Any], grades: Mapping[str, int]) -> dict[str, Any]:
     """Each method's figure for each query, in ``key['queries']`` order.
 
@@ -675,20 +710,17 @@ def per_query_metrics(key: Mapping[str, Any], grades: Mapping[str, int]) -> dict
     ``ndcg3``/``ndcg10``: gains = the grade, discount log2(rank + 1), the ideal ordering the
     query's pool by grade. ``recall10``: passages judged ≥ 1 in the first 10, over the pool's.
     ``valid`` marks the queries whose pool holds a passage judged ≥ 1: only there nDCG and recall
-    exist, the same queries for every method.
+    exist, the same queries for every method. ``ndcg10`` and ``recall10`` are computed only for a
+    pool drawn at depth 10: below that, ranks 4 to 10 were never judged.
     """
     queries = [q["id"] for q in key["queries"]]
+    deep = pool_depth(key) >= 10
     by_query: dict[str, list[dict]] = {qid: [] for qid in queries}
     for row in key["rows"]:
         by_query[row["query_id"]].append(row)
     valid = np.zeros(len(queries), dtype=bool)
-    values = {
-        m: {
-            name: np.zeros(len(queries))
-            for name in ("p3", "p3_strict", "ndcg3", "ndcg10", "recall10", "shown")
-        }
-        for m in METHODS
-    }
+    names = ("p3", "p3_strict", "ndcg3", "shown") + (("ndcg10", "recall10") if deep else ())
+    values = {m: {name: np.zeros(len(queries)) for name in names} for m in METHODS}
     for q, qid in enumerate(queries):
         pool = by_query[qid]
         pool_grades = sorted((grades[r["row_id"]] for r in pool), reverse=True)
@@ -707,8 +739,9 @@ def per_query_metrics(key: Mapping[str, Any], grades: Mapping[str, int]) -> dict
             v["p3_strict"][q] = sum(1 for g in top3 if g >= 2) / 3
             if relevant:
                 v["ndcg3"][q] = _dcg(top3, 3) / _dcg(pool_grades, 3)
-                v["ndcg10"][q] = _dcg(top10, 10) / _dcg(pool_grades, 10)
-                v["recall10"][q] = sum(1 for g in top10 if g >= 1) / relevant
+                if deep:
+                    v["ndcg10"][q] = _dcg(top10, 10) / _dcg(pool_grades, 10)
+                    v["recall10"][q] = sum(1 for g in top10 if g >= 1) / relevant
     return {"queries": queries, "valid": valid, "values": values}
 
 
@@ -727,56 +760,67 @@ METRICS = (
     ("ndcg10", "nDCG@10", True),
     ("recall10", "pooled Recall@10 (judged ≥ 1)", True),
 )
-"""(key, label, needs a relevant passage in the pool)."""
+DEEP_METRICS = ("ndcg10", "recall10")
+"""The metrics that need each method's top 10 judged."""
 
 
 def score_methods(key: Mapping[str, Any], grades: Mapping[str, int]) -> dict[str, Any]:
-    """Every method's metrics with intervals, and the hybrid's paired comparisons (nDCG@10)."""
+    """Every method's metrics with intervals, and the hybrid's paired comparisons on the decisive
+    metric for the pool's depth (nDCG@3 for the top-3 pool, nDCG@10 for the first registration's).
+    """
+    depth = pool_depth(key)
     per = per_query_metrics(key, grades)
     valid, values = per["valid"], per["values"]
     everyone = np.ones(len(per["queries"]), dtype=bool)
+    decisive = decisive_metric(depth)
     methods: dict[str, Any] = {}
     for method in METHODS:
         v = values[method]
         entry = {
             name: interval(v[name], valid if needs_relevant else everyone)
-            for name, _, needs_relevant in METRICS
+            for name, _, needs_relevant in metrics_at(depth)
         }
         entry["queries_showing_under_3"] = int((v["shown"] < 3).sum())
-        entry["queries_showing_under_10"] = int((v["shown"] < POOL_DEPTH).sum())
+        if depth >= 10:
+            entry["queries_showing_under_10"] = int((v["shown"] < FIRST_REGISTERED_DEPTH).sum())
         methods[method] = entry
     comparison: dict[str, Any] = {}
     if valid.any():
         for alone in ("bm25", "dense"):
             comparison[alone] = paired_bootstrap_difference(
-                values[alone]["ndcg10"][valid],
-                values["hybrid"]["ndcg10"][valid],
+                values[alone][decisive][valid],
+                values["hybrid"][decisive][valid],
                 resamples=RESAMPLES,
                 seed=SEED,
             )
     return {
         "queries": len(per["queries"]),
+        "pool_depth": depth,
+        "decisive_metric": decisive,
         "queries_without_relevant_pool": int((~valid).sum()),
         "methods": methods,
-        "comparison_alone_minus_hybrid_ndcg10": comparison,
+        "comparison_alone_minus_hybrid": comparison,
     }
 
 
 def apply_rule(scores: Mapping[str, Any]) -> dict[str, Any]:
     """EXP-011's rule, as written.
 
-    The hybrid stays configured unless BM25 alone or dense alone is better on nDCG@10 with a paired
-    interval that excludes 0 (then the better method alone is configured). If the configured
-    method's Precision@3 (judged ≥ 1) is under 0.5, the team decides whether evidence stays.
+    The hybrid stays configured unless BM25 alone or dense alone is better on the decisive metric
+    (nDCG@3 for a pool of the top 3, as revised on 2026-11-09; nDCG@10 for the first registration's
+    pool of the top 10) with a paired interval that excludes 0 (then the better method alone is
+    configured). If the configured method's Precision@3 (judged ≥ 1) is under 0.5, the team decides
+    whether evidence stays.
     """
-    comparison = scores["comparison_alone_minus_hybrid_ndcg10"]
+    comparison = scores["comparison_alone_minus_hybrid"]
+    label = {"ndcg3": "nDCG@3", "ndcg10": "nDCG@10"}[scores.get("decisive_metric", "ndcg10")]
     better = [m for m in ("bm25", "dense") if comparison.get(m, {}).get("better") == "a"]
     if better:
         configured = max(better, key=lambda m: comparison[m]["difference"])
-        verdict = f"{METHOD_NAMES[configured]} replaces the hybrid (better on nDCG@10, interval excludes 0)"
+        verdict = f"{METHOD_NAMES[configured]} replaces the hybrid (better on {label}, interval excludes 0)"
     else:
         configured = "hybrid"
-        verdict = "the hybrid stays configured (neither method alone is better on nDCG@10)"
+        verdict = f"the hybrid stays configured (neither method alone is better on {label})"
     p3 = scores["methods"][configured]["p3"]["value"]
     return {
         "configured": configured,
@@ -900,22 +944,33 @@ def _fmt(entry: Mapping[str, float]) -> str:
 
 
 def _methods_table(scores: Mapping[str, Any], heading: str) -> list[str]:
+    depth = scores.get("pool_depth", FIRST_REGISTERED_DEPTH)
     lines = [heading]
-    for name, label, _ in METRICS:
+    for name, label, _ in metrics_at(depth):
         lines.append(f"  {label}")
         for method in METHODS:
             lines.append(f"    {METHOD_NAMES[method]:<24}{_fmt(scores['methods'][method][name])}")
-    short = {
-        METHOD_NAMES[m]: (
-            scores["methods"][m]["queries_showing_under_3"],
-            scores["methods"][m]["queries_showing_under_10"],
+    if depth >= 10:
+        lines.append(
+            "  queries where a method showed fewer than 3 / fewer than 10 passages: "
+            + "; ".join(
+                f"{METHOD_NAMES[m]} {scores['methods'][m]['queries_showing_under_3']} / "
+                f"{scores['methods'][m]['queries_showing_under_10']}"
+                for m in METHODS
+            )
         )
-        for m in METHODS
-    }
-    lines.append(
-        "  queries where a method showed fewer than 3 / fewer than 10 passages: "
-        + "; ".join(f"{name} {u3} / {u10}" for name, (u3, u10) in short.items())
-    )
+    else:
+        lines.append(
+            "  queries where a method showed fewer than 3 passages: "
+            + "; ".join(
+                f"{METHOD_NAMES[m]} {scores['methods'][m]['queries_showing_under_3']}"
+                for m in METHODS
+            )
+        )
+        lines.append(
+            f"  (the pool is each method's top {depth}: nDCG@10 and Recall@10 are not computed, "
+            "because passages ranked 4 to 10 were never judged)"
+        )
     if scores["queries_without_relevant_pool"]:
         lines.append(
             f"  {scores['queries_without_relevant_pool']} of {scores['queries']} queries have no "
@@ -973,8 +1028,12 @@ def render_report(key: Mapping[str, Any], result: Mapping[str, Any]) -> str:
     out.append("")
     if result["labels"] == "consensus":
         out += _methods_table(result["scores"], "Metrics on the consensus labels, per method")
-        out += ["", "Hybrid against each method alone, nDCG@10 (paired bootstrap, alone − hybrid)"]
-        for alone, c in result["scores"]["comparison_alone_minus_hybrid_ndcg10"].items():
+        decisive = {"ndcg3": "nDCG@3", "ndcg10": "nDCG@10"}[result["scores"]["decisive_metric"]]
+        out += [
+            "",
+            f"Hybrid against each method alone, {decisive} (paired bootstrap, alone − hybrid)",
+        ]
+        for alone, c in result["scores"]["comparison_alone_minus_hybrid"].items():
             out.append(
                 f"  {METHOD_NAMES[alone]:<24}{c['difference']:+.3f} "
                 f"[{c['ci_low']:+.3f}, {c['ci_high']:+.3f}]  "
@@ -1005,9 +1064,12 @@ def render_report(key: Mapping[str, Any], result: Mapping[str, Any]) -> str:
         "",
         "Definitions: Precision@k divides by k; nDCG's gain is the grade, its ideal ordering the "
         "query's judged pool; each figure is the mean over queries; 95% intervals resample queries "
-        f"({RESAMPLES} resamples, seed {SEED}). Pooled recall is relative to what the three "
-        "methods found, not to the corpus. Closed world (R-13): 14 conditions. No DDXPlus "
-        "patient is read: the queries are the conditions and the hand-written golden cases.",
+        f"({RESAMPLES} resamples, seed {SEED}). The pool is each method's top "
+        f"{pool_depth(key)}: nDCG's ideal ordering comes from what the three methods put there, "
+        "so it says nothing about passages none of them ranked that high (pooled recall, where "
+        "computed, is relative to the pool, not to the corpus). Closed world (R-13): "
+        "14 conditions. No DDXPlus patient is read: the queries are the conditions and the "
+        "hand-written golden cases.",
     ]
     return "\n".join(out)
 
@@ -1141,6 +1203,11 @@ def cmd_pool(args: argparse.Namespace) -> int:
     out_dir = ensure_private(args.out_dir)
     sheets_dir = out_dir / "sheets"
     judges = list(args.judges)
+    if not 3 <= args.depth <= RETRIEVER_DEPTH:
+        raise SystemExit(
+            f"--depth {args.depth}: use 3 (the revised design) up to {RETRIEVER_DEPTH} "
+            "(the first registration pooled the top 10)"
+        )
     if len(judges) != 2 or judges[0] == judges[1]:
         raise SystemExit("--judges needs two different labels, e.g. A B")
     for label in judges:
@@ -1167,8 +1234,8 @@ def cmd_pool(args: argparse.Namespace) -> int:
         bundle = load_bundle(args.bundle)
     except BundleError as error:
         raise SystemExit(f"the bundle at {args.bundle} cannot be used: {error}") from error
-    retriever = HybridRetriever(bundle, depth=POOL_DEPTH)
-    rows, returned = build_pool(retriever, queries)
+    retriever = HybridRetriever(bundle, depth=RETRIEVER_DEPTH)
+    rows, returned = build_pool(retriever, queries, depth=args.depth)
     summary = pool_summary(rows, queries)
 
     sheets_dir.mkdir(parents=True, exist_ok=True)
@@ -1192,11 +1259,15 @@ def cmd_pool(args: argparse.Namespace) -> int:
             "rescreened": retriever.rescreened,
         },
         degraded=degraded,
+        depth=args.depth,
     )
     _write_json(out_dir / KEY_NAME, key)
     _write_json(out_dir / QUERIES_NAME, {"queries": queries, "degraded": degraded})
 
-    print(f"pool: {summary['queries']} queries, {summary['rows']} rows to judge")
+    print(
+        f"pool: {summary['queries']} queries, {summary['rows']} rows to judge "
+        f"(each method's top {args.depth})"
+    )
     print(
         f"  per query: min {summary['per_query_min']}, median {summary['per_query_median']:g}, "
         f"max {summary['per_query_max']}"
@@ -1281,6 +1352,13 @@ def main(argv: list[str] | None = None) -> int:
     pool.add_argument("--bundle", type=Path, default=REPO_ROOT / DEFAULT_BUNDLE)
     pool.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     pool.add_argument("--judges", nargs=2, default=["A", "B"], metavar="LABEL")
+    pool.add_argument(
+        "--depth",
+        type=int,
+        default=POOL_DEPTH,
+        help=f"how far down each method's list enters the pool (default {POOL_DEPTH}, the design "
+        f"of the note of 2026-11-09; {FIRST_REGISTERED_DEPTH} reproduces the first registration)",
+    )
     pool.add_argument(
         "--queries", type=Path, help=f"reuse the queries of an earlier {QUERIES_NAME}"
     )

@@ -1041,6 +1041,50 @@ running a model. Reported:
 - **Still to do:** the two team members judge, blind; `scripts/judge_retrieval.py score` applies the metrics
   and the rule above.
 
+**Dated note, 2026-11-09 (later): the judging load is lightened before any judging. The pool is each method's top 3, and the decisive metric moves from nDCG@10 to nDCG@3.**
+- **Why.** The owner decided on 2026-11-09 to lighten the judging, and the team approved two members judging
+  a lighter pool the same day (`PROGRESS.md` §6). The 489-row pool was more than the two judges were
+  expected to face, and `docs/05` §3.4 asks for 100 judged pairs.
+- **What was known when this was written.** The 489-row pool had been built (the note above), and Claude
+  holds its key, which names the method that found each row. Claude does not judge. **Nothing is judged,
+  no sheet has been sent to anyone and nothing is scored.** The only facts used for this design are
+  counts from the key: 159 of the 489 rows are in some method's top 3, 5 to 8 per query (median 6), and
+  every method shows 3 passages for every query. No passage text was read for it.
+- **A first suggestion, withdrawn.** Claude had suggested about 130 rows (5 a query). That does not fit the
+  rule above, because nDCG@10 needs each method's top 10 judged. This note replaces it.
+- **The change.** Everything else stands: the 26 queries, the 0/1/2 scale, the two blind judges, the
+  treatment flag, the weighted kappa, the bootstrap, seed 42.
+  1. **The pool.** For each query, the top 3 of BM25 alone, dense search alone and the hybrid, one passage
+     per article, drawn from the same retriever at its configured depth of 10, so the hybrid's top 3 are
+     the passages the dashboard shows. At most 9 distinct passages a query: **159 rows** for the 26
+     queries, the same for both judges, shuffled again with seed 42.
+  2. **Metrics kept:** Precision@3 (judged at least 1, and strictly 2) and nDCG@3, each with its interval
+     over queries. **Dropped:** nDCG@10 and pooled Recall@10, because passages ranked 4 to 10 are no longer
+     judged.
+  3. **The rule**, otherwise as written above: the hybrid stays configured unless BM25 alone or dense
+     alone is better on **nDCG@3** with a paired interval (`paired_bootstrap_difference`) that excludes 0,
+     and then the better method alone is configured. If the configured method's Precision@3 (judged at
+     least 1) is under 0.5, the team decides whether evidence stays in the prototype.
+- **What the change costs, stated now.**
+  - The comparison is of the top 3, which is what the dashboard shows. It does not say whether a longer
+    list would rank better.
+  - nDCG@3's ideal ordering comes from the 5 to 8 passages the three methods put in their top 3, so the
+    pooling bias is larger than at depth 10: a relevant passage none of them ranked in the top 3 is
+    unknown, and a method can score high because the others did badly.
+  - The queries are the same 26 and each has fewer judged rows, so the intervals will be as wide as before
+    or wider. It remains a check of the design, not a hypothesis of `docs/05`.
+- **Reissue.** The 489-row sheets in `data/interim/exp011/` are void: they were never sent, and they are
+  left where they are (nothing was deleted). The new pool is in `data/interim/exp011_depth3/`
+  (`sheets/judge_A.csv`, `sheets/judge_B.csv`, `sheets/judge_instructions.md`, and the private
+  `exp011_pool_key.json`), never committed. It was built with `scripts/judge_retrieval.py pool --queries
+  data/interim/exp011/exp011_queries.json --out-dir data/interim/exp011_depth3`: `pool --depth` is new
+  (default 3; `--depth 10` reproduces the first registration), and `score` reads the key's depth and
+  reports only what that depth judged. **Checked:** the 159 rows are exactly the passages of the 489-row
+  pool that some method ranked in its top 3, with those ranks; the queries and the bundle's manifest are
+  the same; the two sheets are byte-identical, blank, and name no method.
+- **Still to do:** two team members judge the 159 rows, blind and independently; then `score`, a consensus
+  on the disagreements, and the rule as written in this note.
+
 ### EXP-007 — Calibration: Platt scaling against isotonic regression, and when a score may be shown as a probability (2b) (validation split) · *pre-registered 2026-10-13, before any calibrator was fitted on project data*
 
 | Field | Value |
