@@ -199,6 +199,12 @@ earlier wording of each choice is kept above; what is in force now:
 patients, an untuned α of 0.5) had already printed the fused verdicts under both readings of E-2 before
 this answer. They are stamped as not a result and nothing in them is quoted.
 
+**Dated note, 2026-11-09, at the freeze.** The team has not answered the choices that 3b did not settle
+(2 to 6, 8 and 9), so they stand as written, and the report says so. `calibration.file` is null (EXP-007's
+note of this date), so the by-construction list's "when a calibrator is set" does not arise and A5 is A0
+exactly. A0's ECE
+is the raw fused score's. The freeze tag `v0.9-freeze` is made after this note.
+
 The output also lists, for every system at every level, how many patients it misses in the top 3
 (and how many must-not-miss ones), so a comparator at a ceiling is visible: McNemar's test
 cannot reach 0.05 against a comparator that misses five or fewer.
@@ -1304,6 +1310,10 @@ real graph, with BODHI-S. **The rule chose temperature scaling** (the lowest mea
   hand-written history is near-certain under the model whatever the calibration (R-17).
 - **Whether the dashboard or the API shows a probability is the owner's decision** (`calibration.file`,
   `configs/config.yaml`), recorded in `PROGRESS.md` when made. Until then no probability is shown.
+- **Decided 2026-11-09 (the owner, taking the recommendation): ranks only. `calibration.file` stays null** and
+  no probability is shown, because a short hand-written case is near-certain under any calibration (R-17).
+  The calibrator above is kept as a result, not deployed. So A5 (no calibration) is A0 exactly, as EXP-012's
+  pre-registration says for this case, and A0's ECE is the raw fused score's (0.0327 at 100%).
 
 #### The transformer arms (2026-10-13, as pre-registered above)
 
