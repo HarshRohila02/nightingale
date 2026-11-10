@@ -183,12 +183,31 @@ Every report, presentation, and demo must state:
 
 ## 8. Ethical review checklist
 
-- [ ] No real patient data at any stage
-- [ ] Disclaimer present on every output path (UI, API, report figures)
-- [ ] No treatment or drug recommendation anywhere in the system
-- [ ] Red-flag layer functions independently of the ML ranker
-- [ ] `degraded_components` surfaced in the UI
-- [ ] Limitations section present in the report
-- [ ] No claim of clinical efficacy or accuracy in real care
-- [ ] Free-text input handled as untrusted
-- [ ] Sex/age breakdowns reported where sample size allows
+*Checked on 2026-11-10 against the repository. ✅ done · ⚠️ done with a stated gap · ⬜ not done.*
+
+- [x] No real patient data at any stage — ✅ (`docs/03` §7).
+- [x] Disclaimer present on every output path (UI, API, report figures) — ✅ the dashboard on every screen, every
+  API result (`tests/test_api.py`), the demo, and the report PDF's margins. **The 22 SVG figures did not carry it
+  and now do**: a footer line from `src/eval/svg.py` (tested), redrawn on 2026-11-10.
+- [x] No treatment or drug recommendation anywhere in the system — ✅ the retrieval screen drops treatment
+  sentences and titles, `safety_check` drops any evidence that recommends a treatment, guardrails v1 check the
+  explanation, and the investigations table says "consider" and names tests only. The project's own treatment
+  lexicon run over 353 string constants of the investigations, red-flag, next-question and stub modules flags 17:
+  12 guideline titles containing "management" or "treatment", 3 docstrings and 2 risk-factor descriptions
+  ("surgery"); none is an instruction.
+- [x] Red-flag layer functions independently of the ML ranker — ✅ `tests/test_pipeline.py`
+  (`test_run_independently_of_ml_score`), and the golden cases run with the ranker's output flat.
+- [x] `degraded_components` surfaced in the UI — ✅ "Running without: …" (`app/streamlit_app.py`), seen in the
+  browser pane on 2026-11-08 and 2026-11-10 (Aura paused, so the local graph answered and said so).
+- [x] Limitations section present in the report — ✅ `docs/report/07-limitations-ethics.md`. ⚠️ The report is
+  paused, so its text is the draft of 2026-10-14 and some wording is stale.
+- [x] No claim of clinical efficacy or accuracy in real care — ✅ a search of the README, the dashboard, the report
+  chapters and the demo guide for claims of clinical validity, efficacy or superiority found none; every figure is
+  validation or test on synthetic data, and the evidence caption now says its relevance is unjudged (EXP-011).
+- [x] Free-text input handled as untrusted — ✅ by construction and now tested: `PatientCase.free_text` exists in the
+  contract and no component reads it; `tests/test_free_text.py` shows a hostile text changes no ranking, flag or
+  explanation for any golden case and is not echoed, and that no module in `src/`, `app/` or `scripts/` mentions the
+  field. The dashboard offers no free-text box.
+- [ ] Sex/age breakdowns reported where sample size allows — ⚠️ **sex ✅**: by-sex tables for seven systems at every
+  level (`docs/08` EXP-012 `[TEST]`), with the artifact caveat. **Age ⬜ not reported.** An age breakdown on the
+  test split would need a second opening, so none was made; one on validation is possible and has not been done.

@@ -491,11 +491,14 @@ python scripts/download_data.py         # DDXPlus, BODHI-S, UCI Heart
 - **BODHI-S: `CC-BY-NC-4.0` — NON-COMMERCIAL.** Academic use is fine, but you must **attribute Eka
   Care** and must **not** use it (or derivatives) commercially.
 - **DDXPlus:** CC-BY-4.0 — attribute the authors (Tchango et al.).
-- **UCI Heart Disease:** open (CC-BY 4.0 on UCI ML Repository) — verify the specific mirror.
+- **UCI Heart Disease:** open (CC-BY 4.0 on UCI ML Repository) — verify the specific mirror. *(Not used in the project as built.)*
 - **Synthea:** generated data is free of cost/privacy/security restrictions.
 - **PubMed/PMC:** respect NCBI E-utilities terms and rate limits; only the PMC Open Access subset is
   freely redistributable.
-- **PTB-XL:** CC-BY — verify before redistributing.
+- **S-PubMedBert-MS-MARCO** (`pritamdeka/S-PubMedBert-MS-MARCO`, which embedded the evidence passages on Kaggle): `CC-BY-NC-2.0` — **non-commercial**, checked 2026-11-10; the retrieval bundle built with it is non-commercial too.
+- **Llama 3.1** (Meta; used only in the language-model trial, nothing shipped): Meta's community licence, not re-verified online.
+- **PTB-XL:** CC-BY — verify before redistributing. *(Not used in the project as built.)*
+- The whole project is for **non-commercial academic use**; `docs/03` §1.5 holds the re-verified licence table.
 
 ---
 

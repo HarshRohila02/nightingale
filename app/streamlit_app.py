@@ -35,6 +35,7 @@ from app.view import (  # noqa: E402
     build_case,
     candidate_rows,
     concept_options,
+    credits_markdown,
     evidence_markdown,
     evidence_note,
     evidence_rows,
@@ -72,7 +73,8 @@ def show_evidence(rows: list | None, note: str | None, retrieved: bool) -> None:
             st.markdown(evidence_markdown(row))
         st.caption(
             "Excerpts from PMC Open Access articles, chosen for this condition and these "
-            "findings; about diagnosis only, so passages about treatment are never shown."
+            "findings; about diagnosis only, so passages about treatment are never shown. Their "
+            "relevance has not been formally judged (EXP-011), so read them as leads, not as proof."
         )
 
 
@@ -280,3 +282,5 @@ st.caption(
     "The system knows 14 conditions only: any other cause is forced into one of them (R-13). "
     "Trained on synthetic DDXPlus patients. " + DISCLAIMER
 )
+with st.expander("Data sources, credits and licences"):
+    st.markdown(credits_markdown())

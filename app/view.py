@@ -318,3 +318,32 @@ def evidence_markdown(row: Mapping[str, Any]) -> str:
         licence,
     ]
     return f"> {_escape_markdown(row['snippet'])}\n\n" + " · ".join(p for p in parts if p)
+
+
+# --------------------------------------------------------------------------- #
+# Credits and licences (docs/03 §6, §7: attribution on every public surface)
+# --------------------------------------------------------------------------- #
+
+CREDITS: tuple[str, ...] = (
+    "**DDXPlus** (Tchango et al., NeurIPS 2022; CC-BY-4.0): the synthetic patients the rankers "
+    "are trained and tested on.",
+    "**BODHI-S** by **Eka Care** (CC-BY-NC-4.0): enriches four conditions of the knowledge graph. "
+    "Used for non-commercial academic research only.",
+    "**Synthea** (MITRE; Apache-2.0): synthetic patient histories, shown beside a case and never "
+    "ranked on.",
+    "**PubMed Central Open Access** (NCBI): the evidence passages, each shown with its own "
+    "Creative Commons licence; some of those are non-commercial.",
+    "**S-PubMedBert-MS-MARCO** (`pritamdeka` on Hugging Face; CC-BY-NC-2.0): the model that "
+    "embedded the passages, run once in the cloud (not in this app).",
+)
+NON_COMMERCIAL = (
+    "This is a university research prototype, for non-commercial academic use only. It is "
+    "decision support, not a diagnosis."
+)
+
+
+def credits_markdown() -> str:
+    """The credits block the dashboard shows: every source it draws on, its licence, and that the
+    project is non-commercial (docs/03 §7)."""
+    bullets = "\n".join(f"- {line}" for line in CREDITS)
+    return f"{bullets}\n\n{NON_COMMERCIAL}"

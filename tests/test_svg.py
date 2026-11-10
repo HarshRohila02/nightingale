@@ -272,3 +272,15 @@ def test_markers_refuse_an_unknown_shape():
     canvas = svg._Canvas(10, 10, "t", "d")
     with pytest.raises(ValueError, match="shape"):
         canvas.marker("star", 1, 1, "#000000")
+
+
+def test_every_figure_carries_the_disclaimer_on_a_footer_line():
+    """docs/04 §8: the disclaimer is on every output path, report figures included."""
+    canvas = svg._Canvas(300, 120, "A title", "A description")
+    text = canvas.render()
+    assert svg.FOOTER_TEXT in text.replace("&amp;", "&")
+    assert "not a diagnosis" in text and "synthetic data" in text
+    # The footer sits below the chart, in room the canvas adds, so it overlaps nothing.
+    assert f'height="{120 + svg.FOOTER_HEIGHT}"' in text
+    assert f'viewBox="0 0 300 {120 + svg.FOOTER_HEIGHT}"' in text
+    assert f'y="{120 + 12}"' in text

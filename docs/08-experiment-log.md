@@ -1275,6 +1275,31 @@ running a model. Reported:
 - **Still to do:** two team members judge the 159 rows, blind and independently; then `score`, a consensus
   on the disagreements, and the rule as written in this note.
 
+**Dated note, 2026-11-10: the judging does not happen. EXP-011 closes as built and measured for cost and fidelity, and not judged for relevance.**
+- **Why.** The owner reported that the team members have no time to judge, even the lighter pool of 159 rows.
+  No filled sheet exists. The sheets and the private key stay in `data/interim/exp011_depth3/` (never committed),
+  so the same tool can still be used if judges are found.
+- **What follows from the pre-registered rule.** Precision@3 and nDCG@3 are never computed and the paired
+  comparison is not run, so nothing moves the retrieval from where it stands: **the hybrid stays configured, by
+  default and not by a result.** The clause "if the configured method's Precision@3 is under 0.5 the team decides
+  whether evidence stays" cannot be applied; evidence stays in the prototype with the disclosure below, and the
+  team may still decide otherwise. No ranking depends on evidence (`tests/test_retrieval.py`).
+- **What is known without judging** (descriptive; none of it says a passage is relevant): the corpus, the cost
+  (both above) and the query vector's fidelity. **The pre-registered threshold for the last was never applied
+  in the note of 2026-11-08, which gave only means.** Over the 56 pairs (4 golden cases × 14 conditions) the
+  laptop's mixed query vector has a cosine with the full-sentence embedding of 0.962 median (mean 0.963, range
+  0.950 to 0.984), and its dense top 10 overlaps the full sentence's by **0.400 median** (mean 0.404, range 0.00 to
+  0.80). The rule above reads: "a median overlap under 0.5 counts as a poor stand-in, and is disclosed as a limit
+  of the laptop design." **It is disclosed here:** the dense half of the laptop's retrieval ranks, on average, four
+  of the ten passages that embedding the whole query would, and no remedy keeps the model off the laptop for an
+  arbitrary case.
+- **Disclosure in the product.** The dashboard's evidence caption now says the passages' relevance "has not been
+  formally judged (EXP-011)" and asks the reader to take them as leads, not proof (`app/streamlit_app.py`, tested).
+  The report, when it resumes, says the same, and that EXP-011's comparisons were not assessed.
+- **A later change would be disclosed.** If judges are found later and the result favours BM25 or dense alone, the
+  change to `configs/` would be a change after the freeze and the single opening: harmless to every ranking and to
+  the test read (retrieval never ranks), and reported as made after them.
+
 ### EXP-007 — Calibration: Platt scaling against isotonic regression, and when a score may be shown as a probability (2b) (validation split) · *pre-registered 2026-10-13, before any calibrator was fitted on project data*
 
 | Field | Value |

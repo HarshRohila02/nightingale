@@ -74,6 +74,26 @@ restrictions. Use the cardiac modules; fix the seed and record it for reproducib
   for our local index only — **do not commit the corpus to the repository.**
 - Fetching is slow: start the download in Week 2 even though it is used in Week 6.
 
+### 1.5 Licences re-verified, 2026-11-10
+
+Read from the sources' public metadata on 2026-11-10 (the Hugging Face cards, the GitHub licence file) or, for
+the corpus, from the bundle's manifest of 2026-11-08. Two sources of the register were never used, and two used
+since were not in it.
+
+| Source | Used for | Licence as found | Status |
+|---|---|---|---|
+| DDXPlus, `aai530-group6/ddxplus` | training and test data, the ground truth | CC-BY-4.0 (the revision used, `2ad986ac…`, is the card's current one) | ✅ verified |
+| BODHI-S, `ekacare/BODHI-S` | enrichment of four conditions in the graph | **CC-BY-NC-4.0**, non-commercial | ✅ verified |
+| Synthea, `synthetichealth/synthea` | synthetic histories (display only) | Apache-2.0 | ✅ verified |
+| PubMed Central Open Access | the evidence corpus (2,067 articles) | per article, from its own XML: 15 Creative Commons licence strings, **844 articles non-commercial**; shown with each excerpt | ✅ from the manifest |
+| `pritamdeka/S-PubMedBert-MS-MARCO` | the passage vectors, computed once on Kaggle | **CC-BY-NC-2.0**, non-commercial. **Not in the register of 2026-09-17**; the vectors are derivatives, so the retrieval bundle is non-commercial too | ✅ verified, new |
+| Llama 3.1 8B (`llama3.1:8b`) | the language-model trial only (EXP-009/010, Kaggle); not shipped (`llm.enabled` is false) | Meta's Llama 3.1 Community Licence; the page is gated, so **not re-verified online**; nothing derived from the model is distributed | ⚠️ not verified, new |
+| UCI Heart Disease, PTB-XL | never used | — | n/a |
+
+So the project as built is non-commercial in three independent ways (BODHI-S, the embedding model, and 844 of the
+corpus's 2,067 articles, whose licences allow non-commercial use only), and the dashboard, README and this document
+say so.
+
 ---
 
 ## 2. Storage layout
@@ -276,19 +296,35 @@ than deleting it in a later commit.
 Reproduce in the final report and any public artifact:
 
 > This project uses **DDXPlus** (Tchango et al., NeurIPS 2022, CC-BY-4.0); **BODHI-S** by
-> **Eka Care** (CC-BY-NC-4.0, used for non-commercial academic research); **Synthea** (MITRE); the
-> **UCI Heart Disease** dataset (Janosi, Steinbrunn, Pfisterer & Detrano, UCI ML Repository); and
-> literature retrieved from **PubMed / PubMed Central** (NCBI).
+> **Eka Care** (CC-BY-NC-4.0, used for non-commercial academic research); **Synthea** (MITRE,
+> Apache-2.0); ~~the **UCI Heart Disease** dataset (Janosi, Steinbrunn, Pfisterer & Detrano, UCI ML
+> Repository)~~ (never used); the **S-PubMedBert-MS-MARCO** embedding model (`pritamdeka` on Hugging
+> Face, CC-BY-NC-2.0); for the language-model trial only, **Llama 3.1** (Meta); and literature
+> retrieved from **PubMed / PubMed Central** (NCBI), each excerpt under its own Creative Commons licence.
 
 ---
 
 ## 7. Compliance checklist (tick before submission)
 
-- [ ] No real patient data used at any stage
-- [ ] `data/` absent from git history
-- [ ] All six licences re-verified and recorded with dates
-- [ ] Eka Care attribution present in report, README, and UI credits
-- [ ] Project stated as non-commercial wherever BODHI-S is referenced
-- [ ] NCBI rate limits respected; PMC corpus not redistributed
-- [ ] Test set opened only once, at Phase 4
-- [ ] `DIFFERENTIAL_DIAGNOSIS` confirmed absent from the feature set
+*Checked on 2026-11-10 against the repository. ✅ done · ⚠️ done with a stated gap.*
+
+- [x] No real patient data used at any stage — ✅ the data are DDXPlus and Synthea (both synthetic), BODHI-S (a
+  knowledge base), PubMed Central articles (published literature, case reports among them, never patient records)
+  and hand-written golden cases. No other source was used.
+- [x] `data/` absent from git history — ✅ `git log --all -- data/` lists no path, `git ls-files data models` is
+  empty, and `.env` is gitignored (only `.env.example` is tracked).
+- [x] All six licences re-verified and recorded with dates — ✅ §1.5, 2026-11-10: the four used from the register
+  verified; UCI Heart and PTB-XL never used; two sources not in the register added (the embedding model, CC-BY-NC-2.0;
+  Llama 3.1). ⚠️ Llama 3.1's licence page is gated and was not re-verified online.
+- [x] Eka Care attribution present in report, README, and UI credits — ✅ the README, `docs/report/02` and `03`, and,
+  **added 2026-11-10 because it was missing**, the dashboard's "Data sources, credits and licences" (`app/view.py`,
+  tested).
+- [x] Project stated as non-commercial wherever BODHI-S is referenced — ✅ the README ("NON-COMMERCIAL"), the dashboard
+  credit, this document and `docs/report/02` and `03`. ⚠️ The report is paused, so its final text is not re-checked.
+- [x] NCBI rate limits respected; PMC corpus not redistributed — ✅ `src/rag/eutils.py` waits 0.35 s between
+  requests (under 3 a second without a key; tested with a fake clock); the corpus is under `data/raw/`,
+  gitignored, and the dashboard shows each excerpt with its own licence and attribution.
+- [x] Test set opened only once, at Phase 4 — ✅ one opening, 2026-11-09 (`docs/08` EXP-012).
+- [x] `DIFFERENTIAL_DIAGNOSIS` confirmed absent from the feature set — ✅
+  `tests/test_features.py::test_transform_never_reads_a_label` (only age, sex and evidences are read) and
+  `tests/test_ddxplus.py` (the label columns).

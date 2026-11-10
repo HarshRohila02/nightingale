@@ -123,3 +123,24 @@ def test_the_app_runs_and_follows_an_example(monkeypatch):
     assert table.iloc[0]["Condition"] == "Aortic dissection"
     assert any("Red flag" in e.value for e in app.error)
     assert os.environ["NIGHTINGALE_GRAPH"] == "networkx"
+
+
+def test_the_credits_name_every_source_and_say_the_project_is_non_commercial():
+    """docs/03 §7: Eka Care's attribution in the UI, and non-commercial wherever BODHI-S is cited."""
+    from app.view import CREDITS, credits_markdown
+
+    text = credits_markdown()
+    for name in ("DDXPlus", "BODHI-S", "Eka Care", "Synthea", "PubMed Central", "S-PubMedBert"):
+        assert name in text, name
+    for licence in ("CC-BY-4.0", "CC-BY-NC-4.0", "Apache-2.0", "CC-BY-NC-2.0"):
+        assert licence in text, licence
+    assert "non-commercial" in text.lower() and "not a diagnosis" in text
+    bodhi = next(line for line in CREDITS if "BODHI-S" in line)
+    assert "Eka Care" in bodhi and "non-commercial" in bodhi.lower()
+
+
+def test_the_page_shows_the_credits():
+    source = APP.read_text(encoding="utf-8")
+    assert "credits_markdown()" in source and "Data sources, credits and licences" in source
+    # EXP-011's judging did not happen, so the page says the passages' relevance is unjudged.
+    assert "has not been formally judged (EXP-011)" in source

@@ -41,6 +41,12 @@ __all__ = [
 ]
 
 FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif"
+FOOTER_HEIGHT = 18
+"""Room under every chart for the disclaimer line."""
+FOOTER_TEXT = (
+    "Research prototype, synthetic data: clinical decision support, not a diagnosis, "
+    "and not for use in real patient care."
+)
 SURFACE = "#ffffff"
 INK = "#0b0b0b"
 INK_2 = "#52514e"
@@ -252,14 +258,21 @@ class _Canvas:
         return y
 
     def render(self) -> str:
+        """The figure, with the project's disclaimer on a footer line under the chart
+        (docs/04 §8: the disclaimer is on every output path, report figures included)."""
+        height = self.height + FOOTER_HEIGHT
         head = (
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.width}" height="{self.height}" '
-            f'viewBox="0 0 {self.width} {self.height}" role="img" aria-labelledby="t d" '
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.width}" height="{height}" '
+            f'viewBox="0 0 {self.width} {height}" role="img" aria-labelledby="t d" '
             f'font-family="{FONT}">'
             f'<title id="t">{_e(self.title)}</title><desc id="d">{_e(self.description)}</desc>'
             f'<rect width="100%" height="100%" fill="{SURFACE}"/>'
         )
-        return head + "".join(self.parts) + "</svg>\n"
+        footer = (
+            f'<text x="16" y="{_n(self.height + 12)}" font-size="9" fill="{INK_2}">'
+            f"{_e(FOOTER_TEXT)}</text>"
+        )
+        return head + "".join(self.parts) + footer + "</svg>\n"
 
 
 def _header(
