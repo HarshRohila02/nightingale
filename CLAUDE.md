@@ -53,6 +53,8 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   `build_ddxplus_chestpain.py --split test --open-test-split`, score it with
   `evaluate_ablations.py --split test` (which records the single opening in
   `data/interim/test_split_opened.json`). Never edit `configs/` or `src/` (outside `src/eval/`) after the tag.
+  **It has been opened once, on 2026-11-09 (the owner's Kaggle run; results in `docs/08` EXP-012 `[TEST]`).
+  Do not score it again: a second opening needs `--reopen-because` and is disclosed.**
 - Never remove or weaken the disclaimer; never add treatment or drug recommendations.
 - `src/contracts.py` changes need all four team members — flag them rather than just making them.
 - `docs/05-evaluation-protocol.md` is **frozen** — change it only through its amendment log.

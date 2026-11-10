@@ -272,7 +272,7 @@ the owner says where it runs.
 seeds; `data/interim/exp012_rehearsal/exp012_validate_rehearsal.json`, which carries `valid_as_a_result:
 true`: the whole validation split, EXP-006's α, 1,000 resamples, both mask digests reproduced).
 **`scripts/check_rehearsal.py` compared 1,944 figures with EXP-019, EXP-021 and EXP-006: 1,944 exact, none
-different.** *The test split is unread.* The verdicts below are on **validation**, under the reading in
+different.** ~~*The test split is unread.*~~ *(It was read once, on 2026-11-09: the results are below the validation table.)* The verdicts below are on **validation**, under the reading in
 force (`25-only`, amendment 3b), seed 42; each comparison behind them is in the file.
 
 | Claim | A0 (B1-DL+aug) | A0′ (B1-DL′+aug) |
@@ -293,7 +293,197 @@ Five of the seven hypotheses judged so far (H3 waits for EXP-009/010) are not su
 level with its component (EXP-006's result above), so no comparison against the models trained like it can
 be won. The test split is read once with the same rules; nothing here is re-tuned.
 
-**Next action.** *(2026-11-07: E-2 is answered and amendment 3b applied; EXP-006's sweep and the
+**Results on the test split `[TEST]`, recorded 2026-11-10: the single opening, run by the owner on Kaggle on 2026-11-09.**
+Every figure below is `[TEST]`, seed 42 unless it says otherwise, with its evidence level and model label, and
+its 95% bootstrap interval (1,000 resamples, seed 42) in brackets. Nothing was re-run, re-tuned or looked at
+twice: the verdicts are what the pre-registered rules gave.
+
+*How the run is known to be valid.*
+- `notebooks/kaggle_exp012_test.ipynb`, at commit `f644faa` (the freeze tag `v0.9-freeze` = `808bceb` is an ancestor;
+  the files changed since the freeze are `PROGRESS.md`, `docs/08`, `docs/11`, `docs/results/exp006_fusion.json`,
+  the notebook and `tests/test_notebooks.py`: nothing under `configs/`, `src/` or `tests/fixtures/`).
+- Graph fingerprint `de349201157a`. **Both mask digests reproduced before any label was read:**
+  `0136f67f1ca6542f` and `795acf2689f1415e`, the two recorded above on 2026-11-09.
+- **One opening**, recorded 2026-11-09T08:07:22Z at `f644faa`, with no `reopen_because`. The laptop recorded none
+  (it built the parquet and drew the masks, and scored nothing). The result file's SHA-256 begins `f4100057ef462b94`,
+  as `STATUS.txt` says.
+- `valid_as_a_result` true: 34,657 patients, 16,972 of them with a must-not-miss condition; seeds 42–46; 102
+  comparisons; reading in force `25-only`. Realised 21.85 / 11.83 / 6.68 tokens and 15.43 / 8.61 / 5.09 questions a
+  patient at 100 / 50 / 25%. Scoring took 2,797 s (Python 3.13.18, numpy 2.1.3, pandas 2.3.3, xgboost 2.1.4: the same
+  Kaggle environment as the rehearsal, which reproduced 1,944 of 1,944 laptop figures).
+- α per component is EXP-006's: B1-DL+aug 0.30 (A0), B1-DL′+aug 0.05 (A0′); the plain B1-XGB and B1-LR are not EXP-006
+  components and take 0.5 in A7 only. The files are in `data/interim/exp012_test/` and never committed.
+
+**The verdicts**, under the reading in force (`25-only`, amendment 3b). *They are the same as the rehearsal's on
+validation, row for row: no verdict changed between validation and test.*
+
+| Claim | A0 (B1-DL+aug) | A0′ (B1-DL′+aug) | At how many of seeds 42–46 |
+|---|---|---|---|
+| H1, H2 (100%) | not supported | not supported | 0 of 5 |
+| H1-R, H2-R (25%) | not supported | not supported | 0 of 5 |
+| H6 (the deep ranker against the models trained like it) | not supported | not supported | 0 of 5 |
+| H4 (the graph and flags removed: point estimates) | supported, **but see below** | supported, **but see below** | 5 of 5 |
+| H5 (top-label ECE below 0.10 at 100%) | supported | supported | 5 of 5 |
+| Minimum | met | met | 5 of 5 |
+| Target, 100% | not met | not met | 0 of 5 |
+| Stretch, 100% | not met | not met | 0 of 5 |
+| Target, reduced evidence (25%) | **not met** | **met** | 0 of 5 / 5 of 5 |
+| Stretch, reduced evidence | not met | not met | 0 of 5 |
+
+H3 is EXP-009/010's (validation; the grounded explainer failed D-5's checkpoint and was not carried to the test split).
+Under the older reading (`both`, 50% counted) H1-R, H2-R and H6 fail with more comparisons, and the reduced Target is
+not met by either arm; both readings are in the output file.
+
+**What stands behind each verdict.**
+- **H1, H2 at 100%: the comparators are perfect (R-16).** B1-XGB, B1-LR and both transformers miss **0 of 34,657**
+  patients in the top 3 and 0 of 16,972 must-not-miss patients, so no test can pass against them. The one H1 check that
+  passes is top-3 against B2, the graph alone (1.0000 against 0.9992, p = 5.6 × 10⁻⁷), and B2 is circular (R-12).
+  **MRR is lower than B1's**: A0 0.9157 against B1-XGB's 0.9994, a difference of −0.0837 [−0.0859, −0.0819]; the
+  cause is the red-flag layer, which ranks flagged conditions first even when the flag names the wrong one (A1b, the
+  model plus flags and no graph, has the same MRR, 0.9157; A1, the model alone, 0.9994; strict flag precision is 0.509).
+- **H1-R, H2-R at 25%.** Both arms beat the original B1-XGB, B1-LR and B2 on every check. They do not beat the models
+  trained on masked copies (`+aug`): A0 against B1-XGB+aug is −0.0001 on top-3 (p = 0.883) and −0.0052 on MRR
+  [−0.0062, −0.0044]; against B1-DL+aug −0.0001 (p = 0.625) and −0.0055 [−0.0060, −0.0049]; against B1-LR+aug it is
+  +0.0007 on top-3 (p = 0.0067) but −0.0033 on MRR [−0.0042, −0.0025]. A0′ against B1-XGB′+aug and B1-LR′+aug is
+  ahead on top-3 (+0.0005, p = 0.045; +0.0012, p = 1.0 × 10⁻⁵) and behind on MRR (−0.0041 [−0.0051, −0.0030];
+  −0.0024 [−0.0033, −0.0014]); it ties B1-DL′+aug on top-3 (0.9988 both) and trails it on MRR (−0.0057
+  [−0.0063, −0.0051]). Failed checks: A0 5 of 12 (H1-R) and 2 of 5 (H2-R); A0′ 4 of 12 and 2 of 5.
+- **H6 at 25%.** The transformer beats the logistic regression trained like it on all three metrics, and is level with
+  the XGBoost trained like it. Unprimed: against B1-LR+aug top-3 +0.0008 (p = 0.0024), MRR +0.0022 [+0.0015, +0.0028],
+  must-not-miss +0.0018 (p = 4.8 × 10⁻⁶); against B1-XGB+aug top-3 0.0000 (p = 0.883), MRR +0.0002 [−0.0005, +0.0009],
+  must-not-miss +0.0003 (p = 0.458). Primed: against B1-LR′+aug all three pass; against B1-XGB′+aug MRR passes
+  (+0.0016 [+0.0007, +0.0025]) and top-3 (+0.0004, p = 0.064) and must-not-miss (+0.0005, p = 0.164) do not. At 100% the
+  models tie (a ceiling).
+- **H4 is supported by the rule, and the rule is measuring something other than the graph.** Removing the graph and
+  the flags (A1) leaves must-not-miss recall@3 exactly where it was (1.0000, a degradation of 0.0000), while **top-1
+  *rises* by 0.1642 [0.1606, 0.1685]** (A0 0.8346 to A1 0.9987), because the flags no longer push their conditions first.
+  The contrast the rule reads (+0.1642) is that rise. Against A1b, which keeps the flags and drops only the graph, both
+  degradations are exactly 0.0000 and the contrast is 0: **the graph itself contributes nothing measurable.** The
+  same is true of the validation rehearsal, where H4 also reads "supported" (the table above this block gives the
+  verdict without this caveat). It holds at all five seeds.
+- **H5.** A0's top-label ECE at 100% is 0.0099 [0.0094, 0.0103] and A0′'s 0.0398 [0.0394, 0.0402], raw (no calibrator
+  ships: `calibration.file` is null). At 50% / 25%, descriptive: A0 0.0355 [0.0342, 0.0368] / 0.0644 [0.0620, 0.0666];
+  A0′ 0.0648 [0.0640, 0.0659] / 0.0785 [0.0766, 0.0806]. Hand-written cases remain near-certain (R-17).
+- **Minimum.** Top-3 at 100%: A0 1.0000 against B0's 0.3061 [0.3013, 0.3109] (also significant).
+- **Target and Stretch at 100%.** Not met because the comparators tie at 1.000 and a tie fails a point-estimate
+  comparison (choice 9); ECE and must-not-miss recall pass. The runner prints "unsupported-claim rate (EXP-009/010 not
+  run)" as not assessed; that wording is stale (EXP-009/010 ran, and their rate, 0.741 for the LLM explainer, belongs
+  to an explainer that does not ship). For the shipped template explainer the runner does not measure it, and nobody
+  has done the clinician-reviewed explainability the Stretch also lists. Both stay **not assessed**, not met or passed.
+- **Target, reduced evidence: A0′ met, A0 not met, on a few patients.** At 25% A0′ misses 40 of 34,657 in the top 3
+  (24 of 16,972 must-not-miss), B1-DL′+aug 41 (24), B1-XGB′+aug 56 (33), B1-LR′+aug 80 (45); A0 misses 73 (32),
+  B1-DL+aug 71 (31), B1-XGB+aug 71 (36), B1-LR+aug 97 (62). The Target compares point estimates, so A0′ passes
+  (against B1-XGB′+aug the must-not-miss difference, +0.0005, is not significant, p = 0.164) and A0 fails by **two
+  patients** on top-3 against B1-XGB+aug (−0.0001, p = 0.883). The Stretch needs every test to pass and neither arm
+  does. This is not a robust win: the fused system equals its own component to within a patient.
+
+**Systems at the three levels** (seed 42; 34,657 patients; intervals in brackets).
+
+| System | Evidence | Top-1 | Top-3 | MRR | Must-not-miss recall@3 |
+|---|:--:|---|---|---|---|
+| B0 (prevalence only) | any | 0.1062 [0.1030, 0.1094] | 0.3061 [0.3013, 0.3109] | 0.2906 [0.2878, 0.2934] | 0.2168 [0.2105, 0.2231] |
+| B1-XGB | 100% | 0.9987 [0.9983, 0.9991] | 1.0000 [1.0000, 1.0000] | 0.9994 [0.9992, 0.9996] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.5744 [0.5697, 0.5800] | 0.9899 [0.9887, 0.9909] | 0.7795 [0.7771, 0.7825] | 0.9858 [0.9840, 0.9875] |
+|  | 25% | 0.2482 [0.2439, 0.2524] | 0.9035 [0.9003, 0.9068] | 0.5789 [0.5763, 0.5816] | 0.8710 [0.8659, 0.8764] |
+| B1-LR | 100% | 0.9986 [0.9982, 0.9990] | 1.0000 [1.0000, 1.0000] | 0.9993 [0.9991, 0.9995] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9436 [0.9412, 0.9460] | 0.9958 [0.9951, 0.9964] | 0.9690 [0.9677, 0.9704] | 0.9930 [0.9917, 0.9942] |
+|  | 25% | 0.7652 [0.7604, 0.7697] | 0.9436 [0.9412, 0.9461] | 0.8575 [0.8546, 0.8602] | 0.9198 [0.9156, 0.9238] |
+| B1-DL+aug (= A1) | 100% | 0.9987 [0.9983, 0.9991] | 1.0000 [1.0000, 1.0000] | 0.9994 [0.9992, 0.9996] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9841 [0.9827, 0.9854] | 1.0000 [0.9999, 1.0000] | 0.9919 [0.9912, 0.9925] | 1.0000 [1.0000, 1.0000] |
+|  | 25% | 0.9328 [0.9298, 0.9353] | 0.9980 [0.9975, 0.9984] | 0.9639 [0.9623, 0.9652] | 0.9982 [0.9975, 0.9988] |
+| B1-DL′+aug (= A1′) | 100% | 0.9987 [0.9984, 0.9991] | 1.0000 [1.0000, 1.0000] | 0.9994 [0.9992, 0.9996] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9875 [0.9862, 0.9885] | 1.0000 [0.9999, 1.0000] | 0.9936 [0.9930, 0.9942] | 0.9999 [0.9998, 1.0000] |
+|  | 25% | 0.9481 [0.9456, 0.9503] | 0.9988 [0.9985, 0.9991] | 0.9723 [0.9711, 0.9735] | 0.9986 [0.9980, 0.9991] |
+| B2 (graph alone; circular, R-12) | 100% | 0.9237 [0.9209, 0.9264] | 0.9992 [0.9989, 0.9995] | 0.9612 [0.9598, 0.9626] | 0.9998 [0.9995, 0.9999] |
+|  | 50% | 0.8673 [0.8639, 0.8708] | 0.9854 [0.9841, 0.9867] | 0.9244 [0.9223, 0.9265] | 0.9872 [0.9854, 0.9890] |
+|  | 25% | 0.7676 [0.7632, 0.7717] | 0.9389 [0.9365, 0.9415] | 0.8540 [0.8512, 0.8567] | 0.9405 [0.9371, 0.9442] |
+| A1b (B1-DL+aug + flags, no graph) | 100% | 0.8346 [0.8303, 0.8382] | 1.0000 [1.0000, 1.0000] | 0.9157 [0.9135, 0.9175] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9291 [0.9262, 0.9318] | 1.0000 [0.9999, 1.0000] | 0.9639 [0.9624, 0.9653] | 1.0000 [1.0000, 1.0000] |
+|  | 25% | 0.9223 [0.9192, 0.9249] | 0.9980 [0.9975, 0.9984] | 0.9585 [0.9568, 0.9599] | 0.9982 [0.9975, 0.9988] |
+| A4 (A0 without the flags) | 100% | 0.9987 [0.9983, 0.9991] | 1.0000 [1.0000, 1.0000] | 0.9994 [0.9992, 0.9996] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9843 [0.9829, 0.9856] | 0.9999 [0.9999, 1.0000] | 0.9920 [0.9913, 0.9927] | 0.9999 [0.9998, 1.0000] |
+|  | 25% | 0.9328 [0.9299, 0.9354] | 0.9979 [0.9974, 0.9983] | 0.9639 [0.9623, 0.9652] | 0.9981 [0.9974, 0.9987] |
+| A0 (B1-DL+aug, fused, flagged first) | 100% | 0.8346 [0.8303, 0.8382] | 1.0000 [1.0000, 1.0000] | 0.9157 [0.9135, 0.9175] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9293 [0.9265, 0.9320] | 0.9999 [0.9999, 1.0000] | 0.9640 [0.9626, 0.9654] | 0.9999 [0.9998, 1.0000] |
+|  | 25% | 0.9223 [0.9192, 0.9249] | 0.9979 [0.9974, 0.9983] | 0.9584 [0.9568, 0.9599] | 0.9981 [0.9974, 0.9987] |
+| A0′ (B1-DL′+aug, fused, flagged first) | 100% | 0.8346 [0.8303, 0.8382] | 1.0000 [1.0000, 1.0000] | 0.9156 [0.9134, 0.9175] | 1.0000 [1.0000, 1.0000] |
+|  | 50% | 0.9318 [0.9292, 0.9344] | 1.0000 [0.9999, 1.0000] | 0.9653 [0.9640, 0.9667] | 0.9999 [0.9998, 1.0000] |
+|  | 25% | 0.9371 [0.9343, 0.9396] | 0.9988 [0.9985, 0.9992] | 0.9667 [0.9653, 0.9680] | 0.9986 [0.9980, 0.9991] |
+
+Safety, precision and the red-flag layer (seed 42; the safety targets are must-not-miss recall@3 ≥ 0.95 and a
+dangerous false-negative rate ≤ 0.02):
+
+| System | Evidence | Dangerous false-negative rate | Precision@3 (D_in) | Recall@5 (D_in) | Recall@5 (full D) | Red-flag sensitivity | Red-flag precision (strict) |
+|---|:--:|---|---|---|---|---|---|
+| A0 | 100% | 0.0000 [0.0000, 0.0000] | 0.7430 [0.7402, 0.7459] | 0.5632 [0.5610, 0.5654] | 0.3303 [0.3284, 0.3322] | 0.8285 [0.8229, 0.8344] | 0.5089 [0.5047, 0.5128] |
+|  | 50% | 0.0001 [0.0000, 0.0002] | 0.7470 [0.7444, 0.7498] | 0.5630 [0.5606, 0.5652] | 0.3308 [0.3289, 0.3327] | 0.3318 [0.3245, 0.3386] | 0.6469 [0.6379, 0.6550] |
+|  | 25% | 0.0003 [0.0001, 0.0006] | 0.7400 [0.7373, 0.7428] | 0.5625 [0.5600, 0.5647] | 0.3311 [0.3291, 0.3331] | 0.1369 [0.1317, 0.1420] | 0.8220 [0.8084, 0.8352] |
+| A0′ | 100% | 0.0000 [0.0000, 0.0000] | 0.7430 [0.7402, 0.7459] | 0.5632 [0.5610, 0.5654] | 0.3303 [0.3284, 0.3322] | 0.8285 [0.8229, 0.8344] | 0.5089 [0.5047, 0.5128] |
+|  | 50% | 0.0000 [0.0000, 0.0000] | 0.7470 [0.7445, 0.7499] | 0.5630 [0.5607, 0.5652] | 0.3308 [0.3289, 0.3327] | 0.3318 [0.3245, 0.3386] | 0.6469 [0.6379, 0.6550] |
+|  | 25% | 0.0002 [0.0000, 0.0004] | 0.7409 [0.7382, 0.7436] | 0.5630 [0.5605, 0.5652] | 0.3313 [0.3295, 0.3334] | 0.1369 [0.1317, 0.1420] | 0.8220 [0.8084, 0.8352] |
+| B1-XGB | 25% | 0.0629 [0.0592, 0.0665] | 0.7048 [0.7018, 0.7079] | 0.5272 [0.5249, 0.5294] | 0.3005 [0.2990, 0.3023] | — | — |
+| B1-LR | 25% | 0.0272 [0.0249, 0.0297] | 0.6877 [0.6849, 0.6904] | 0.5298 [0.5275, 0.5319] | 0.3034 [0.3015, 0.3051] | — | — |
+
+What the two tables say, in order:
+- **The original B1 fails the safety targets at 25%, and every model trained on masked copies meets them.** B1-XGB's
+  must-not-miss recall@3 is 0.8710 [0.8659, 0.8764] with a dangerous false-negative rate of 0.0629 [0.0592, 0.0665];
+  B1-LR's 0.9198 [0.9156, 0.9238] and 0.0272 [0.0249, 0.0297]. A0 reaches 0.9981 [0.9974, 0.9987] and 0.0003
+  [0.0001, 0.0006]; A0′ 0.9986 [0.9980, 0.9991] and 0.0002 [0.0000, 0.0004]. This reproduces EXP-019 on a split nobody
+  tuned on, and it is the finding that carries: the value is in training on masked copies (`+aug`), not in the fusion.
+- **The fusion adds nothing measurable.** A4 (A0 without the flags) equals A1 (the transformer alone) at 25% to the
+  fourth decimal on MRR (0.9639 both) and within 0.0001 on top-3; this is EXP-006's finding, now on the test split
+  (R-12, R-16). What the flags do is reorder: they lower top-1 and MRR at 100% (see H1) and raise nothing in recall.
+- **The red-flag layer is below its target and collapses with less evidence** (EXP-008, EXP-019): sensitivity 0.8285
+  [0.8229, 0.8344] at 100% against a target of 0.95, 0.3318 [0.3245, 0.3386] at 50%, 0.1369 [0.1317, 0.1420] at 25%.
+  The precision shown is the strict one (a flag counts only when it names the true condition); the A-7 version was not
+  part of this output (validation: 0.848).
+- **Precision@3 and Recall@5** are capped by the open-world differentials (D-8): Recall@5 on the full D is 0.33.
+
+**Ceilings** (patients missed in the top 3, of 34,657, and must-not-miss patients missed, of 16,972; a comparison against
+a system missing five or fewer cannot reach significance):
+
+| Evidence | B1-XGB | B1-LR | B1-XGB+aug | B1-LR+aug | B1-DL+aug | A0 | B1-XGB′+aug | B1-LR′+aug | B1-DL′+aug | A0′ | B2 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 100% | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 27 (4) |
+| 50% | 351 (241) | 147 (119) | 2 (1) | 3 (2) | 1 (0) | 2 (1) | 1 (1) | 0 (0) | 1 (1) | 1 (1) | 507 (217) |
+| 25% | 3,346 (2,190) | 1,954 (1,361) | 71 (36) | 97 (62) | 71 (31) | 73 (32) | 56 (33) | 80 (45) | 41 (24) | 40 (24) | 2,119 (1,009) |
+
+So at 100% and 50% the `+aug` comparators are at a ceiling (R-16, as `docs/05` §1 foresaw from validation), and 25% is
+the only level at which a comparison can still be won; there the fused system wins against the models not trained on
+masked copies, and against the ones that were it is level or marginally ahead on top-3 and behind on MRR.
+
+**By true condition and by sex** (A0′ at 25%; the full tables are in the output file for A0, A0′, B1-XGB, B1-LR,
+B1-DL+aug, B1-DL′+aug and B2 at every level).
+- Top-3 is at least 0.993 for every one of the 13 conditions (lowest: spontaneous pneumothorax 0.9933
+  [0.9888, 0.9970], 1,343 patients). Top-1 is lowest for **unstable angina, 0.6896 [0.6726, 0.7059]** (2,880
+  patients), then myocarditis 0.8606 [0.8430, 0.8775] (1,478), spontaneous pneumothorax 0.8883 [0.8712, 0.9047] and
+  stable angina 0.8927 [0.8793, 0.9049] (2,386): the unstable-below-stable-angina confusion EXP-023 found on validation.
+- By sex, A0′ top-1 is 0.9375 [0.9338, 0.9410] for women (17,898) and 0.9368 [0.9330, 0.9408] for men (16,759);
+  the intervals overlap, and **near-equal by-sex results are an artifact of DDXPlus's synthetic demographics, not
+  evidence of fairness** (EXP-002).
+
+**Across the five seeds** (the models take seeds 42–46; the seed-42 verdict is the verdict). At 25%: A0 top-3
+0.9976 (standard deviation 0.0002), MRR 0.9577 (0.0008); A0′ top-3 0.9986 (0.0001), MRR 0.9657 (0.0008). Every verdict
+that reads supported or met holds at 5 of 5 seeds, and every one that reads not supported or not met holds at 0 of 5, so
+no verdict is an accident of seed 42.
+
+**What this means, in plain terms.**
+- The pre-registered comparative claims are mostly **not supported**, as they were on validation: the fused system is not
+  better than its own machine-learning component, and at 100% and 50% every comparator is already perfect or within a
+  few patients (R-16: DDXPlus draws each patient's evidence from their condition's list).
+- What the test split does support: the system meets the safety targets at 25% evidence (must-not-miss recall@3 0.998,
+  dangerous false-negative rate 0.0003 or 0.0002) where the original B1 does not; its probabilities are calibrated at
+  full evidence (ECE below 0.05 raw); training on masked copies is what matters; and a deep ranker beats a logistic
+  regression trained the same way but only ties the XGBoost.
+- The honest costs: the red-flag layer lowers top-1 and MRR at full evidence and has a sensitivity of 0.83 (0.14 at 25%);
+  H4's support is an artifact of that reordering; the graph's contribution is not measurable on DDXPlus (circular, R-12).
+
+**Limits that stay with these results.** Synthetic, closed-world data (R-12, R-13): 13 conditions and one generator,
+so the test split checks overfitting to validation, not clinical validity. The masks are random, so they measure
+robustness to missing answers, not history-taking. α was chosen on validation. The unsupported-claim rate and the
+clinician-reviewed explainability are not assessed. No LLM system was run on the test split. By-sex parity is an artifact.
+
+**Next action.** *(2026-11-10: the test split has been read, once; see the results above, and `PROGRESS.md` §1 for what is left.)* *(2026-11-07: E-2 is answered and amendment 3b applied; EXP-006's sweep and the
 rehearsal are the owner's Kaggle run of `notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8.)*
 1. ~~The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007
    stage 2.~~ Amendment 3b applied 2026-11-07; EXP-006, then EXP-007 stage 2.
@@ -3333,7 +3523,7 @@ risk **R-01** and therefore the KG backbone (see
 | EXP-009 | B3 LLM-only *(pre-registered 2026-10-21 with the trial's shared design: the 50-patient sample, `llama3.1:8b` at temperature 0, the prompts, the parser, the claim check, H3's test, D-5's checkpoint of 2026-11-03 and the ratings; B3r, B3 told to use only its facts, runs beside it; the Kaggle notebook is `notebooks/kaggle_llm_explain.ipynb`, `docs/11` §4.9; waits for the owner's run)* | 3 | H3 |
 | EXP-010 | B4 text-RAG + LLM, and A0+LLM, the grounded explainer *(pre-registered 2026-10-21 with EXP-009; both need the retrieval bundle, which is still being built)* | 3 | H3; the checkpoint of 2026-11-03 |
 | EXP-011 | ~~Retrieval quality sweep~~ **Evidence retrieval: BM25, dense and the hybrid over PMC Open Access** *(3a; design pre-registered 2026-10-14, before any corpus existed; the chunking and the model fixed by the owner, so nothing is swept; waits for the owner's Kaggle run, `docs/11` §4.6)* | 3 | ~~Chunking/embedding choice~~ Whether the hybrid stays configured, by the rule recorded; how far the precomputed-vector mix is from embedding the query; retrieval's cost on the laptop |
-| EXP-012 | **Full ablation ~~A0–A6~~ A0–A7 and A1b** (`docs/05` §5 as amended) `[TEST]` | 4 | H1, H2, H4 (and H1-R, H2-R, H6) |
+| EXP-012 | **Full ablation ~~A0–A6~~ A0–A7 and A1b** (`docs/05` §5 as amended) `[TEST]` *(run once on 2026-11-09, recorded 2026-11-10: H1, H2, H1-R, H2-R and H6 not supported; H4, H5 and the Minimum hold; the reduced Target is met by A0′ only)* | 4 | H1, H2, H4 (and H1-R, H2-R, H6) |
 | EXP-013 | Label audit of the chest-pain subset *(unplanned, run 2026-09-18)* | 1 | D-8: what D means for Precision@3 and Recall@5 |
 | EXP-014 | Crosswalk check: concepts, red flags and golden cases on real data *(unplanned, run 2026-09-18)* | 1 | R-15: the red-flag rules over-fire; 2a: graph-only ranking |
 | EXP-015 | The graph alone on validate patients *(unplanned, run 2026-09-19)* | 1 | R-12: how big the circularity is; 2a: unstable angina |
