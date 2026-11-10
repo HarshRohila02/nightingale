@@ -32,6 +32,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from _config import build_pipeline, load_config  # noqa: E402
 
 from app.view import (  # noqa: E402
+    PATIENT_NOTE,
     build_case,
     candidate_rows,
     concept_options,
@@ -40,8 +41,11 @@ from app.view import (  # noqa: E402
     evidence_note,
     evidence_rows,
     example_cases,
+    load_patient_cards,
     model_reasons,
     next_steps,
+    patient_card_markdown,
+    patient_label,
 )
 from src.contracts import DISCLAIMER  # noqa: E402
 from src.medical_kg.crosswalk import expand_case  # noqa: E402
@@ -49,6 +53,9 @@ from src.medical_kg.neo4j_store import GraphUnavailable  # noqa: E402
 
 MISSING_SHOWN = 8
 DETAILED = 5
+# Where scripts/build_patient_display.py writes the cards; NIGHTINGALE_PATIENT_DISPLAY overrides it
+# (the tests point it at an invented file). A comment, not a string: Streamlit draws a bare string.
+PATIENT_CARDS = REPO_ROOT / "data" / "interim" / "patient_display" / "patients.json"
 
 st.set_page_config(page_title="Nightingale", page_icon="🩺", layout="wide")
 
@@ -76,6 +83,47 @@ def show_evidence(rows: list | None, note: str | None, retrieved: bool) -> None:
             "findings; about diagnosis only, so passages about treatment are never shown. Their "
             "relevance has not been formally judged (EXP-011), so read them as leads, not as proof."
         )
+
+
+@st.cache_resource(show_spinner=False)
+def patient_cards(path: str, modified: float) -> list[dict] | None:  # noqa: ARG001
+    """The history cards, read once per version of the file (``modified`` keys the cache). Shared
+    between sessions and never changed: the panel only reads them."""
+    return load_patient_cards(path)
+
+
+def render_patient_history() -> None:
+    """The "Patient history (Synthea, display only)" panel (1d): a synthetic patient's history,
+    chosen from a list and shown as a card.
+
+    **Display only** (PROGRESS §6, 2026-10-20). Everything here is local to this function and
+    nothing is returned: it reads nothing from the form and writes nothing the form reads, so the
+    case, the ranking and the explanation are the same whether a patient is chosen or not.
+    ``tests/test_patient_panel.py`` checks that in this file's source and by driving the page.
+    """
+    path = Path(os.environ.get("NIGHTINGALE_PATIENT_DISPLAY") or PATIENT_CARDS)
+    try:
+        modified = path.stat().st_mtime
+    except OSError:
+        modified = 0.0
+    cards = patient_cards(str(path), modified) if modified else None
+    if not cards:
+        st.caption(
+            "**Patient history (Synthea, display only):** none built yet. Run "
+            "`scripts/build_patient_display.py` on Synthea's output "
+            "(`data/raw/synthea_patient_kg/`) to show a synthetic history beside the case."
+        )
+        return
+    with st.expander("Patient history (Synthea, display only)"):
+        chosen = st.selectbox(
+            f"Synthea patient ({len(cards)} alive on {cards[0].get('as_of', 'the chosen day')})",
+            [None, *range(len(cards))],
+            key="history_patient",
+            format_func=lambda i: "— none selected —" if i is None else patient_label(cards[i]),
+        )
+        if chosen is not None and chosen < len(cards):
+            st.markdown(patient_card_markdown(cards[chosen]))
+        st.caption(PATIENT_NOTE)
 
 
 def apply_example() -> None:
@@ -169,6 +217,8 @@ if not case.findings and not case.risk_factors:
 
 for flag in result.red_flags:
     st.error(f"Red flag: {flag}", icon="⚠️")
+
+render_patient_history()
 
 st.subheader("Differential")
 table = pd.DataFrame(

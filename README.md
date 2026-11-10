@@ -278,15 +278,15 @@ Data Use Agreement, no real patient data. **Repo IDs and licenses verified on Hu
 | Layer | Choice | Notes |
 |---|---|---|
 | Language | **Python 3.11** | team standard (decision D-2); the code requires ≥ 3.10 |
-| Clinical NLP | **scispaCy**, **medspaCy**, HF biomedical models (BioBERT/PubMedBERT/SapBERT) | NER, entity linking, negation, temporality |
-| ML ranking | **scikit-learn**, **XGBoost** | chest-pain symptom → condition; the baseline & workhorse |
+| Clinical NLP | ~~**scispaCy**, **medspaCy**, HF biomedical models (BioBERT/PubMedBERT/SapBERT)~~ | ~~NER, entity linking, negation, temporality~~ *Corrected 2026-11-10: not used. The system takes structured findings, and its treatment screen is lexical (`src/rag/screening.py`).* |
+| ML ranking | **scikit-learn**, **XGBoost**, and a small **transformer** (PyTorch on Kaggle, a NumPy forward pass on the laptop) | chest-pain symptom → condition; the baselines, and the configured ranker B1-DL′+aug (D-12, D-13) |
 | KG store | **Neo4j** (or **NetworkX** to start) | patient + cardiac graphs, Cypher traversal |
-| KG embeddings *(stretch)* | **PyKEEN** (TransE/RotatE), optional **R-GCN/GNN** | research extension |
-| Retrieval / RAG | **FAISS** or **Chroma** + **sentence-transformers**; **BM25** for hybrid | over PubMed/PMC chunks |
-| LLM | Open local model (Llama/Mistral class) **or** an API | explanation/interface only, guardrailed |
+| KG embeddings *(stretch)* | **PyKEEN** (TransE/RotatE), optional **R-GCN/GNN** | research extension. *Not built: the stretch was cut (`PROGRESS.md` §5).* |
+| Retrieval / RAG | ~~**FAISS** or **Chroma** + **sentence-transformers**; **BM25** for hybrid~~ BM25 and a dense search fused by reciprocal rank, in NumPy; the passage vectors from `S-PubMedBert-MS-MARCO`, computed once on Kaggle | over PubMed/PMC Open Access passages. *Corrected 2026-11-10: no FAISS, Chroma or sentence-transformers on the laptop (`src/rag/`).* |
+| LLM | Open local model (Llama/Mistral class) **or** an API | explanation/interface only, guardrailed. *Updated 2026-11-10: `llama3.1:8b` was tried on Kaggle and failed its checkpoint (EXP-009/010), so the template explainer ships and `llm.enabled` is false.* |
 | Backend | **FastAPI** | inference API |
 | Frontend | **Streamlit** (fast) or **React** | clinician dashboard |
-| Explainability | **SHAP** (ML), KG reasoning paths, citations | |
+| Explainability | ~~**SHAP** (ML),~~ the model's reasons (leave-one-finding-out), KG reasoning paths, citations | *Corrected 2026-11-10: no SHAP is used.* |
 | Reproducibility | ~~**MLflow**, **DVC**,~~ **Docker**, fixed seeds | experiment & data versioning. *Corrected 2026-10-14:* neither MLflow nor DVC is used: no DVC (`PROGRESS.md` §6, 2026-09-17), and each run is recorded in `docs/08` and its bundle's `run.json` |
 
 ---
@@ -302,7 +302,7 @@ nightingale/
 │   ├── nlp/              # clinical NER, entity linking, negation, temporality
 │   ├── patient_kg/       # build the per-patient graph
 │   ├── medical_kg/       # cardiac KG (DDXPlus KB + BODHI-S) → NetworkX / Neo4j; scoring & paths
-│   ├── ml/               # rankers, calibration, SHAP
+│   ├── ml/               # rankers, calibration, the model's reasons (occlusion)
 │   ├── fusion/           # ML + KG candidate generation & re-ranking
 │   ├── reasoning/        # supporting / missing / contradicting + red-flag rules
 │   ├── rag/              # PubMed/PMC retrieval, embeddings, reranking

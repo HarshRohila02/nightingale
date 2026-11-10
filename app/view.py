@@ -20,10 +20,17 @@ and against, names only.
 :func:`next_steps` is the "What to ask next" block (3d): the cited tests to consider, as the
 pipeline put them in the result, and the findings worth asking about or checking next, ranked by
 the knowledge graph (``src/reasoning/next_questions.py``), each with the conditions it bears on.
+
+:func:`load_patient_cards`, :func:`patient_label` and :func:`patient_card_markdown` are the
+"Patient history (Synthea, display only)" panel (1d): a synthetic patient's history, read from the
+cards ``scripts/build_patient_display.py`` wrote, shown beside the case. **Display only**
+(PROGRESS §6, 2026-10-20): nothing here builds a case, reads a finding or touches the ranking, and
+this module imports nothing about the patient history's graph.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -37,12 +44,17 @@ from src.medical_kg.crosswalk import BY_CONCEPT, recorded_answers
 from src.reasoning.guardrails import citation_link
 
 __all__ = [
+    "MEDICATION_HEADING",
+    "PATIENT_NOTE",
     "build_case",
     "candidate_rows",
     "concept_options",
     "example_cases",
+    "load_patient_cards",
     "model_reasons",
     "next_steps",
+    "patient_card_markdown",
+    "patient_label",
     "ranks_of",
 ]
 
@@ -347,3 +359,132 @@ def credits_markdown() -> str:
     project is non-commercial (docs/03 §7)."""
     bullets = "\n".join(f"- {line}" for line in CREDITS)
     return f"{bullets}\n\n{NON_COMMERCIAL}"
+
+
+# --------------------------------------------------------------------------- #
+# Patient history (task 1d): a Synthea patient shown beside the case, display only
+# --------------------------------------------------------------------------- #
+
+PATIENT_NOTE = (
+    "A synthetic Synthea history, shown for context. It does not enter the ranking: the "
+    "findings you tick do. Medications are history, never advice."
+)
+"""Under the panel's card. The decision of 2026-10-20 (PROGRESS §6): a history is shown beside a
+case and never feeds the ranking, the case's findings or its risk factors."""
+
+MEDICATION_HEADING = "Medication history (not advice)"
+
+_CARD_ROWS = 25
+"""The most rows of any one list the panel draws, whatever the file holds."""
+_CARD_TEXT = 160
+_SEX_WORD = {"M": "male", "F": "female", "O": "other sex"}
+
+
+def load_patient_cards(path: str | Path) -> list[dict[str, Any]] | None:
+    """The cards ``scripts/build_patient_display.py`` wrote, or None when the file is absent or
+    unreadable (not JSON, not the builder's layout). Never raises: the panel is an extra, and the
+    page is shown either way. A valid file holding no patient gives an empty list."""
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+        patients = raw.get("patients") if isinstance(raw, dict) else None
+        if not isinstance(patients, list):
+            return None
+        return [card for card in patients if isinstance(card, dict) and card.get("id")]
+    except Exception:  # noqa: BLE001 - absent, unreadable or malformed all mean "no cards"
+        return None
+
+
+def _text(value: Any) -> str:
+    """Anything from the file as Markdown-safe text, cut to a line's length."""
+    return _escape_markdown(str(value)[:_CARD_TEXT])
+
+
+def _rows(card: Mapping[str, Any], key: str) -> list[Any]:
+    rows = card.get(key)
+    return list(rows)[:_CARD_ROWS] if isinstance(rows, list) else []
+
+
+def _more(card: Mapping[str, Any], key: str, shown: int) -> list[str]:
+    """The line "…and N more" when the card's full count for ``key`` exceeds what it lists."""
+    total = card.get(f"{key}_total")
+    if isinstance(total, int) and not isinstance(total, bool) and total > shown:
+        return [f"- …and {total - shown} more"]
+    return []
+
+
+def _count(value: Any) -> str:
+    return str(value) if isinstance(value, int) and not isinstance(value, bool) else "?"
+
+
+def patient_label(card: Mapping[str, Any]) -> str:
+    """One line to choose a card by: the short id, the age and the sex. Plain text, built from
+    the id's own characters, the age as a number and a word from a fixed list."""
+    short = "".join(ch for ch in str(card.get("id", "")) if ch.isalnum() or ch == "-")[:12]
+    age = card.get("age")
+    years = f"{age} y" if isinstance(age, int) and not isinstance(age, bool) else "age unknown"
+    return f"{short or 'unknown'} · {years} · {_SEX_WORD.get(str(card.get('sex')), 'sex unknown')}"
+
+
+def patient_card_markdown(card: Mapping[str, Any]) -> str:
+    """One card as Markdown: who, the active conditions, the risk factors the history supports,
+    the medication history, the counts on record and the conditions the table does not map. Every
+    string from the file is escaped, so a description cannot become a link or a formula."""
+    as_of = card.get("as_of")
+    head = f"**{_text(patient_label(card))}**" + (
+        f" · history as of {_text(as_of)}" if as_of else ""
+    )
+    parts = [head]
+
+    conditions = [
+        row
+        for row in _rows(card, "conditions")
+        if isinstance(row, Mapping) and "description" in row
+    ]
+
+    def line_of(row: Mapping[str, Any]) -> str:
+        return f"- {_text(row['description'])}" + (
+            f" · since {_text(row['since'])}" if row.get("since") else ""
+        )
+
+    disorders = [line_of(row) for row in conditions if row.get("finding") is not True]
+    findings = [line_of(row) for row in conditions if row.get("finding") is True]
+    more = _more(card, "conditions", len(conditions))
+    # What a cut drops is the end of the list, the findings, so the "more" goes under them.
+    (findings if findings else disorders).extend(more)
+    parts.append("**Active conditions**\n" + ("\n".join(disorders) or "_none recorded_"))
+    if findings:
+        parts.append(
+            "**Other findings on record** (social history and findings Synthea lists as active)\n"
+            + "\n".join(findings)
+        )
+
+    risks = [
+        row for row in _rows(card, "risk_factors") if isinstance(row, Mapping) and "label" in row
+    ]
+    lines = [
+        f"- {_text(row['label'])}: {'present' if row.get('present') else 'absent'}"
+        + (f" · since {_text(row['since'])}" if row.get("since") else "")
+        for row in risks
+    ]
+    parts.append(
+        "**Risk factors the history supports**\n" + ("\n".join(lines) or "_none recorded_")
+    )
+
+    medications = [m for m in _rows(card, "medications") if isinstance(m, str)]
+    lines = [f"- {_text(m)}" for m in medications]
+    lines += _more(card, "medications", len(medications))
+    parts.append(f"**{MEDICATION_HEADING}**\n" + ("\n".join(lines) or "_none active_"))
+
+    parts.append(
+        f"**On record by that day**: {_count(card.get('procedures'))} procedures, "
+        f"{_count(card.get('observations'))} observations."
+    )
+
+    unmapped, total = card.get("unmapped_total"), card.get("conditions_total")
+    if isinstance(unmapped, int) and not isinstance(unmapped, bool) and unmapped > 0:
+        # A count, not a list: the entries are the ones above, and only six concepts map.
+        of = (
+            f" of {_count(total)}" if isinstance(total, int) and not isinstance(total, bool) else ""
+        )
+        parts.append(f"No risk-factor mapping for {unmapped}{of} active entries.")
+    return "\n\n".join(parts)

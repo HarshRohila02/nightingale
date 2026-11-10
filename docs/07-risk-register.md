@@ -433,6 +433,29 @@ validation its MRR at 25% beats the logistic regression's at nine of ten network
 level with XGBoost trained the same way, so the risk held in part: H6, judged against both on
 the test split, may still not be supported.
 
+*2026-11-10 (EXP-012, the test split):* H6 is **not supported**, as this risk said it might be: the
+transformer beats the logistic regression trained like it on all three metrics and is level with
+XGBoost trained like it (seed 42; the same at all five seeds). The answer to the supervisor's
+question is in the report either way, with the cost: 225,645 parameters, about 1.4 ms a patient.
+
+### 🟡 R-20 — The evidence shown beside each candidate is of unmeasured relevance, and some of it is non-commercial
+**L 3 · I 2 · Score 6 · Owner P3 · Status: OPEN** · *opened 2026-11-10 (EXP-011 closed unjudged; the compliance pass)*
+
+Two team members were to judge the pooled passages blind (EXP-011) and had no time, so no
+Precision@3 or nDCG@3 exists. The laptop's query vector also ranks only four of the ten passages
+that embedding the whole query would (median overlap 0.40, under the pre-registered 0.5), and the
+first excerpt for a condition is not always on point: on the dashboard's default case, PSVT's first
+passage comes from a case report about a caesarean delivery. Separately, the embedding model
+(`S-PubMedBert-MS-MARCO`, CC-BY-NC-2.0), BODHI-S (CC-BY-NC-4.0) and 844 of the corpus's 2,067 articles
+allow non-commercial use only.
+
+*Mitigation:* evidence is attached after the ranking and never changes it (tested); a sentence or
+title with treatment language is never shown; **the dashboard says the passages' relevance has not
+been formally judged and asks the reader to take them as leads**; each excerpt shows its own
+licence and attribution; the project is stated non-commercial in the README, the dashboard's credits
+and `docs/03` §1.5. If judges are found, the tool and the 159-row sheets are ready
+(`scripts/judge_retrieval.py`, `data/interim/exp011_depth3/`).
+
 ---
 
 ### 🟡 R-09 — Fusion does not beat the ML-only baseline
