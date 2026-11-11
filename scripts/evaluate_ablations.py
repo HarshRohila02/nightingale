@@ -488,8 +488,10 @@ def summarise(args, primary, runs, records, levels, frames, say) -> dict[str, An
     out["seed_agreement"] = agreement
 
     sex = {level: frames[level]["sex"].to_numpy() for level in levels}
+    age = {level: ablation_run.age_groups(frames[level]["age"].to_numpy()) for level in levels}
     by_condition: dict[str, Any] = {}
     by_sex: dict[str, Any] = {}
+    by_age: dict[str, Any] = {}
     for label in BREAKDOWN:
         for level in levels:
             cases = primary.cases.get((label, level))
@@ -502,8 +504,11 @@ def summarise(args, primary, runs, records, levels, frames, say) -> dict[str, An
             by_sex.setdefault(label, {})[str(level)] = ablation_run.breakdown(
                 cases, sex[level], resamples=args.resamples
             )
-    out["by_condition"], out["by_sex"] = by_condition, by_sex
-    say("breakdowns by condition and by sex")
+            by_age.setdefault(label, {})[str(level)] = ablation_run.breakdown(
+                cases, age[level], resamples=args.resamples
+            )
+    out["by_condition"], out["by_sex"], out["by_age"] = by_condition, by_sex, by_age
+    say("breakdowns by condition, by sex and by age")
     return out
 
 

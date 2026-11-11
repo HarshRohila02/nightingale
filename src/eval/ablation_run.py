@@ -357,3 +357,25 @@ def condition_names(truth: np.ndarray) -> np.ndarray:
     """The true conditions' ids, for :func:`breakdown`."""
     ids = np.asarray(IDS)
     return ids[np.asarray(truth)]
+
+
+AGE_BANDS = (
+    (0, 17, "0-17"),
+    (18, 39, "18-39"),
+    (40, 59, "40-59"),
+    (60, 79, "60-79"),
+    (80, 200, "80+"),
+)
+"""The age bands of the age breakdown, fixed on 2026-11-11 before any figure by age was computed
+(``docs/08`` EXP-012, dated note): conventional clinical bands, each holding at least 1,379
+validation patients. Descriptive, like the by-sex breakdown."""
+
+
+def age_groups(age: Sequence[float] | np.ndarray) -> np.ndarray:
+    """The age band of each patient, for :func:`breakdown`. An age outside every band, or missing,
+    is ``"unknown"`` and is reported as its own group rather than dropped."""
+    values = np.asarray(age, dtype=float)
+    out = np.full(len(values), "unknown", dtype=object)
+    for low, high, name in AGE_BANDS:
+        out[(values >= low) & (values <= high)] = name
+    return out.astype(str)

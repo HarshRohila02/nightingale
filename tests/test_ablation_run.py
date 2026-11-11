@@ -207,3 +207,32 @@ def test_breakdown_by_group_has_intervals_and_the_right_counts():
 
 def test_condition_names_map_registry_indices_to_ids():
     assert run.condition_names(np.array([0, 3])).tolist() == [IDS[0], IDS[3]]
+
+
+def test_age_bands_are_fixed_and_cover_every_age():
+    ages = [0, 17, 17.0, 18, 39, 40, 59, 60, 79, 80, 109, -1, float("nan")]
+    assert list(run.age_groups(ages)) == [
+        "0-17",
+        "0-17",
+        "0-17",
+        "18-39",
+        "18-39",
+        "40-59",
+        "40-59",
+        "60-79",
+        "60-79",
+        "80+",
+        "80+",
+        "unknown",
+        "unknown",
+    ]
+    assert [name for _, _, name in run.AGE_BANDS] == ["0-17", "18-39", "40-59", "60-79", "80+"]
+    # A breakdown by age has one group per band present, with intervals, like the other two.
+    groups = run.age_groups([5, 5, 30, 30, 50, 50, 70, 70, 90, 90])
+    cases = CaseArrays(
+        ranks=np.array([1, 2, 1, 3, 2, 4, 1, 1, 3, 5]), critical=np.array([True] * 10)
+    )
+    out = run.breakdown(cases, groups, resamples=50)
+    assert set(out) == {"0-17", "18-39", "40-59", "60-79", "80+"}
+    assert out["18-39"]["cases"] == 2 and out["80+"]["cases"] == 2
+    assert out["18-39"]["top-3 accuracy"]["ci"][0] <= out["18-39"]["top-3 accuracy"]["value"]

@@ -483,6 +483,23 @@ so the test split checks overfitting to validation, not clinical validity. The m
 robustness to missing answers, not history-taking. α was chosen on validation. The unsupported-claim rate and the
 clinician-reviewed explainability are not assessed. No LLM system was run on the test split. By-sex parity is an artifact.
 
+**Dated note, 2026-11-11: an age breakdown, on validation, descriptive; its bands are fixed here, before any figure by age exists.**
+- **Why.** `docs/04` §8 asks for sex and age breakdowns where the sample allows. The test result above has the
+  breakdown by condition and by sex, and none by age. A test-split age breakdown would need a second opening of
+  the split, so **none is made**; the breakdown is run on validation, as a development result, and says so.
+- **The bands**, conventional clinical ones, fixed now: **0-17, 18-39, 40-59, 60-79, 80+**. Their sizes come from
+  the validation parquet's `age` column alone (no label and no ranking read): 4,093, 12,336, 10,133, 6,022 and
+  1,379 patients of 33,963, so every band is large enough to report. A patient with an age outside every band is
+  its own group, "unknown", and is not dropped.
+- **What.** The same seven systems as the other breakdowns (A0, A0′, B1-XGB, B1-LR, B1-DL+aug, B1-DL′+aug and B2),
+  at 100, 50 and 25%, seed 42: top-1, top-3 and MRR, and must-not-miss recall@3 where it applies, each with its
+  95% bootstrap interval (`breakdown`, `src/eval/ablation_run.py`; the bands are `AGE_BANDS` and `age_groups`
+  there, tested). It is the runner's new `by_age` block (`scripts/evaluate_ablations.py`), run with
+  `--split validate --seeds 42 --alpha-file docs/results/exp006_fusion.json`. No verdict depends on it.
+- **Reading it.** DDXPlus's ages are generated, like its sex, so near-equal results across bands are an artifact of
+  the generator and not evidence of fairness (EXP-002). The run is a CPU job of about ten minutes, so it waits for
+  the owner to say where it runs (D-7).
+
 **Next action.** *(2026-11-10: the test split has been read, once; see the results above, and `PROGRESS.md` §1 for what is left.)* *(2026-11-07: E-2 is answered and amendment 3b applied; EXP-006's sweep and the
 rehearsal are the owner's Kaggle run of `notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8.)*
 1. ~~The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007

@@ -376,32 +376,33 @@ result.
 
 **Phase 1 — Core (MVP, must ship)**
 - [x] Decode DDXPlus evidences; filter to the ~13 chest-pain conditions; train a ranker: B0 and B1
-  trained ✅ 2026-09-19 (EXP-003/004); wiring the ranker into the pipeline is next
+  trained ✅ 2026-09-19 (EXP-003/004); ~~wiring the ranker into the pipeline is next~~ wired
+  2026-09-23; the configured ranker is the small transformer B1-DL′+aug since 2026-10-13 (D-12, D-13)
 - [x] Build the Cardiac KG from DDXPlus's condition KB, enriched from BODHI-S, with aortic
   dissection hand-authored: NetworkX and Neo4j (AuraDB) stores ✅ 2026-09-19
-- [ ] Build the Patient KG (from Synthea + entered cases)
-- [ ] Fusion + reasoning: ranked differential with supporting ✓ / missing ? symptoms
-- [ ] Red-flag rules (ACS / PE / pneumothorax / dissection)
-- [ ] Evaluation harness + the ML-only / KG-only / fusion ablation (incl. must-not-miss recall)
-- [ ] Minimal clinician dashboard with disclaimer
+- [x] Build the Patient KG (from Synthea) ✅ 2026-11-10: display only, shown beside a case and never an input (decision of 2026-10-20)
+- [x] Fusion + reasoning: ranked differential with supporting ✓ / missing ? symptoms ✅ (a logarithmic opinion pool, α = 0.05; EXP-006)
+- [x] Red-flag rules (ACS / PE / pneumothorax / dissection) ✅ 2026-09-25: every must-not-miss condition has a rule (EXP-008)
+- [x] Evaluation harness + the ML-only / KG-only / fusion ablation (incl. must-not-miss recall) ✅ 2026-11-09: the test split opened once (EXP-012)
+- [x] Minimal clinician dashboard with disclaimer ✅ (Streamlit, plus a FastAPI service)
 
 **Phase 2 — Evidence & explanation**
-- [ ] RAG over PubMed/PMC cardiology guidelines; retrieval metrics. *Code done 2026-10-14 (3a):*
-  excerpts from PMC Open Access articles beside the first three candidates, each with its
-  citation and PMC link, diagnosis only; the corpus waits for its Kaggle run (docs/11 §4.6), the
-  retrieval metrics for EXP-011
-- [ ] LLM explainer constrained to retrieved evidence + guardrails
-- [ ] Contradiction detection; safety layer; calibration + reliability diagrams
+- [x] RAG over PubMed/PMC cardiology guidelines ✅ 2026-11-08 (3a): excerpts from 2,067 PMC Open
+  Access articles beside the first three candidates, each with its citation, PMC link and licence,
+  diagnosis only. ⚠️ **The retrieval metrics were not measured** (EXP-011's judges had no time),
+  so the passages' relevance is unjudged and the dashboard says so
+- [x] Guardrails v1 (3c) ✅. ~~LLM explainer constrained to retrieved evidence~~ built and tried, and it **failed its own checkpoint** (74% of its claims unsupported, EXP-009/010), so the template explainer ships and `llm.enabled` is false
+- [x] Contradiction detection (the ✗ findings); safety layer ✅; calibration + reliability diagrams ✅ (EXP-007, EXP-023; no probability is shown, by decision: ranks only)
 
 **Phase 3 — Stretch (value ÷ effort)**
 - [x] "What to ask next" — ~~KG-driven missing-test suggestion (troponin / ECG / D-dimer)~~ ✅
   2026-10-14 (3d): the findings the knowledge graph would learn most from, and the tests to
   consider from a cited guideline table (the graph holds no tests), in the dashboard, the API and
   `scripts/demo.py`
-- [ ] Free-text intake via clinical NLP (negation/temporality)
-- [ ] UCI Heart cardiac-risk sub-model fused into ranking
-- [ ] KG embeddings (TransE/RotatE) or a GNN ranker as the ML-research angle
-- [ ] PTB-XL ECG multimodal extension
+- [ ] ~~Free-text intake via clinical NLP (negation/temporality)~~ ⏭️ not built: the stretch was cut, and free text is ignored by design (tested)
+- [ ] ~~UCI Heart cardiac-risk sub-model fused into ranking~~ ⏭️ not built (cut)
+- [ ] ~~KG embeddings (TransE/RotatE) or a GNN ranker as the ML-research angle~~ ⏭️ not built (cut); the research angle became the small transformer (D-12)
+- [ ] ~~PTB-XL ECG multimodal extension~~ ⏭️ not built (cut)
 
 **Explicitly out of scope:** autonomous diagnosis, treatment prescription, real/identifiable patient
 data, hospital deployment, training a medical LLM from scratch, non-chest-pain presentations.

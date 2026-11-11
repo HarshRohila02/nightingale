@@ -1,5 +1,7 @@
 # 00 · Outline of the final report
 
+> 🛑 **Out of date: written on 2026-10-14, before the test read, the freeze and the compliance pass.** The owner paused the report on 2026-11-09, so this text has **not** been updated. Where it speaks of the test split as unread, results as `[pending]`, E-2 as open, the corpus as unbuilt, the language-model explainer as undecided or the patient graph as unbuilt, **`docs/08` (EXP-012 `[TEST]`, EXP-009/010, EXP-011) and `docs/15` §5 are right and this is not.** Resuming the report means the work listed in `PROGRESS.md` §1 (fill the `[pending]` markers, clear the stale wording, regenerate the PDF).
+
 > **Draft 1, 2026-10-14.** The report is presented with the working prototype on **2026-11-15**
 > (PROGRESS §5). It is drafted alongside the work and completed after the test split is read
 > (planned 2026-11-06 to 2026-11-07). Sources: `README.md`, `PROGRESS.md`, `docs/00`–`docs/14`, and

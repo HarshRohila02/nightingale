@@ -129,9 +129,9 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   overconfident model cannot veto the graph; a degraded model, or one whose scores are not finite,
   non-negative probabilities, leaves the graph's order exactly. GC-003's dissection is now first
   with red flags off. `fused_score` is a log-probability, not calibrated. The one tuned quantity,
-  the graph's weight α, will come from EXP-006's pre-registered sweep (E-2 is answered; it runs on
-  Kaggle with EXP-012's rehearsal, `docs/11` §4.8; until then an untuned 0.5) and lives in `configs/config.yaml`'s `ranking:` block, which the
-  scripts and the golden tests read: never retune it by hand.
+  the graph's weight α, came from EXP-006's pre-registered sweep (run 2026-11-07 on Kaggle: α = 0.05 for the
+  configured B1-DL′+aug, and the fusion adds nothing measurable over the transformer alone) and lives in `configs/config.yaml`'s
+  `ranking:` block, which the scripts and the golden tests read, and which the freeze fixes: never retune it by hand.
 - **BODHI-S is CC-BY-NC: never commit its text.** `src/medical_kg/bodhi_s.py` keys facts by
   BODHI-S's ids, with paraphrased notes, and the KG card prints counts only.
 - The system is **closed-world** (R-13): it only knows 13 conditions, so e.g. pneumonia gets forced
@@ -185,7 +185,7 @@ the write-ahead In-flight marker, so an interrupted session can always be recove
   short input, and the masked copies do that alone; the channel's own value needs masked validate
   (amendment 3). **EXP-019 (the approved masks):** at 25% the original B1 misses the safety targets
   (must-not-miss recall@3 0.877 XGB, 0.925 LR) and every `+aug` model meets them (≥ 0.996); the
-  channel adds a small significant gain. **The configured ranker is now B1-LR′+aug**
+  channel adds a small significant gain. **The configured ranker became B1-LR′+aug here, and B1-DL′+aug on 2026-10-13 (below)**
   (`models/nightingale_b1_asked/b1_asked_aug`). The retrained models are calibrated against DDXPlus
   on masked validate (ECE ≤ 0.011) but **near-certain on hand-written cases where a history cannot
   decide** (GC-001: unstable angina 0.98–1.00): never show a raw score as a probability.

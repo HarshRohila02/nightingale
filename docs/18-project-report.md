@@ -1,5 +1,7 @@
 # 18 · Nightingale: the full project report
 
+> 🛑 **Out of date: written on 2026-10-14, before the test read, the freeze and the compliance pass.** The owner paused the report on 2026-11-09, so this text has **not** been updated. Where it speaks of the test split as unread, results as `[pending]`, E-2 as open, the corpus as unbuilt, the language-model explainer as undecided or the patient graph as unbuilt, **`docs/08` (EXP-012 `[TEST]`, EXP-009/010, EXP-011) and `docs/15` §5 are right and this is not.** Resuming the report means the work listed in `PROGRESS.md` §1 (fill the `[pending]` markers, clear the stale wording, regenerate the PDF).
+
 **Nightingale — Clinical Intelligence & Reasoning System**\
 **Version 1.0 · 2026-10-14** (end of Week 4 of the plan; Week 1 began 2026-09-17)\
 **Team:** [P1, cardiac knowledge graph] · [P2, data and ML] · [P3, retrieval, LLM and safety] ·

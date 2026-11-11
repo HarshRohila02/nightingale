@@ -84,6 +84,16 @@ and gets the 14 possible causes ranked, live, as each finding is ticked:
 4. Check that `data/` and `models/` are on the laptop. They are not in git.
    - `models/nightingale_b1_dl/b1_dl_asked_aug/seed42/b1_dl.json` must exist.
    - Without it, the dashboard says `ml` is degraded and ranks with the graph alone.
+   - **Presenting from another laptop?** The safest course is to present from the laptop where it
+     already runs. Otherwise the demo needs a clone, the `.venv` (Python 3.11, `requirements-dev.txt`)
+     and about 75 MB of files that are not in git, read off this laptop on 2026-11-10: the model
+     `models/nightingale_b1_dl/b1_dl_asked_aug/seed42/` (1.3 MB); `data/raw/ddxplus/release_conditions.json`
+     and `release_evidences.json`; `data/raw/bodhi_s/` (4.4 MB); `data/interim/ddxplus_chestpain_conditions.json`
+     and `ddxplus_evidences.json`; `data/raw/retrieval_corpus/` (63 MB); and
+     `data/interim/patient_display/patients.json` (1.7 MB). **Checked on 2026-11-11** by copying exactly
+     this list into a fresh clone: `scripts/demo.py --case GC-003` gave the same ranking (dissection
+     first, identical scores) with only `graph_backend` degraded. Still run it on the presenting
+     laptop, and check that "Running without" names nothing else, before relying on it.
 5. **For the evidence:** the corpus bundle in `data/raw/retrieval_corpus/` (with its
    `manifest.json`); `retrieval.bundle` is already set in `configs/config.yaml`.
    - Without it nothing breaks: each candidate's Evidence says no literature is shown, and
