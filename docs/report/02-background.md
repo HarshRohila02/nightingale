@@ -1,9 +1,9 @@
 # 2 · Background and related work
 
-> **Draft 1, 2026-10-13.** Every reference here is one the project's documents or code already
-> cite. Where the report needs a source the repository does not hold, the text says
-> `[citation needed: …]`. No reference, author or year has been added from outside the repository;
-> the full bibliographic details of several references must still be checked (§2.8).
+> **Drafted 2026-10-13; references revised 2026-11-11; brought up to the final state 2026-11-12.** Citations are given as (Author Year) and
+> point to `references.md`. Each entry there was looked up in Crossref or arXiv on 2026-11-11, and
+> its title, first named author and year matched the record. Where the report needs a source that was
+> not verified, the text keeps a citation-needed marker (§2.8).
 
 ## 2.1 Acute chest pain as a differential-diagnosis problem
 
@@ -11,8 +11,7 @@ A **differential diagnosis** is a ranked list of candidate conditions, not a sin
 (`docs/01` §1.3). Chest pain is the textbook case. The clinician weighs the character of the pain
 (pressure, sharp, burning, tearing), where it radiates (jaw, arm, back), how fast it began, what
 makes it worse or better (exertion, breathing, posture, lying flat), and the risk factors, and
-then decides which tests to order (`docs/09` §1.2) [citation needed: a standard
-emergency-medicine account of the chest-pain history].
+then decides which tests to order (`docs/09` §1.2; Gulati et al. 2021).
 
 Table 2.1 summarises the hallmark features the team used as its domain primer (`docs/09` §1.2).
 They are a teaching summary, not a clinical reference.
@@ -46,8 +45,7 @@ edema and aortic dissection (Table 1.1). DDXPlus's own severity ranking of its c
 independently agrees with this set (`docs/10`).
 
 **Alarm fatigue.** Raising a flag for danger costs little once; raising it for half of all
-patients teaches users to ignore flags (R-15) [citation needed: alarm fatigue in clinical
-decision support]. A rule set must therefore be judged both on whom it reaches and on whom it
+patients teaches users to ignore flags (R-15; Ancker et al. 2017). A rule set must therefore be judged both on whom it reaches and on whom it
 flags without reason (§5.3).
 
 ## 2.2 Clinical prediction rules behind the red flags
@@ -68,13 +66,12 @@ Each red-flag rule follows a published clinical pattern rather than any single s
 - **The Wells criteria** for pulmonary embolism [citation needed: Wells criteria, original
   publication]. The rule uses the risks a history can record: signs of deep-vein thrombosis,
   immobilisation, recent surgery and previous thrombosis (`src/reasoning/red_flags.py`).
-- **The Braunwald classification** of unstable angina [citation needed: Braunwald
-  classification, original publication]. The rule uses its history features: a crescendo pattern,
+- **The Braunwald classification** of unstable angina (Braunwald 1989). The rule uses its history features: a crescendo pattern,
   or pain at rest with an ischaemic character.
 
 ## 2.3 Synthetic patients and the DDXPlus benchmark
 
-**DDXPlus** (Tchango et al., NeurIPS 2022, arXiv:2205.09148) is a large synthetic dataset for
+**DDXPlus** (Tchango et al. 2022, NeurIPS 2022 Datasets and Benchmarks, arXiv:2205.09148) is a large synthetic dataset for
 automatic medical diagnosis: about 1.3 million generated patients across 49 pathologies, each
 with age, sex, a list of coded evidence (symptoms and antecedents), the presenting complaint, the
 true pathology, and a ranked differential diagnosis with probabilities (`docs/03` §1.1). The
@@ -86,27 +83,28 @@ histories a classifier can be near-perfect (EXP-004, R-16). Second, the knowledg
 project is built from that same knowledge base, so any graph figure measured on DDXPlus patients
 is circular (R-12).
 
-The published deep models on DDXPlus are multilayer perceptrons and transformers (`docs/14`)
-[citation needed: published deep models on DDXPlus]. The project's literature review found no
-study of a fixed deep classifier on randomly masked DDXPlus histories, or of its cost (`docs/14`)
+The published deep models on DDXPlus are multilayer perceptrons and transformers (`docs/14`; for a
+transformer, Alam et al. 2023) [citation needed: published multilayer perceptrons on DDXPlus]. The
+project's literature review found no study of a fixed deep classifier on randomly masked DDXPlus histories, or of its cost (`docs/14`)
 [citation needed: the literature review of 2026-10-11 is not in the repository].
 
-**Other synthetic and open sources.** Synthea (Walonoski et al., MITRE) [citation needed: year and
-venue] generates synthetic patient records, including cardiac modules; it is planned for the
-patient knowledge graph and pipeline testing (Phase 1d, not yet built). The UCI Heart Disease
+**Other synthetic and open sources.** Synthea (Walonoski et al. 2018; MITRE) generates synthetic
+patient records, including cardiac modules; it was used for the
+patient knowledge graph (Phase 1d: 1,359 synthetic patients, 1,013 alive on 2026-01-01), which is shown
+beside a case and never used to rank it (`docs/08`, §3.1.2). The UCI Heart Disease
 dataset (Janosi, Steinbrunn, Pfisterer & Detrano, UCI ML Repository) [citation needed: year] holds
 real de-identified cardiac features, but it is a binary disease classifier and cannot rank a
-differential, so it is at most a stretch-goal risk sub-model (`README.md`). PTB-XL (Wagner et al.)
-[citation needed: year and venue] is a public ECG dataset, a stretch goal not pursued.
+differential, so it is at most a stretch-goal risk sub-model (`README.md`). PTB-XL (Wagner et al.
+2020) is a public ECG dataset, a stretch goal not pursued.
 
 ## 2.4 Knowledge graphs for clinical reasoning
 
 A knowledge graph encodes medical relations explicitly, for example that chest pain radiating to
 the jaw is associated with myocardial infarction, so a system can show a reasoning path rather
 than a score (`docs/00` §2) [citation needed: knowledge graphs in clinical decision support].
-Several open biomedical graphs exist: Hetionet (CC0) and PrimeKG, and terminologies such as HPO,
-UMLS and SNOMED CT (`README.md`) [citation needed: Hetionet, PrimeKG, HPO]. They are broad, and
-none was chosen as the backbone here.
+Several open biomedical graphs exist: Hetionet (Himmelstein et al. 2017; CC0) and PrimeKG (Chandak
+et al. 2023), and terminologies such as HPO (Köhler et al. 2021), UMLS and SNOMED CT (`README.md`).
+They are broad, and none was chosen as the backbone here.
 
 **BODHI-S** (Eka Care, `ekacare/BODHI-S` on Hugging Face; CC-BY-NC-4.0) is a condition–symptom
 knowledge graph whose facts carry qualifiers (severity, onset, location, radiation) and
@@ -129,16 +127,16 @@ PageRank [citation needed: Personalised PageRank] and a naive-Bayes log-likeliho
 
 When two systems each give a probability distribution over the same conditions, a
 **logarithmic opinion pool** combines them as a weighted geometric mean, renormalised (Genest and
-Zidek 1986, as cited in `src/fusion/pool.py`) [citation needed: full bibliographic details]. It is
-also known as a product of experts [citation needed: product of experts]. A pool multiplies, so
-one expert's near-zero probability vetoes a condition whatever the other says; Chapter 4 explains
-how the system guards against that (§4.10).
+Zidek 1986, as cited in `src/fusion/pool.py`). It is also known as a product of experts (Hinton
+2002). A pool multiplies, so one expert's near-zero probability vetoes a condition whatever the
+other says; Chapter 4 explains how the system guards against that (§4.10).
 
 ## 2.6 Calibration
 
 A model saying "70%" should be right about 70% of the time (`docs/09` §1.3). Calibration is
 measured by the expected calibration error (ECE), the Brier score and reliability diagrams
-(`docs/05` §3.3) [citation needed: ECE, Brier score]. The methods compared here (EXP-007) are:
+(`docs/05` §3.3; Brier score: Brier 1950) [citation needed: the expected calibration error]. The
+methods compared here (EXP-007) are:
 
 - **Platt scaling** (Platt 1999), a logistic fit to a model's scores, here one-vs-rest per
   condition (Zadrozny and Elkan 2002);
@@ -146,74 +144,53 @@ measured by the expected calibration error (ECE), the Brier score and reliabilit
 - **temperature scaling** (Guo et al. 2017), Platt scaling's one-parameter multi-class form,
   which keeps the order of the conditions.
 
-The full bibliographic details of these three references are not in the repository
-[citation needed: titles and venues of Platt 1999, Zadrozny and Elkan 2002, Guo et al. 2017].
+The full details of Zadrozny and Elkan 2002 and Guo et al. 2017 are in `references.md`; Platt 1999
+is not yet verified [citation needed: title and venue of Platt 1999].
 
 ## 2.7 Deep learning on tabular data with missing answers
 
 The deep ranker is an **FT-Transformer** (Gorishniy et al. 2021, "Revisiting deep learning models
 for tabular data", as cited in `src/ml/deep.py`), at a smaller size and with the reference
-implementation's (rtdl) defaults [citation needed: venue of Gorishniy et al. 2021; the rtdl
-library]. Each input feature becomes a token, and attention lets every finding see every other.
-That suits DDXPlus, where findings interact: exertional pain means one thing beside rest pain and
-another without it (`src/ml/deep.py`). Its feed-forward layers use ReGLU [citation needed:
-gated linear unit variants], and it is trained with AdamW [citation needed: AdamW].
+implementation's (rtdl) defaults [citation needed: the rtdl library]. Each input feature becomes a
+token, and attention lets every finding see every other. That suits DDXPlus, where findings
+interact: exertional pain means one thing beside rest pain and another without it
+(`src/ml/deep.py`). Its feed-forward layers use ReGLU (Shazeer 2020), and it is trained with AdamW
+(Loshchilov and Hutter 2019).
 
 When inputs are missing, the best predictor is in general non-linear in both what was observed
-and what was asked (NeuMiss, 2020, as cited in `docs/14`) [citation needed: authors, title and
-venue of NeuMiss]. In DDXPlus an unlisted question means "no", so "not asked" and "denied" are
-two different states that a feature encoding must keep apart (`docs/01` FR-1.3; R-18). This project
-does so with an explicit "asked" channel and masked training copies (§4.6).
+and what was asked (NeuMiss: Le Morvan et al. 2020, as cited in `docs/14`). In DDXPlus an unlisted
+question means "no", so "not asked" and "denied" are two different states that a feature encoding
+must keep apart (`docs/01` FR-1.3; R-18). This project does so with an explicit "asked" channel and masked training copies (§4.6).
 
 **Explaining a model's ranking.** The system explains the model by leave-one-finding-out
 occlusion: remove each recorded finding, rescore, and see how each condition's odds move
-(`src/ml/reasons.py`) [citation needed: occlusion-based attribution]. SHAP was planned
-(`docs/02`, `README.md`) [citation needed: SHAP] but is not used.
+(`src/ml/reasons.py`) [citation needed: occlusion-based attribution]. SHAP (Lundberg and Lee 2017)
+was planned (`docs/02`, `README.md`) but is not used.
 
 **Language models and retrieval.** Retrieval-augmented generation grounds each explanatory
-statement in a retrieved, citable passage (`docs/00` §2) [citation needed: retrieval-augmented
-generation]. This is Phase 3 work [pending: retrieval EXP-011] [pending: LLM baselines B3/B4,
-EXP-009/010].
+statement in a retrieved, citable passage (`docs/00` §2; Lewis et al. 2020). The project built both
+parts in Phase 3. The retrieval corpus holds 2,067 PubMed Central Open Access articles (26,190
+passages), and the dashboard shows each passage with its licence. The relevance of the retrieved
+passages was not judged (EXP-011), so the dashboard offers them as leads, not proof. The
+language-model trial (EXP-009/010: `llama3.1:8b`, 50 validation patients and the four golden cases)
+failed its pre-registered checkpoint. The grounded explainer's raw answers (A0+LLM, 100% evidence,
+validation) had an unsupported-claim rate of 0.741 [0.663, 0.803], where the bar was under 0.20, so
+the template explainer stays and baselines B3 and B4 are not carried into the evaluation (§6.13).
+The claim check is lexical, so the rate measures staying within the inputs, not correctness.
 
 **Response time.** About 0.1 s is the conventional limit at which a response feels instant
 (Nielsen's limits, as cited in EXP-022) [citation needed: Nielsen's response-time limits]. No
 clinical standard sets a number (EXP-022).
 
-## 2.8 References held in the repository
+## 2.8 References
 
-The list below is everything this chapter cites that the repository already records, with the
-detail it records. Entries marked ⚑ need their full details checked before submission.
+This chapter cites its sources as (Author Year). `references.md` lists each source in full. Every
+entry there was looked up in Crossref or arXiv on 2026-11-11, and its title, first named author and
+year matched the record. The same file lists what could not be verified, with the reason; the markers
+that remain in this chapter point at those sources. The W3C SKOS Primer (§2.4) and the BODHI-S
+dataset card (§2.4) are web documents that neither registry holds, and are listed there as not
+verified.
 
-- Evangelista A, Maldonado G, Gruosso D, et al. Insights from the International Registry of Acute
-  Aortic Dissection. *Glob Cardiol Sci Pract.* 2016;2016(1):e201608. doi:10.21542/gcsp.2016.8.
-  (`src/medical_kg/hand_authored.py`)
-- Genest and Zidek, 1986 (cited for the logarithmic opinion pool; title not recorded). ⚑
-  (`src/fusion/pool.py`)
-- Gorishniy et al. 2021. "Revisiting deep learning models for tabular data". ⚑
-  (`src/ml/deep.py`)
-- Guo et al. 2017 (cited for temperature scaling; title not recorded). ⚑
-  (`src/fusion/calibration.py`)
-- Hagan PG, Nienaber CA, Isselbacher EM, et al. The International Registry of Acute Aortic
-  Dissection (IRAD): new insights into an old disease. *JAMA.* 2000;283(7):897-903.
-  (`src/medical_kg/hand_authored.py`)
-- Hiratzka LF, Bakris GL, Beckman JA, et al. 2010 ACCF/AHA/AATS/ACR/ASA/SCA/SCAI/SIR/STS/SVM
-  guidelines for the diagnosis and management of patients with thoracic aortic disease.
-  *Circulation.* 2010;121(13):e266-e369. (`src/medical_kg/hand_authored.py`)
-- Janosi, Steinbrunn, Pfisterer & Detrano. UCI Heart Disease, UCI ML Repository. ⚑ (`README.md`)
-- NeuMiss, 2020 (authors and title not recorded). ⚑ (`docs/14`)
-- Nielsen's response-time limits (no source recorded). ⚑ (EXP-022)
-- Platt 1999 (cited for Platt scaling; title not recorded). ⚑ (`src/fusion/calibration.py`)
-- Rogers AM, Hermann LK, Booher AM, et al. Sensitivity of the aortic dissection detection risk
-  score. *Circulation.* 2011;123(20):2213-2218. (`src/medical_kg/hand_authored.py`)
-- Eka Care. BODHI-S, condition–symptom knowledge graph, `ekacare/BODHI-S`, Hugging Face,
-  CC-BY-NC-4.0. ⚑ (`README.md`, `docs/03`)
-- Tchango et al. DDXPlus: A New Dataset for Automatic Medical Diagnosis. NeurIPS 2022,
-  arXiv:2205.09148. ⚑ (`README.md`, `docs/03`)
-- Wagner et al. PTB-XL, a large publicly available ECG dataset. PhysioNet. ⚑ (`README.md`)
-- Walonoski et al. Synthea: synthetic patient generator. MITRE. ⚑ (`README.md`)
-- W3C SKOS Primer, §4.5 (mapping properties). ⚑ (`docs/09` §2)
-- Zadrozny and Elkan 2002 (cited for one-vs-rest Platt scaling and isotonic regression; title not
-  recorded). ⚑ (`src/fusion/calibration.py`)
-- Also named without a citation: Hetionet, PrimeKG, PyKEEN, scispaCy, medspaCy (`README.md`); the
-  Wells criteria and the Braunwald classification (`docs/04` §3); McNemar's test, the bootstrap and
-  the Clopper–Pearson interval (`docs/05` §6, EXP-004).
+Still named without a citation: PyKEEN, scispaCy and medspaCy (`README.md`); the Wells criteria
+(`docs/04` §3); McNemar's test, the bootstrap and the Clopper–Pearson interval (`docs/05` §6,
+EXP-004).

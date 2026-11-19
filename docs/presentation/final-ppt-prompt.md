@@ -225,6 +225,7 @@ graph_backend" and the ranking is identical.
 - **B1 · Where the model errs:** at 25%, unstable angina top-1 **0.6896 [0.6726, 0.7059]** (confused with stable angina; its top-3 is 0.9997); every condition's top-3 is at least 0.993.
 - **B2 · Calibration:** raw top-label ECE 0.0398 [0.0394, 0.0402] at full history and 0.0785 [0.0766, 0.0806] at 25%; no probability is shown to the user, because a short hand-written case is near-certain under any calibration.
 - **B3 · By sex:** A0′ top-1 at 25% is 0.9375 [0.9338, 0.9410] for women and 0.9368 [0.9330, 0.9408] for men; the near-equality is an artifact of the data.
+- **B5 · By age (validation, seed 42, not test):** A0′'s must-not-miss recall@3 at 25% is at least 0.9971 in all five age bands (lowest 80+: 0.9971 [0.9927, 1.0000]); the plain XGBoost is below 0.95 in all five. Top-1 is highest for 0-17, an artifact of the generator.
 - **B4 · Cost:** 225,645 parameters; about 1.4 ms a patient on the laptop CPU; the whole pipeline about 14 to 17 ms (p95).
 
 ### Reference slide

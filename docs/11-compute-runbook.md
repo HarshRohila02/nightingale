@@ -417,7 +417,8 @@ and the dashboard shows each excerpt's attribution and licence.
 This job runs **Synthea**, the open-source synthetic patient generator, at the **pinned release
 v4.0.0** with **seed 42**, then builds each patient's knowledge graph with the repository's own
 code (`scripts/build_patient_kg.py`, `src/patient_kg/`). Every patient is synthetic. **Nothing in it
-feeds the ranking:** whether a patient's history feeds a case is a design choice still to be made.
+feeds the ranking:** the owner decided on 2026-10-20 that a patient's history is shown beside a case in
+the dashboard and never ranked on (`PROGRESS.md` §6). The run was done on 2026-11-09.
 
 The notebook is `notebooks/kaggle_synthea.ipynb`:
 - **Java 17 or newer** is needed (Synthea v4's README). The setup cell checks, and installs OpenJDK
@@ -439,9 +440,11 @@ The notebook is `notebooks/kaggle_synthea.ipynb`:
      first run is the measurement.
 5. From the version's **Output**, download **`synthea_patient_kg.zip`**. `STATUS.txt` inside it
    should start with `DONE`.
-6. **On the laptop:** unzip it into `data/raw/synthea/`. `data/` is gitignored, so nothing is
+6. **On the laptop:** unzip it into `data/raw/synthea_patient_kg/` (the zip holds a folder of the same
+   name, so the output ends up in `data/raw/synthea_patient_kg/synthea_patient_kg/`). `data/` is gitignored, so nothing is
    committed. To rebuild the graphs, run
-   `./.venv/Scripts/python.exe scripts/build_patient_kg.py --synthea data/raw/synthea/synthea_patient_kg/csv --as-of 2026-01-01`.
+   `./.venv/Scripts/python.exe scripts/build_patient_kg.py --synthea data/raw/synthea_patient_kg/synthea_patient_kg/csv --as-of 2026-01-01`,
+   and `scripts/build_patient_display.py` for the dashboard's panel.
    Then tell Claude what `patient_kg/summary.json` lists as unmapped, so that the table can be
    reviewed.
 

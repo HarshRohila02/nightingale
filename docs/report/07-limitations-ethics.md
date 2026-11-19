@@ -1,6 +1,6 @@
 # 7 · Limitations, safety and ethics
 
-> **Draft 1, 2026-10-14.** `docs/04` §7 requires every report, presentation and demo to state six
+> **Updated 2026-11-12, after the single test read** (`docs/08` EXP-012 `[TEST]`). `docs/04` §7 requires every report, presentation and demo to state six
 > limitations: synthetic data with unknown performance on real patients; chest pain only; aortic
 > dissection handled by rule, not learned; a closed world of 14 conditions; no clinical validation;
 > and confidence values that are research estimates, not clinical probabilities. This chapter states
@@ -47,8 +47,12 @@ shared-source part:
 Every edge records its source, so this separation is mechanical (`docs/02` §5.1). Even the
 independent parts are judged partly on DDXPlus: the red-flag rates are upper bounds on what the
 rules do with real histories (EXP-008). The predicted honest finding, written before any result, is
-that the graph earns its place on safety and explainability rather than raw accuracy (`docs/10`);
-the ablations will test it [pending: EXP-012, test split].
+that the graph earns its place on safety and explainability rather than raw accuracy (`docs/10`).
+The ablations on the test split `[TEST]` found less: removing the graph changes must-not-miss recall@3 by
+exactly 0.0000, and against A1b (the model plus the flags, no graph) every contrast is 0, so H4's
+"supported" verdict comes from the red-flag layer lowering top-1, not from the graph (chapter 6,
+EXP-012). On this benchmark the graph's contribution is its explanations; aortic dissection, which no
+DDXPlus patient has, cannot be tested by DDXPlus at all.
 
 ## 7.3 Bias and synthetic demographics
 
@@ -66,8 +70,14 @@ consequences:
   solved.
 
 BODHI-S is India- and SNOMED-tagged, and its vocabulary may carry regional framing (`docs/04` §6).
-Per-condition and by-sex breakdowns will be reported where the sample allows, and fairness will not
-be claimed where it has not been measured [pending: EXP-012, test split].
+Per-condition and by-sex breakdowns are reported for seven systems at every evidence level on the test
+split `[TEST]`, and an age breakdown (five bands, 0-17 to 80+) on validation (EXP-012's dated notes). On
+validation, A0′'s must-not-miss recall@3 at 25% is at least 0.9971 in all five age bands (80+: 0.9971
+[0.9927, 1.0000], the widest interval, 1,379 patients), and top-1 is highest in the youngest band at every
+level (0.9807 [0.9763, 0.9849] at 25%, against 0.9260 to 0.9357 in the other bands), a property of the
+generator and not a finding about children. **No fairness is claimed**: near-equal results across sex or
+age are an artifact of synthetic demographics. An age breakdown on the test split would need a second
+opening of it, so none was made.
 
 ## 7.4 The case-to-token inversion has no ground truth (R-17), and A-10
 
@@ -105,14 +115,20 @@ keeps every must-not-miss condition there (EXP-004). **H1, H2 and the first-writ
 cannot be supported at 100%**: the test cannot tell whether fusion helps. The protocol's response,
 amendment 3, added the 50% and 25% levels. But the models trained with masked copies saturate those
 too: at 25% they reach top-3 0.997–0.998 and must-not-miss recall@3 0.996–0.998, and at 50% they are
-perfect or within four misses (EXP-019, §5.9). As approved, the reduced-evidence claims cannot be met
-on these validation figures, and the team has been asked again (E-2).
+perfect or within four misses (EXP-019, §5.9). As approved, the reduced-evidence claims could not be met
+on these validation figures; the owner's answer to E-2 (2026-11-07, amendment 3b, `docs/05` v1.5) moved
+them to 25% evidence only and reports the 50% comparisons beside them as descriptive (the other team
+members' agreement is not recorded). The test split shows the saturation plainly `[TEST]`: at 100% every
+comparator misses 0 of 34,657 patients in the top 3 and 0 of 16,972 must-not-miss patients, so H1 and H2
+cannot be supported, and at 25% A0 reaches top-3 0.9979 [0.9974, 0.9983] and A0′ 0.9988 [0.9985, 0.9992],
+level with the models trained on masked copies.
 
 We report this as a limitation of the benchmark, not a result about the architecture. What still
 separates systems is top-1 and MRR at 25%, agreement with the differential (Precision@3, Recall@5,
 with the R-12 caveat), aortic dissection, the golden cases and the explanations. The deep ranker's
 gain is small for the same reason (R-19): at 25% its MRR is 0.0018 above logistic regression's on
-validation (EXP-021).
+validation (EXP-021), and H6 is not supported on the test split, where the transformer beats the
+logistic regression trained like it and is level with the XGBoost trained like it (EXP-012 `[TEST]`).
 
 ## 7.6 Random masks are not history-taking
 
@@ -122,7 +138,8 @@ not ask at random: they ask the questions that discriminate. These results there
 (`docs/05` §8 rule 8). The mask also cannot move a patient's kept answers outside their own
 condition's DDXPlus list, so the cause of R-16 is weakened at reduced evidence, not removed. A
 history taken to answer the most informative questions first would likely look different from both
-the full record and a random subset ["what to ask next", Phase 3d, pending].
+the full record and a random subset. The prototype's "what to ask next" ranks the findings by the graph's
+expected information gain, and no evaluation compares it with any history-taking process.
 
 ## 7.7 The closed world (R-13), and what a probability means
 
@@ -134,8 +151,9 @@ cannot output (EXP-013, decision D-8). Three things follow:
 
 - **every probability is conditional on the patient having one of the 14 conditions**; DDXPlus's
   patients always do, and real patients may not (EXP-007, `src/fusion/calibration.py`);
-- the API lists the 14 conditions, which are all it can rank (`GET /conditions`), and R-13's
-  mitigation requires the UI to say so too [to verify in the dashboard before submission];
+- the API lists the 14 conditions, which are all it can rank (`GET /conditions`), and the dashboard
+  says so too ("The system knows 14 conditions only: any other cause is forced into one of them", R-13;
+  `app/streamlit_app.py`);
 - the red-flag rules fire independently of the ranking, so the safety layer is not closed-world in
   the same way.
 
@@ -145,16 +163,21 @@ GC-001 they give unstable angina 0.98–1.00 and MI almost 0, though only a trop
 (EXP-018, EXP-019). No calibration method fitted on DDXPlus fixes that (EXP-007). So **no raw score is
 shown as a probability**: the dashboard shows ranks, the model's reasons are named without numbers,
 and whether the fused probability is shown, as a number or as a band with a floor ("< 1%" rather than
-"0%"), is decided with EXP-007's stage 2 [pending: EXP-007 stage 2]. Isotonic regression, one of the
+"0%"), was decided with EXP-007's stage 2. For A0′'s fused score the pre-registered rule chose
+temperature scaling (validation ECE 0.0327 [0.0324, 0.0329] / 0.0603 [0.0595, 0.0614] / 0.0773 [0.0757,
+0.0793] raw, 0.0008 [0.0008, 0.0008] / 0.0051 [0.0041, 0.0062] / 0.0176 [0.0156, 0.0195] calibrated, at
+100 / 50 / 25%), but `calibration.file` stays null by the owner's decision of 2026-11-09, so **the system
+shows ranks only and no probability**. Isotonic regression, one of the
 planned methods, gave the true condition under 0.001 for up to 8.7% of patients at 25%, which is why
 a displayed "0%" beside a must-not-miss condition is treated as a failure (EXP-007, a post hoc count).
 
 ## 7.8 Limits of the red flags and the safety layer
 
-- **Sensitivity is below target**: 0.823 at 100% against 0.95, capped by DDXPlus omitting defining
-  findings, and the rules were deliberately not loosened to chase it (EXP-008).
-- **The rules collapse at reduced evidence** (0.327 at 50%, 0.135 at 25%), because most need two or
-  three findings together; on partial histories safety rests on the ranker (EXP-019).
+- **Sensitivity is below target**: 0.823 at 100% against 0.95 on validation (0.8285 [0.8229, 0.8344]
+  `[TEST]`), capped by DDXPlus omitting defining findings, and the rules were deliberately not loosened to
+  chase it (EXP-008).
+- **The rules collapse at reduced evidence** (0.327 at 50%, 0.135 at 25% on validation; 0.3318 [0.3245,
+  0.3386] and 0.1369 [0.1317, 0.1420] `[TEST]`), because most need two or three findings together; on partial histories safety rests on the ranker (EXP-019).
 - **A tearing-pain flag fires on pneumothorax and Boerhaave in DDXPlus**, and the dissection flag is
   appropriate for dissection only (A-7), so those flags count against its precision (`docs/04` §3).
 - **The fusion can rank dissection 2nd or 3rd** for presentations that score 0 on the ADD-RS but
@@ -163,8 +186,9 @@ a displayed "0%" beside a must-not-miss condition is treated as a failure (EXP-0
 - **The panel that decided A-7 was not fully blind** to the rules' firing rates, which the project
   notes state (`docs/04` §3).
 - **The safety check is lexical.** It catches the treatment phrasing a template or a language model
-  would use, not every paraphrase; checking claims against retrieved evidence is Phase 3c's
-  [pending: 3c guardrails].
+  would use, not every paraphrase. Guardrails v1 (3c) check each sentence of an explanation against the
+  sources the result holds; they are lexical too, and they stopped all 50 of the language model's grounded
+  answers (EXP-009/010).
 - **The reasons judge one finding at a time**, so two findings that matter only together, as most
   red-flag patterns do, can each look weak (`src/ml/reasons.py`).
 
@@ -191,13 +215,13 @@ finding lowers a condition, and a finding not asked about must not.
 
 | # | Failure mode | Mitigation | Status |
 |---|---|---|---|
-| F-1 | The language model states a false clinical fact | Generation constrained to retrieved evidence; claim-support check; unsupported claims flagged or removed | No language model yet; the template explainer cannot state a fact the system does not hold [pending: 3b, 3c] |
-| F-2 | Miscalibrated confidence read as certainty | No raw score shown as a probability; calibration measured; bands preferred | Ranks shown, not scores; calibration measured (EXP-007); display decided at stage 2 |
+| F-1 | The language model states a false clinical fact | Generation constrained to retrieved evidence; claim-support check; unsupported claims flagged or removed | A language model was built and run (EXP-009/010) and failed its checkpoint, so the template explainer ships and cannot state a fact the system does not hold; guardrails v1 stopped all 50 grounded answers |
+| F-2 | Miscalibrated confidence read as certainty | No raw score shown as a probability; calibration measured; bands preferred | Ranks shown, not scores; calibration measured (EXP-007); `calibration.file` null, so no probability is shown (2026-11-09) |
 | F-3 | A must-not-miss condition ranked low | Independent red-flag rules; must-not-miss recall as the headline metric | Built (EXP-008); flagged candidates listed first |
 | F-4 | Automation bias | Reasoning and *missing* information shown; contradicting evidence; disclaimer always visible | ✓ / ? / ✗ and reasons in the dashboard; no user study |
 | F-5 | Wrong symptom normalisation | Crosswalk tested; unmapped terms surfaced, never silently dropped | Built; but the inversion has no ground truth (R-17, A-10) |
 | F-6 | Distribution shift from synthetic data | Stated as a primary limitation; no clinical claim | Stated (§7.1) |
-| F-7 | Prompt injection through free text | Free text treated as untrusted data, never as instructions | No free-text intake yet |
+| F-7 | Prompt injection through free text | Free text treated as untrusted data, never as instructions | Free text is ignored by design and tested (`tests/test_free_text.py`) |
 | F-8 | Silent component degradation | `degraded_components` always shown | Built (§4.16) |
 | F-9 | Class imbalance hides rare conditions | Per-condition metrics; class weighting | Imbalance is 2.70× (EXP-003); per-condition results reported |
 | F-10 | Stale medical knowledge | Source dates recorded; well-established relationships only | References recorded per hand-authored edge |
@@ -241,7 +265,15 @@ disclosed. Table 7.2 lists them in date order; the full entries are in `docs/05`
 | 2026-10-13 | The transformer's validation figures were read before the team answered E-2; E-2's recommendation, written without any deep result, stands as written | EXP-021 |
 | 2026-10-13 | B1-LR′+aug's 25% figures first quoted beside seed 42 were seed 43's; corrected | EXP-021 |
 | 2026-10-13 | D-13 passed, and needed no protocol entry, because A0's component was already B1-DL+aug; a docstring and a message to the owner that said otherwise were corrected | EXP-021 |
-| [pending] | E-2's answer; EXP-006's sweep; EXP-007 stage 2; the test read (EXP-012), and any further amendment | — |
+| 2026-11-07 | E-2 answered by the owner ("go with the recommendation"): amendment 3b (`docs/05` v1.5) judges the reduced-evidence claims at 25% only. The other members' agreement is not recorded, and the runner's plumbing runs had already printed both readings | `docs/05` §9 |
+| 2026-11-07 | EXP-006 and the rehearsal ran on Kaggle: α = 0.05 for B1-DL′+aug; the fusion adds nothing measurable; the rehearsal reproduced 1,944 of 1,944 earlier figures | EXP-006, EXP-012 |
+| 2026-11-08 | D-5's checkpoint failed (unsupported-claim rate 0.741 [0.663, 0.803]); the template explainer stays and B3 and B4 are not carried into the evaluation | EXP-009/010 |
+| 2026-11-09 | `calibration.file` kept null (ranks only); the 150-item explanation rating sheet not rated; `v0.9-freeze` tagged | PROGRESS §6 |
+| 2026-11-09 | The test split opened once (the owner's Kaggle run, 34,657 patients); both mask digests reproduced before any label was read; every verdict is the validation rehearsal's | EXP-012 `[TEST]` |
+| 2026-11-10 | EXP-011's relevance judging dropped (no time); the pre-registered fidelity check gives a median top-10 overlap of 0.400, under its 0.5 threshold, so the query-vector mix is disclosed as a poor stand-in | EXP-011 |
+| 2026-11-10 | Compliance pass: the dashboard lacked its Eka Care credit, the 22 figures lacked the disclaimer, free text was untested and the embedding model's licence (CC-BY-NC-2.0) was missing from the register; all four fixed | `docs/03` §7, `docs/04` §8 |
+| 2026-11-10 | H4's "supported" verdict, first given on validation without the caveat that its contrast is the flags lowering top-1, restated with it; the runner's "EXP-009/010 not run" wording found stale | EXP-012 |
+| 2026-11-11 | The age breakdown's bands fixed in a dated note before any figure by age existed, then run on validation only | EXP-012 |
 
 **Who judged what.** Team members are never described as clinical experts (`docs/05` §3.5). The
 clinical judgements in the system follow published patterns or the team's reading of them: the
@@ -250,14 +282,14 @@ answers (A-8, reviewed on 2026-10-12 by a reviewer the record does not name; A-1
 choice on the assistant's recommendation); and the appropriateness mapping (A-7), which the owner
 delegated to the project's AI assistant (Claude), which adopted a three-judge panel's majority
 unchanged (`docs/04` §3). The project's AI assistance should be acknowledged in the final report
-[to agree with the team: wording of the acknowledgement]. Whether a clinically trained reviewer assesses the
-explanations decides which line of the Stretch criterion applies [pending: explainability review,
-`docs/05` §3.5].
+[to agree with the team: wording of the acknowledgement]. No clinically trained reviewer assessed the
+explanations: the 150-item rating sheet was not rated (the owner's decision of 2026-11-09), so the
+Stretch's explainability line is not assessed (`docs/05` §3.5).
 
 ## 7.11 Checklists before submission
 
-The ethical review checklist of `docs/04` §8 and the data checklist of `docs/03` §7 (§3.7) are
-ticked before submission [pending: Phase 4e]: no real patient data at any stage; the disclaimer on
+The ethical review checklist of `docs/04` §8 and the data checklist of `docs/03` §7 (§3.7) were
+ticked on 2026-11-10, each with its evidence, and the age breakdown was added on 2026-11-11: no real patient data at any stage; the disclaimer on
 every output path, the report's figures included; no treatment or drug recommendation anywhere; the
 red-flag layer independent of the ranker; `degraded_components` shown in the UI; this limitations
 chapter present; no claim of clinical efficacy; free text handled as untrusted; and sex and age

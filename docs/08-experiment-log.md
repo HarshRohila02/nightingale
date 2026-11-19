@@ -500,6 +500,55 @@ clinician-reviewed explainability are not assessed. No LLM system was run on the
   the generator and not evidence of fairness (EXP-002). The run is a CPU job of about ten minutes, so it waits for
   the owner to say where it runs (D-7).
 
+**Age breakdown, results, validation, 2026-11-11** (the owner chose the laptop CPU: 588 s). The runner at commit `cc70ce9`
+(the scoring code is that commit's; the working tree held only documentation edits and a comment in `requirements.txt`), `--split validate --seeds 42` with EXP-006's α,
+the whole validation split (33,963 patients), **both mask digests reproduced** (`e99a7a8fbf792675`, `af3a357f6454838a`),
+`valid_as_a_result` true; `data/interim/exp012_validate_age.json` (never committed). **Validation figures, seed 42, not test**, with 95%
+intervals; the test split was not touched. The bands are the ones fixed above.
+
+*A0′ (the shipped configuration), by age band and evidence level:*
+
+| Evidence | Band | Patients | Top-1 | Top-3 | MRR | Must-not-miss recall@3 |
+|:--:|---|---:|---|---|---|---|
+| 100% | 0-17 | 4,093 | 0.9103 [0.9013, 0.9189] | 1.0000 [1.0000, 1.0000] | 0.9537 [0.9491, 0.9581] | 1.0000 [1.0000, 1.0000] |
+|  | 18-39 | 12,336 | 0.8201 [0.8131, 0.8268] | 1.0000 [1.0000, 1.0000] | 0.9081 [0.9045, 0.9115] | 1.0000 [1.0000, 1.0000] |
+|  | 40-59 | 10,133 | 0.8207 [0.8132, 0.8285] | 1.0000 [1.0000, 1.0000] | 0.9088 [0.9049, 0.9127] | 1.0000 [1.0000, 1.0000] |
+|  | 60-79 | 6,022 | 0.8233 [0.8137, 0.8328] | 1.0000 [1.0000, 1.0000] | 0.9100 [0.9051, 0.9148] | 1.0000 [1.0000, 1.0000] |
+|  | 80+ | 1,379 | 0.8252 [0.8057, 0.8441] | 1.0000 [1.0000, 1.0000] | 0.9109 [0.9008, 0.9207] | 1.0000 [1.0000, 1.0000] |
+| 50% | 0-17 | 4,093 | 0.9721 [0.9668, 0.9768] | 1.0000 [1.0000, 1.0000] | 0.9861 [0.9834, 0.9884] | 1.0000 [1.0000, 1.0000] |
+|  | 18-39 | 12,336 | 0.9277 [0.9231, 0.9320] | 1.0000 [1.0000, 1.0000] | 0.9632 [0.9608, 0.9655] | 1.0000 [1.0000, 1.0000] |
+|  | 40-59 | 10,133 | 0.9212 [0.9161, 0.9262] | 1.0000 [1.0000, 1.0000] | 0.9600 [0.9573, 0.9625] | 1.0000 [1.0000, 1.0000] |
+|  | 60-79 | 6,022 | 0.9261 [0.9193, 0.9326] | 1.0000 [1.0000, 1.0000] | 0.9625 [0.9591, 0.9657] | 1.0000 [1.0000, 1.0000] |
+|  | 80+ | 1,379 | 0.9376 [0.9239, 0.9507] | 1.0000 [1.0000, 1.0000] | 0.9679 [0.9610, 0.9747] | 1.0000 [1.0000, 1.0000] |
+| 25% | 0-17 | 4,093 | 0.9807 [0.9763, 0.9849] | 0.9995 [0.9988, 1.0000] | 0.9900 [0.9877, 0.9921] | 0.9987 [0.9968, 1.0000] |
+|  | 18-39 | 12,336 | 0.9356 [0.9316, 0.9396] | 0.9984 [0.9976, 0.9990] | 0.9660 [0.9638, 0.9682] | 0.9978 [0.9965, 0.9989] |
+|  | 40-59 | 10,133 | 0.9260 [0.9207, 0.9315] | 0.9981 [0.9972, 0.9989] | 0.9608 [0.9580, 0.9637] | 0.9971 [0.9956, 0.9985] |
+|  | 60-79 | 6,022 | 0.9357 [0.9293, 0.9420] | 0.9987 [0.9977, 0.9995] | 0.9660 [0.9624, 0.9694] | 0.9987 [0.9974, 0.9997] |
+|  | 80+ | 1,379 | 0.9318 [0.9181, 0.9449] | 0.9978 [0.9949, 1.0000] | 0.9639 [0.9565, 0.9711] | 0.9971 [0.9927, 1.0000] |
+
+*Must-not-miss recall@3 at 25% of the history, by age band (the safety target is at least 0.95):*
+
+| Band | Patients | B1-XGB | B1-LR | B1-DL′+aug | A0 | A0′ |
+|---|---:|---|---|---|---|---|
+| 0-17 | 4,093 | 0.9198 [0.9069, 0.9332] | 0.9705 [0.9621, 0.9782] | 0.9987 [0.9968, 1.0000] | 0.9955 [0.9923, 0.9981] | 0.9987 [0.9968, 1.0000] |
+| 18-39 | 12,336 | 0.8791 [0.8712, 0.8867] | 0.9227 [0.9164, 0.9285] | 0.9984 [0.9973, 0.9992] | 0.9973 [0.9959, 0.9986] | 0.9978 [0.9965, 0.9989] |
+| 40-59 | 10,133 | 0.8648 [0.8549, 0.8744] | 0.9205 [0.9124, 0.9277] | 0.9971 [0.9956, 0.9985] | 0.9971 [0.9956, 0.9987] | 0.9971 [0.9956, 0.9985] |
+| 60-79 | 6,022 | 0.8747 [0.8622, 0.8860] | 0.9178 [0.9078, 0.9271] | 0.9987 [0.9974, 0.9997] | 0.9984 [0.9968, 0.9997] | 0.9987 [0.9974, 0.9997] |
+| 80+ | 1,379 | 0.8620 [0.8355, 0.8869] | 0.9134 [0.8928, 0.9339] | 0.9971 [0.9927, 1.0000] | 0.9971 [0.9927, 1.0000] | 0.9971 [0.9927, 1.0000] |
+
+What the figures say, and what they do not:
+- **The safety result holds in every age band.** A0′'s must-not-miss recall@3 at 25% is at least 0.9971 in all five bands (lowest:
+  80+, 0.9971 [0.9927, 1.0000], and 40-59, 0.9971 [0.9956, 0.9985]); at 100% and 50% it is 1.0000 in every band. The plain
+  models do not meet the target in most bands at 25%: B1-XGB is below 0.95 in all five (0.8620 [0.8355, 0.8869] to 0.9198
+  [0.9069, 0.9332]), and B1-LR in four of five (its 0-17 band, 0.9705 [0.9621, 0.9782], meets it).
+- **Top-1 is highest in the youngest band at every level** (A0′, 100%: 0.9103 [0.9013, 0.9189] against about 0.82 elsewhere; 25%:
+  0.9807 [0.9763, 0.9849] against 0.9260 to 0.9357). Why is not established here: DDXPlus's ages and its condition mix by age
+  are generated, so this is a property of the generator and not a finding about children.
+- **The 80+ band is small** (1,379 patients), so its intervals are the widest; no band's interval for must-not-miss recall@3 at
+  25% reaches below 0.9927.
+- Read together with the by-sex tables: **near-equal results across age or sex are an artifact of synthetic demographics, not
+  evidence of fairness** (EXP-002). No verdict depends on this breakdown, and it was not run on the test split.
+
 **Next action.** *(2026-11-10: the test split has been read, once; see the results above, and `PROGRESS.md` §1 for what is left.)* *(2026-11-07: E-2 is answered and amendment 3b applied; EXP-006's sweep and the
 rehearsal are the owner's Kaggle run of `notebooks/kaggle_exp012_rehearsal.ipynb`, `docs/11` §4.8.)*
 1. ~~The team answers E-2 (due 2026-10-23); Claude applies amendment 3b, then EXP-006, then EXP-007
@@ -1607,6 +1656,14 @@ real graph, with BODHI-S. **The rule chose temperature scaling** (the lowest mea
   no probability is shown, because a short hand-written case is near-certain under any calibration (R-17).
   The calibrator above is kept as a result, not deployed. So A5 (no calibration) is A0 exactly, as EXP-012's
   pre-registration says for this case, and A0's ECE is the raw fused score's (0.0327 at 100%).
+- **Discrepancy noted 2026-11-12, not resolved.** The raw fused score above is A0′'s, not A0's (the sentence
+  before this note names the wrong arm). Its top-label ECE on validation is 0.0327 / 0.0603 / 0.0773 here
+  (laptop CPU, 2026-11-08) and 0.040 / 0.064 / 0.078 in EXP-006's result (Kaggle, 2026-11-07); the test split
+  gives 0.0398 [0.0394, 0.0402] / 0.0648 [0.0640, 0.0659] / 0.0785 [0.0766, 0.0806], which agrees with
+  EXP-006. The two validation runs were meant to score the same system; why they differ was not
+  investigated (they ran on different machines, and how the fused score is normalised before the ECE may
+  differ). **No verdict depends on it:** H5 is judged on EXP-012's figures, which are the test split's, and
+  every one is under 0.10; the calibrator was not deployed.
 
 #### The transformer arms (2026-10-13, as pre-registered above)
 

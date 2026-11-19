@@ -57,7 +57,9 @@ uvicorn[standard]~=0.32
 streamlit~=1.40
 
 # --- Experiment tracking --------------------------------------------------- #
-mlflow~=2.17
+# MLflow was never used (no DVC either): every run is recorded in docs/08, with its commit,
+# seeds and file hashes. The pin was dropped on 2026-11-11 by the owner's decision; the unused
+# `mlflow:` block in configs/config.yaml stays, because configs/ is frozen since v0.9-freeze.
 
 # --- Development ----------------------------------------------------------- #
 # pytest, pytest-cov, black and ruff live in requirements-dev.txt (included above)

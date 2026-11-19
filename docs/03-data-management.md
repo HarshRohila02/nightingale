@@ -25,7 +25,7 @@ terms change.
 | 6 | **PTB-XL** *(stretch)* | PhysioNet `ptb-xl` | CC-BY (verify) | ECG multimodal extension |
 
 ### 1.1 DDXPlus — the backbone
-- 1.03M train / 135k validate / 132k test synthetic patients; 49 pathologies.
+- 1.03M train / 132k validate / 135k test synthetic patients; 49 pathologies.
 - Columns: `AGE`, `SEX`, `PATHOLOGY` (ground truth), `DIFFERENTIAL_DIAGNOSIS` (**ranked list with
   probabilities**), `EVIDENCES`, `INITIAL_EVIDENCE`.
 - **Evidences are coded** (`E_54_@_V_161`). Decoding via the release evidence-mapping file is a

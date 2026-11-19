@@ -1,6 +1,6 @@
 # 19 · The work in four segments: one per team member
 
-**Version 1.0 · 2026-10-14.** This page splits Nightingale into four segments, one per member.
+**Version ~~1.0 · 2026-10-14~~ 1.1 · 2026-11-11** *(each segment's "left" list is replaced by its status at the final prototype; everything else is as written on 2026-10-14).* This page splits Nightingale into four segments, one per member.
 Each segment is a coherent part of the system that one person owns, explains and answers questions
 on. It covers the work done, the work left, the experiments, the decisions, the report sections and
 the presentation slides.
@@ -114,20 +114,16 @@ it, and the information-gain ranking of what to ask next.
 - A-8 and A-10;
 - R-17 (the token mapping has no ground truth).
 
-**Left for P1:**
-1. **The patient knowledge graph (1d):**
-   - the Synthea notebook for Kaggle;
-   - the per-patient graph;
-   - the SNOMED → `RF:*` table (the cloud session's task T7 drafts the code);
-   - how it feeds a case, a team decision.
-2. **Phase 4:** reading ablations A1 and A1b (no medical graph) for hypothesis H4.
-3. **Report:**
-   - §2.4 (knowledge graphs);
-   - §3.3 (the graph's sources);
-   - §4.3–§4.5 (graph, crosswalk, score);
-   - §4.8 (case → model input);
-   - §6.5 (the graph alone, circular);
-   - §7.2 (circularity) and §7.4 (R-17, A-10).
+**Status on 2026-11-11 (was "Left for P1"):**
+1. **The patient knowledge graph (1d): done 2026-11-10.** The Synthea run is in (1,359 patients, 1,013 alive on
+   2026-01-01), with the per-patient graph, the SNOMED → `RF:*` table and the dashboard's "Patient history (Synthea,
+   display only)" panel. By the owner's decision of 2026-10-20 a history never feeds the ranking, so A6 equals A0
+   by construction.
+2. **Phase 4: done.** H4 was judged on the test split with A1 and A1b (no medical graph): supported by the rule,
+   **but hollow**: removing the graph changes must-not-miss recall@3 by exactly 0.0000, and the point estimate passes
+   only because the red-flag layer lowers top-1 (`docs/08` EXP-012, `[TEST]`).
+3. **Left:** read your report sections once the lead has brought the report up to date (§2.4, §3.3, §4.3–§4.5,
+   §4.8, §6.5, §7.2, §7.4).
 
 **Be ready to explain:**
 - why the graph is built from DDXPlus and not BODHI-S;
@@ -200,15 +196,13 @@ the transformer, and adopted the transformer only through a safety floor fixed b
 - R-16, **R-18**, R-19 (the deep model no better than XGBoost);
 - R-03 (class imbalance, resolved).
 
-**Left for P2:**
-1. **Calibration stage 2:** the fused score, after EXP-006's α.
-2. **Phase 4:** the models scored on the test split; ablation A7 (classical in place of deep).
-3. **Report:**
-   - §2.6–§2.7 (calibration, tabular deep learning);
-   - §3.2 (DDXPlus);
-   - §4.6, §4.7, §4.9, §4.12, §4.13;
-   - §6.2–§6.4, §6.7–§6.9;
-   - §7.3 (synthetic demographics) and §7.5 (saturation).
+**Status on 2026-11-11 (was "Left for P2"):**
+1. **Calibration stage 2: done 2026-11-08** (temperature scaling for the fused score). **The owner decided on
+   2026-11-09 to show ranks only**: `calibration.file` stays null, so no probability is shown (R-17).
+2. **Phase 4: done.** The models were scored on the test split at 100%, 50% and 25% (seeds 42–46), ablation A7
+   (classical in place of deep) included: `docs/08` EXP-012, `[TEST]`.
+3. **Left:** read your report sections once the lead has brought the report up to date (§2.6–§2.7, §3.2, §4.6, §4.7,
+   §4.9, §4.12, §4.13, §6.2–§6.4, §6.7–§6.9, §7.3, §7.5).
 
 **Be ready to explain:**
 - why every model scores ~0.998 on full histories, and why that is the data, not skill;
@@ -287,20 +281,20 @@ the transformer, and adopted the transformer only through a safety floor fixed b
 - FR-6.5 (no treatment advice);
 - GC-005 (a fifth golden case, open).
 
-**Left for P3 (the largest remaining load):**
-1. **The evidence corpus:** the owner's Kaggle run, then the **EXP-011** retrieval-quality
-   judgements, with a second team member.
-2. **EXP-006, the fusion weight sweep,** once the team answers E-2.
-3. **3b:** the grounded local-LLM explainer (model choice D-5), and baselines B3/B4
-   (EXP-009/010).
-4. **3c:** guardrails, the claim-support check and citation rendering. The cloud session's T5 is in
-   review.
-5. **Report:**
-   - §2.2 (clinical rules), §2.5 (opinion pools), §2.7's retrieval and LLM part;
-   - §3.6 (the golden cases);
-   - §4.10 (fusion), §4.11 (red flags and safety), §4.14 (explanations);
-   - §6.6 (red flags), §6.11 (golden cases), §6.12–§6.13;
-   - §7.8–§7.9 (safety limits and design).
+**Status on 2026-11-11 (was "Left for P3"):**
+1. **The evidence corpus:** built (2,067 articles, 26,190 passages, 844 under a non-commercial licence) and wired.
+   **EXP-011's relevance judging did not happen** (the team had no time), so the passages' relevance is unjudged, the
+   hybrid stays by default, and the dashboard says so; the pre-registered fidelity check gives a median top-10 overlap
+   of 0.400, a poor stand-in for the full-sentence embedding (R-20).
+2. **EXP-006: run 2026-11-07.** α = 0.05 for the configured B1-DL′+aug (0.30 for B1-DL+aug); the fusion adds nothing
+   measurable over the transformer alone.
+3. **3b: run 2026-11-07, and it failed its own checkpoint** (the language model's unsupported-claim rate was 0.741
+   [0.663, 0.803], the bar under 0.20), so the template explainer ships and B3 and B4 are reported as not carried into
+   the evaluation (EXP-009/010).
+4. **3c: guardrails v1 done and merged 2026-10-15.**
+5. **Left:** read your report sections once the lead has brought the report up to date (§2.2, §2.5, §2.7, §3.6, §4.10,
+   §4.11, §4.14, §6.6, §6.11–§6.13, §7.8–§7.9). **GC-005 was not added** (the freeze fixes `tests/fixtures/`; the team
+   approved this on 2026-11-09), and **A-2's clinical question stays open**.
 
 **Be ready to explain:**
 - why each rule follows a published pattern;
@@ -381,32 +375,20 @@ the transformer, and adopted the transformer only through a safety floor fixed b
 - D-8;
 - **D-10 / D-11** (amendment 3);
 - E-1 (amendment 3a);
-- **E-2** (open: how the reduced-level claims are judged);
+- **E-2** (answered 2026-11-07: amendment 3b judges the reduced-level claims at 25% evidence only);
 - D-14 (real time);
 - C-1 (contract changes);
 - R-02 (the timeline), R-08 (test contamination), R-13 (closed world).
 
-**Left for P4:**
-1. **`v0.2-prototype`:** the dashboard with evidence and questions, checked end to end once the
-   corpus is in.
-2. **Phase 4:**
-   - the freeze (`v0.9-freeze`);
-   - **EXP-012**, pre-registered;
-   - **the test split opened once**;
-   - every ablation (A0–A7, A1b) at three levels;
-   - the hypothesis verdicts (4a);
-   - statistics and breakdowns (4b);
-   - compliance checklists and `v1.0` (4e).
-3. **Report assembly (4c), and the presentation and video coordination (4d).**
-4. **Report:**
-   - ch. 1 (introduction);
-   - ch. 5 (evaluation protocol);
-   - §2.8 (references, collected from everyone);
-   - §3.4–§3.5, §3.7;
-   - §4.1–§4.2, §4.15–§4.18;
-   - §6.1, §6.10, §6.14;
-   - §7.6–§7.7, §7.10–§7.11;
-   - ch. 8 (conclusion, with everyone).
+**Status on 2026-11-11 (was "Left for P4"):**
+1. **`v0.2-prototype`: tagged 2026-11-08.**
+2. **Phase 4: done.** The freeze (`v0.9-freeze`, 2026-11-09), EXP-012 pre-registered, the test split opened once
+   (2026-11-09), every ablation (A0–A7, A1b) at three levels, the verdicts (4a), the statistics and breakdowns (4b),
+   and the compliance checklists (4e, 2026-11-10). The age breakdown is run on validation only. `v1.0` is tagged at
+   the owner's go-ahead.
+3. **Left:** the presentation and the demo video (4d), with the team; the report's final assembly (4c) once the
+   chapters are checked; read your report sections (ch. 1, ch. 5, §2.8, §3.4–§3.5, §3.7, §4.1–§4.2, §4.15–§4.18,
+   §6.1, §6.10, §6.14, §7.6–§7.7, §7.10–§7.11, ch. 8).
 
 **Be ready to explain:**
 - why the protocol was frozen before any model existed;
@@ -416,7 +398,7 @@ the transformer, and adopted the transformer only through a safety floor fixed b
 - why the test split stays closed until Phase 4;
 - how the system degrades instead of crashing;
 - what "soft real time" means here;
-- what E-2 is, and why the fusion sweep waits for it.
+- what E-2 was, and what amendment 3b decided (the reduced-evidence claims are judged at 25% evidence only).
 
 **Mid-term slides:**
 - slides 2–3 (problem, scope);

@@ -208,6 +208,7 @@ Every report, presentation, and demo must state:
   contract and no component reads it; `tests/test_free_text.py` shows a hostile text changes no ranking, flag or
   explanation for any golden case and is not echoed, and that no module in `src/`, `app/` or `scripts/` mentions the
   field. The dashboard offers no free-text box.
-- [ ] Sex/age breakdowns reported where sample size allows — ⚠️ **sex ✅**: by-sex tables for seven systems at every
-  level (`docs/08` EXP-012 `[TEST]`), with the artifact caveat. **Age ⬜ not reported.** An age breakdown on the
-  test split would need a second opening, so none was made; one on validation is possible and has not been done.
+- [x] Sex/age breakdowns reported where sample size allows: ✅ **sex**: by-sex tables for seven systems at every level
+  (`docs/08` EXP-012 `[TEST]`); **age**: five bands, on **validation** (588 s on the laptop, 2026-11-11; `docs/08` EXP-012's
+  dated notes): the safety result holds in every band. Both carry the artifact caveat. A test-split age breakdown would need a
+  second opening, so none was made.

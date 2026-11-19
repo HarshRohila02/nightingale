@@ -68,8 +68,8 @@ and gets the 14 possible causes ranked, live, as each finding is ticked:
 - **Calibrated probabilities:** decided against; ranks only (above).
 - **Judged evidence:** see above (EXP-011).
 - **Any clinical validation,** a user study, or real patient data.
-- **An age breakdown** of the results (there is a by-sex one, and by-sex parity is an artifact of
-  synthetic demographics, not evidence of fairness).
+- **An age breakdown on the test split** (there is a by-sex one on the test split and an age one on validation, in which
+  the safety result holds in every band; near-equal parity is an artifact of synthetic demographics, not evidence of fairness).
 
 ---
 
