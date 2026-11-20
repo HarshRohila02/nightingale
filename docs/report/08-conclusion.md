@@ -38,15 +38,15 @@ A0, 0.05 for A0′), and the fused system is level with its own model (§8.3).
 
 **Failed first.**
 
-- **RQ1 (H1, H1-R): not supported, 0 of 5 seeds.** At 100% every comparator ranks the true condition in the
-  top 3 for all 34,657 patients `[TEST]`, so nothing can beat it (R-16). The one H1 check that passes is
-  top-3 against the graph alone, which is circular (R-12). A0's MRR at 100% is **lower** than the model's:
+- **RQ1 (H1, H1-R): not supported, 0 of 5 seeds.** At 100% every machine-learning comparator ranks the true
+  condition in the top 3 for all 34,657 patients `[TEST]`, so nothing can beat it (R-16). The one H1 check
+  that passes is top-3 against the graph alone, which misses 27 patients and is circular (R-12). A0's MRR at 100% is **lower** than the model's:
   0.9157 against B1-XGB's 0.9994, a difference of −0.0837 [−0.0859, −0.0819], because the red-flag layer
   ranks flagged conditions first even when the flag names the wrong one. At 25% both arms beat the original
   B1 models and the graph alone but do not beat the models trained on masked copies: A0 against B1-XGB+aug
   is −0.0001 on top-3 (p = 0.883) and −0.0052 on MRR [−0.0062, −0.0044]. A0 fails 5 of the 12 H1-R checks
   and A0′ fails 4.
-- **RQ2 (H2, H2-R): not supported, 0 of 5 seeds.** At 100% every comparator, A0 and A0′ alike, misses 0 of
+- **RQ2 (H2, H2-R): not supported, 0 of 5 seeds.** At 100% every machine-learning comparator, A0 and A0′ alike, misses 0 of
   the 16,972 patients with a must-not-miss condition `[TEST]`, a tie. At 25% A0 fails 2 of the 5 H2-R checks
   and A0′ fails 2. The safety result is real but belongs to training on masked copies, not to the fusion:
   the original B1-XGB's must-not-miss recall@3 at 25% is 0.8710 [0.8659, 0.8764] and B1-LR's is 0.9198

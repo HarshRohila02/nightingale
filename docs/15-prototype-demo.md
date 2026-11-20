@@ -204,7 +204,7 @@ DDXPlus patients, 34,657 of them, each with its 95% interval and level (`docs/08
   are **not supported**; H4, H5 and the Minimum hold; the reduced-evidence Target is met by the
   primed system only, by a handful of patients (it misses 40 of 34,657 in the top 3 at 25%, against
   56 for XGBoost trained the same way and 41 for the transformer alone). Say them as they stand.
-  - **At full evidence every comparator misses 0 of 34,657 patients** (R-16: DDXPlus draws each
+  - **At full evidence every machine-learning comparator misses 0 of 34,657 patients** (R-16: DDXPlus draws each
     patient's evidence only from their condition's list), so nothing can beat them there.
   - **H4 is supported, but hollow:** removing the graph changes must-not-miss recall by exactly
     zero; the point estimate passes because the red-flag layer lowers top-1. Do not quote H4 as

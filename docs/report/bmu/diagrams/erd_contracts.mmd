@@ -1,0 +1,50 @@
+erDiagram
+    PATIENT_CASE {
+        string case_id PK
+        int age
+        string sex
+        string free_text "ignored by design"
+    }
+    FINDING {
+        string concept_id
+        string assertion "present, absent, unknown"
+        string source
+    }
+    DIAGNOSIS_RESULT {
+        string case_id FK
+        list red_flags
+        list suggested_next_tests
+        string disclaimer
+        list degraded_components
+    }
+    CANDIDATE {
+        string condition_id
+        float ml_score
+        float kg_score
+        float fused_score
+        bool red_flag
+        bool is_must_not_miss
+    }
+    FINDING_ASSESSMENT {
+        string finding_id
+        string role "supporting, contradicting, missing"
+    }
+    EVIDENCE {
+        string source
+        string title
+        string passage
+        string citation
+        string url
+        float score
+    }
+    EXPLANATION {
+        string text
+        bool grounded
+        list unsupported_claims
+    }
+    PATIENT_CASE ||--o{ FINDING : contains
+    PATIENT_CASE ||--|| DIAGNOSIS_RESULT : "is answered by"
+    DIAGNOSIS_RESULT ||--|{ CANDIDATE : ranks
+    DIAGNOSIS_RESULT ||--o| EXPLANATION : carries
+    CANDIDATE ||--o{ FINDING_ASSESSMENT : "is explained by"
+    CANDIDATE ||--o{ EVIDENCE : cites

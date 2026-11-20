@@ -1,0 +1,23 @@
+flowchart LR
+    CLIN(["Clinician"])
+    TEAM(["Evaluator"])
+    subgraph SYS["Nightingale"]
+        UC1("Enter a chest-pain case")
+        UC2("View the ranked differential")
+        UC3("See red flags")
+        UC4("See why each candidate is there")
+        UC5("See what to ask next")
+        UC6("Read cited evidence")
+        UC7("Load an example case")
+        UC8("Run the ablation study")
+        UC9("Score the test split once")
+    end
+    CLIN --- UC1
+    CLIN --- UC2
+    CLIN --- UC3
+    CLIN --- UC4
+    CLIN --- UC5
+    CLIN --- UC6
+    CLIN --- UC7
+    TEAM --- UC8
+    TEAM --- UC9

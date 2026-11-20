@@ -130,8 +130,8 @@ only then on how often its first answer is right.
 
 Three facts shape these hypotheses:
 - **H1 and H2 cannot be supported on complete DDXPlus histories, and the test split confirmed it
-  (R-16).** At 100% every comparator ranks the true condition in the top 3 for all 34,657
-  patients `[TEST]`. The protocol therefore adds 50% and 25% levels (amendment 3).
+  (R-16).** At 100% every machine-learning comparator ranks the true condition in the top 3 for all 34,657
+  patients `[TEST]` (the graph alone misses 27, and is circular). The protocol therefore adds 50% and 25% levels (amendment 3).
 - **E-2 was answered on 2026-11-07 (amendment 3b, `docs/05` v1.5).** As first approved, the
   reduced-evidence claims needed both 50% and 25%, and at 50% the comparators are near perfect. The
   owner took the recommendation: H1-R, H2-R, H6 and the reduced-evidence Target and Stretch are
@@ -1042,8 +1042,8 @@ The red-flag precision shown is the strict one (a flag counts only when it names
 
 - **Why:** DDXPlus draws each patient's evidence only from their condition's list. This is the
   dataset's construction, not skill or leakage.
-- **The test split shows the same:** every comparator ranks the true condition in the top 3 for all
-  34,657 patients at 100% `[TEST]`.
+- **The test split shows the same:** every machine-learning comparator ranks the true condition in the top 3
+  for all 34,657 patients at 100% `[TEST]` (the graph alone misses 27).
 - **Consequence:** the headline comparisons need the reduced levels.
 
 ### 10.8 Incomplete histories separate the models (EXP-017 → 019, validation)

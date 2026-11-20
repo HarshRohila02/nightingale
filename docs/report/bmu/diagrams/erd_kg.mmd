@@ -1,0 +1,33 @@
+erDiagram
+    CONDITION {
+        string id PK
+        string label
+        string category
+        bool is_must_not_miss
+        bool in_training_data
+        string ddxplus_label
+    }
+    CONCEPT_NODE {
+        string id PK
+        string type "Symptom or RiskFactor"
+        string label
+        map properties
+    }
+    KG_EDGE {
+        string condition_id FK
+        string concept_id FK
+        string relation "HAS_SYMPTOM or HAS_RISK_FACTOR"
+        string source "ddxplus, bodhi_s, hand_authored"
+        float weight
+        map properties "likelihood band, references"
+    }
+    CROSSWALK_ENTRY {
+        string concept_id PK
+        string label
+        string match "exact, close, broader, narrower, related, none"
+        string pattern "code, values, min_ordinal"
+        string note
+    }
+    CONDITION ||--o{ KG_EDGE : "is described by"
+    CONCEPT_NODE ||--o{ KG_EDGE : "is linked by"
+    CONCEPT_NODE ||--o{ CROSSWALK_ENTRY : "maps through"

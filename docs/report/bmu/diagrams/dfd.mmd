@@ -1,0 +1,25 @@
+flowchart TD
+    CLIN(["Clinician"])
+    P1["1. Capture case<br/>(dashboard or API)"]
+    P2["2. Translate concepts<br/>(crosswalk, case to tokens)"]
+    P3["3. Rank<br/>(model, graph, fusion)"]
+    P4["4. Flag<br/>(red-flag rules)"]
+    P5["5. Explain and check<br/>(reasons, guardrails, safety)"]
+    P6["6. Retrieve evidence<br/>(BM25 + dense)"]
+    D1[("D1 Knowledge graph<br/>NetworkX / Neo4j")]
+    D2[("D2 Model bundle<br/>JSON weights")]
+    D3[("D3 Retrieval bundle<br/>26,190 passages")]
+    D4[("D4 Synthea panel<br/>1,013 histories")]
+    CLIN -->|"findings, age, sex"| P1
+    P1 --> P2
+    P2 --> P3
+    P1 --> P4
+    D1 --> P3
+    D2 --> P3
+    P3 --> P5
+    P4 --> P5
+    D3 --> P6
+    P3 --> P6
+    P6 --> P5
+    D4 -.->|"shown beside the case,<br/>never an input"| CLIN
+    P5 -->|"ranked differential, red flags,<br/>evidence, questions, disclaimer"| CLIN

@@ -178,7 +178,7 @@ Table, 34,657 patients, 95% intervals:
 ### Slide 12 · Results (2): the pre-registered claims, as they stand
 | Claim | Verdict (test) |
 |---|---|
-| H1, H2: beats B1 at full history | **not supported** (every comparator misses 0 of 34,657) |
+| H1, H2: beats B1 at full history | **not supported** (every machine-learning comparator misses 0 of 34,657; the graph alone misses 27) |
 | H1-R, H2-R: beats B1 at 25% | **not supported** (level with the masked-trained models, behind them on MRR) |
 | H6: deep model beats the same-trained models | **not supported** (beats logistic regression, level with XGBoost) |
 | H4: removing the graph hurts must-not-miss recall | supported by the rule, **but hollow**: recall does not change (0.0000); the point estimate passes because flags lower top-1 |

@@ -78,7 +78,7 @@ labels allow (EXP-013).
    already 1.000, and MRR leaves 0.0008; McNemar's test between A0 and B1 on top-3 can show only a
    tie or a loss (EXP-004, R-16). This is a property of the test, not evidence about fusion either
    way. It is why amendment 3 added the reduced-evidence levels (§5.4). The test split confirmed
-   it: at 100% every comparator misses 0 of 34,657 patients in the top 3 (§6.15).
+   it: at 100% every machine-learning comparator misses 0 of 34,657 patients in the top 3 (§6.15); only the graph alone misses any (27).
 4. **What still separates systems at 100% is agreement with DDXPlus's differential.** B1-XGB
    reaches Precision@3 0.7639 of a possible 0.929 and Recall@5 0.5694 of 0.753, ahead of B1-LR with
    intervals that do not overlap. Any graph gain on these metrics carries the R-12 caveat, since `D`

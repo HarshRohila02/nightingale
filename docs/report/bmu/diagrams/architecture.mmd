@@ -1,0 +1,27 @@
+flowchart TD
+    CASE["Patient case<br/>age, sex, findings:<br/>present / denied / not asked"]
+    CASE --> XW["Crosswalk<br/>67 concepts to DDXPlus answers"]
+    CASE --> TOK["Case to model tokens<br/>one DDXPlus answer per concept"]
+    XW --> KG["Cardiac knowledge graph<br/>naive-Bayes posterior over 14 conditions"]
+    TOK --> ENC["Encoder: 691 columns<br/>with the asked channel"]
+    ENC --> ML["ML ranker: small transformer<br/>backup: logistic regression"]
+    ML --> FUSE["Fusion: logarithmic opinion pool<br/>alpha = 0.05 (EXP-006)"]
+    KG --> FUSE
+    CASE --> RF["Red-flag rules<br/>ADD-RS, Wells, Braunwald"]
+    FUSE --> CAND["Candidates with supporting,<br/>contradicting, missing findings"]
+    RF --> CAND
+    ML --> WHY["Model reasons<br/>(occlusion)"]
+    CAND --> NEXT["What to ask next<br/>cited tests and questions"]
+    CAND --> RAG["Evidence: BM25 + dense, RRF<br/>PMC open access, never ranks"]
+    CAND --> EXPL["Template explanation"]
+    WHY --> EXPL
+    EXPL --> GUARD["Guardrails v1<br/>every sentence traces to the result"]
+    RAG --> GUARD
+    GUARD --> SAFE["Safety check<br/>disclaimer, flags first, no treatment"]
+    NEXT --> SAFE
+    SAFE --> OUT["DiagnosisResult<br/>+ degraded_components"]
+    OUT --> API["FastAPI service"]
+    OUT --> UI["Streamlit dashboard<br/>live re-ranking"]
+    CAL["Calibrator<br/>fitted, not deployed"] -.-> CAND
+    LLM["Local LLM explainer<br/>tried, failed its checkpoint, off"] -.-> EXPL
+    PKG["Synthea patient history<br/>display only"] -.-> UI
