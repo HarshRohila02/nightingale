@@ -163,3 +163,48 @@ MRR = Mean Reciprocal Rank
 
 Files written and their word counts; any figure you could not find in the records; any contradiction between files;
 every `[[placeholder]]` you left and why; anything you want the lead to check.
+
+## 8. The short version (2026-11-22): a page budget
+
+The owner asked for a report of about **30 to 35 pages**. The full version (108 pages) is kept in `full/` (the
+four Markdown files) and as `docs/report/Nightingale-Project-Report-BMU-FULL.docx`. **The short version rewrites
+`abstract.md` and `part1.md` to `part3.md` in place, from the long text in `full/`.** The layout is tightened by
+the builder (line spacing 1.25, 9 pt table text); the writers' job is to cut words, tables and figures.
+
+**Condense, do not rewrite from scratch, and do not add anything new.** Every number, interval, verdict and caveat
+that survives must be copied exactly from the long file (or `docs/08`). You may drop whole paragraphs, merge
+sections' content, shorten tables to their key rows and cut examples. You may NOT drop the honesty content: the
+failed hypotheses, H4's hollowness, the closed world, the circularity, the synthetic data, the unjudged evidence,
+the failed language-model checkpoint, and the disclaimer. Keep every `##` heading and its number (the template
+needs them); use `###` subsections sparingly (none is fine). A section may be two sentences if the template's
+heading is satisfied (for example 4.3 or 4.9).
+
+| File | Prose budget (words, excluding tables, captions, code) | Tables | Figures |
+|---|---:|---:|---:|
+| `abstract.md` | 220 | none | none |
+| `part1.md` (Chapters 1 and 2) | 2,100 | at most 6 | none |
+| `part2.md` (Chapters 3 and 4) | 2,600 | at most 9 | at most 7 (list below) |
+| `part3.md` (Chapters 5 and 6, appendices) | 2,300 | at most 10 | 1 |
+
+A table has at most 8 rows and 6 columns where you can manage it; cut columns that repeat each other. One
+combined table is better than three. Appendices are one short table each (A licences, B the four golden cases,
+C tags and digests) and a three-line block for D (how to run); keep all four headings.
+
+**Figures** (use only these; add `{width=N}` after the image to set its width in centimetres, for example
+`![Figure 4.1. Caption.](img/architecture.png){width=10}`; the default is 15 cm, far too large for this budget):
+
+| File | Width (cm) | Writer |
+|---|---:|---|
+| `eda_class_balance.png` | 10 | B (Section 3.2) |
+| `eda_age_by_condition.png` | 10 | B (Section 3.2) |
+| `architecture.png` | 10 | B (Section 4.5, the flow chart) |
+| `dfd.png` | 11 | B (Section 4.5) |
+| `erd_kg.png` | 12 | B (Section 4.8) |
+| `erd_contracts.png` | 7 | B (Section 4.8) |
+| `dashboard_ranking.png` | 14 | B (Section 4.11; one screenshot only, a placeholder until the team supplies it) |
+| `exp023_reliability_b1_dl_prime_aug.png` | 10 | C (Section 5.4) |
+
+Do not use `usecase.png` (give the use cases as a four-row table in 4.5) or the other EXP-023 or EDA figures.
+Number figures and tables by chapter in order of appearance, as before. Cite only keys in `refs.md`; fewer
+citations is fine, because the bibliography prints only what is cited (aim for 20 to 25 references in all).
+Keep the `abbreviations` block, only for abbreviations you still use.

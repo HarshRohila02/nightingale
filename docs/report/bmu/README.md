@@ -48,7 +48,22 @@ the repository: render `diagrams/*.mmd` and save the PNG into `img/`).
   designation (title page, declarations, acknowledgement);
 - how any AI assistance is acknowledged (the team's open decision);
 - the plagiarism-check report (the last page; similarity must be under 10%);
-- the three dashboard screenshots (Figures 4.6 to 4.8): start the dashboard, load golden case GC-001, save
-  the screenshots as `img/dashboard_ranking.png`, `img/dashboard_why.png` and `img/dashboard_evidence.png`, and rebuild;
+- the dashboard screenshot (Figure 4.5 in the short version; Figures 4.6 to 4.8 in the full one): start the
+  dashboard, load golden case GC-001, save a screenshot as `img/dashboard_ranking.png` (and, for the full version,
+  `img/dashboard_why.png` and `img/dashboard_evidence.png`), and rebuild;
 - every `[citation needed: ...]` (a source the repository does not hold and that was not verified), and the other
   `[[...]]` placeholders that name a fact only the team knows.
+
+## Short and full versions (2026-11-22)
+
+The owner asked for a report of about 30 to 35 pages. **`Nightingale-Project-Report-BMU.docx` and `.pdf` are the
+short version: 37 pages in all (8 pages of front matter in roman numbers and 29 pages from Chapter 1 to the
+plagiarism-check page).** It was made by condensing the long text, not by changing the facts: every number,
+interval, verdict and caveat is the long version's. `Nightingale-Project-Report-BMU-FULL.docx` and `.pdf` (108
+pages) are the long version, and its Markdown is in `full/`.
+
+To rebuild the long version: copy `full/*.md` over `abstract.md` and `part1.md` to `part3.md` (or build with
+`scripts/build_bmu_report.py --src <folder holding the four files, refs.md and an img folder>`), and set
+`FIG_SCALE` and the spacing in the builder back to the earlier values if you want the old layout. The short
+version's layout is tighter: line spacing 1.15, 9 pt table text, 1.3 cm of top margin (the template's running
+headers are not used), and the figures sized by the `{width=N}` (centimetres) written after each image.

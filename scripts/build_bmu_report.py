@@ -34,7 +34,8 @@ PROJECT_TITLE = (
     "A Red-Flag-Aware Decision-Support Prototype for Acute Chest Pain"
 )
 TEXT_WIDTH = 9045  # twips, A4 less the margins below
-PAGE_MAR = dict(top=1700, right=860, bottom=1300, left=2015, header=720, footer=600)
+PAGE_MAR = dict(top=1300, right=860, bottom=1100, left=2015, header=720, footer=500)
+FIG_SCALE = 1.0  # figure widths are set in the Markdown, in centimetres
 TIMES = "Times New Roman"
 SANS = "Calibri"
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -46,6 +47,31 @@ NSDECL = (
     'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"'
 )
 
+OBVIOUS_ABBREVIATIONS = {
+    "A",
+    "B",
+    "G",
+    "H",
+    "O",
+    "R",
+    "CPU",
+    "GPU",
+    "JSON",
+    "SQL",
+    "REST",
+    "IEEE",
+    "NA",
+    "CI",
+    "AHA/ACC",
+    "SRS",
+    "NCBI",
+    "EXP",
+    "SKOS",
+    "LR",
+    "ML",
+    "DL",
+    "RQ",
+}
 PLACEHOLDER_NOTE = "highlighted text in [[brackets]] is for the team to fill in or resolve"
 
 
@@ -252,12 +278,13 @@ def heading1_chapter(num: int, title: str) -> str:
     )
 
 
-def heading1_plain(title: str) -> str:
+def heading1_plain(title: str, new_page: bool = True) -> str:
     return para(
         run(title, font=SANS, bold=True, size=17),
         style="Heading1",
-        page_break_before=True,
+        page_break_before=new_page,
         keep_next=True,
+        before=0 if new_page else 240,
     )
 
 
@@ -295,7 +322,7 @@ def list_block(items: list[tuple[int, str]], ordered: bool, ctx: Ctx) -> str:
     for level, text in items:
         ppr = f'<w:numPr><w:ilvl w:val="{min(level, 2)}"/><w:numId w:val="{num_id}"/></w:numPr>'
         out.append(
-            f'<w:p><w:pPr><w:pStyle w:val="ListParagraph"/>{ppr}<w:spacing w:after="60" w:line="360" w:lineRule="auto"/>'
+            f'<w:p><w:pPr><w:pStyle w:val="ListParagraph"/>{ppr}<w:spacing w:after="40" w:line="276" w:lineRule="auto"/>'
             f'<w:jc w:val="both"/></w:pPr>{inline(text, ctx, font=TIMES)}</w:p>'
         )
     return "".join(out)
@@ -307,7 +334,7 @@ def code_block(text: str) -> str:
     for i, line in enumerate(lines):
         if i:
             runs.append("<w:r><w:br/></w:r>")
-        runs.append(run(line, font="Consolas", size=8.5))
+        runs.append(run(line, font="Consolas", size=8))
     return para("".join(runs), style="CodeBlock", shade="F2F2F2", keep_lines=len(lines) <= 30)
 
 
@@ -353,7 +380,7 @@ def table_block(rows: list[list[str]], ctx: Ctx) -> str:
     n = max(len(r) for r in rows)
     rows = [r + [""] * (n - len(r)) for r in rows]
     widths = column_widths(rows, TEXT_WIDTH)
-    size = 9.5 if n >= 5 else 10
+    size = 9 if n >= 5 else 9.5
     grid = "".join(f'<w:gridCol w:w="{w}"/>' for w in widths)
     borders = "".join(
         f'<w:{side} w:val="single" w:sz="4" w:space="0" w:color="7F7F7F"/>'
@@ -374,7 +401,7 @@ def table_block(rows: list[list[str]], ctx: Ctx) -> str:
             content = inline(text, ctx, font=TIMES, size=size, bold=header)
             cells.append(
                 f'<w:tc><w:tcPr><w:tcW w:w="{widths[ci]}" w:type="dxa"/>{shade}</w:tcPr>'
-                f'<w:p><w:pPr><w:pStyle w:val="TableText"/>{"<w:keepNext/>" if ri < len(rows) - 1 and len(rows) <= 8 else ""}'
+                f'<w:p><w:pPr><w:pStyle w:val="TableText"/>{"<w:keepNext/>" if ri == 0 else ""}'
                 f"</w:pPr>{content}</w:p></w:tc>"
             )
         out.append(f"<w:tr>{trpr}{''.join(cells)}</w:tr>")
@@ -388,8 +415,8 @@ def caption_para(label: str, text: str, ctx: Ctx, kind: str, jc: str | None) -> 
     name = f"{kind}_{safe}"
     registry = ctx.figures if kind == "fig" else ctx.tables
     registry.append((label, re.sub(r"[`*^~]", "", text), name))
-    inner = run(label + ". ", font=TIMES, bold=True, size=11) + inline(
-        text, ctx, font=TIMES, size=11
+    inner = run(label + ". ", font=TIMES, bold=True, size=10) + inline(
+        text, ctx, font=TIMES, size=10
     )
     return para(
         bookmark(ctx, name, inner),
@@ -399,12 +426,12 @@ def caption_para(label: str, text: str, ctx: Ctx, kind: str, jc: str | None) -> 
     )
 
 
-def image_block(path: Path, ctx: Ctx, max_w_cm: float = 15.0, max_h_cm: float = 19.5) -> str | None:
+def image_block(path: Path, ctx: Ctx, max_w_cm: float = 15.0, max_h_cm: float = 14.0) -> str | None:
     if not path.exists():
         return None
     with Image.open(path) as im:
         w_px, h_px = im.size
-    w_cm = min(max_w_cm, 15.0)
+    w_cm = min(max_w_cm, 15.9)
     h_cm = w_cm * h_px / w_px
     if h_cm > max_h_cm:
         h_cm = max_h_cm
@@ -434,7 +461,7 @@ def image_block(path: Path, ctx: Ctx, max_w_cm: float = 15.0, max_h_cm: float = 
 # --------------------------------------------------------------------------------------------------
 LIST_RE = re.compile(r"^(\s*)([-*]|\d+\.)\s+(.*)$")
 TABLE_CAP = re.compile(r"^\*\*(Table \d+\.\d+)\.\*\*\s+(.*)$")
-FIG_RE = re.compile(r"^!\[(?P<alt>.*)\]\((?P<path>[^)]+)\)\s*$")
+FIG_RE = re.compile(r"^!\[(?P<alt>.*)\]\((?P<path>[^)]+)\)(?:\{width=(?P<w>[\d.]+)\})?\s*$")
 
 
 def render_markdown(md: str, ctx: Ctx, base: Path) -> list[str]:
@@ -495,7 +522,7 @@ def render_markdown(md: str, ctx: Ctx, base: Path) -> list[str]:
                 ctx.chapter += 1
                 out.append(heading1_chapter(ctx.chapter, text))
             elif level == 2 and text.startswith("Appendix"):
-                out.append(heading1_plain(text))
+                out.append(heading1_plain(text, new_page=text.startswith("Appendix A")))
             elif level == 2:
                 out.append(heading2(text, ctx))
             else:
@@ -509,7 +536,8 @@ def render_markdown(md: str, ctx: Ctx, base: Path) -> list[str]:
             cm = re.match(r"^(Figure \d+\.\d+)\.\s*(.*)$", alt)
             label, text = (cm.group(1), cm.group(2)) if cm else ("Figure", alt)
             img_path = (base / fm.group("path")).resolve()
-            block = image_block(img_path, ctx)
+            fig_w = (float(fm.group("w")) if fm.group("w") else 12.0) * FIG_SCALE
+            block = image_block(img_path, ctx, max_w_cm=fig_w)
             if block is None:
                 ctx.warnings.append(f"missing image: {fm.group('path')}")
                 block = para(
@@ -759,12 +787,12 @@ def lined_table(
     rule = '<w:top w:val="single" w:sz="6" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="6" w:space="0" w:color="000000"/>'
     out = [
         f'<w:tbl><w:tblPr><w:tblW w:w="{sum(widths)}" w:type="dxa"/><w:tblLayout w:type="fixed"/>'
-        '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/>'
+        '<w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/>'
         f'<w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>{grid}</w:tblGrid>'
     ]
     hdr = "".join(
         f'<w:tc><w:tcPr><w:tcW w:w="{widths[i]}" w:type="dxa"/><w:tcBorders>{rule}</w:tcBorders></w:tcPr>'
-        f'<w:p><w:pPr><w:pStyle w:val="TableText"/></w:pPr>{run(h, font=TIMES, bold=True, size=11)}</w:p></w:tc>'
+        f'<w:p><w:pPr><w:pStyle w:val="TableText"/></w:pPr>{run(h, font=TIMES, bold=True, size=10)}</w:p></w:tc>'
         for i, h in enumerate(header)
     )
     out.append(f"<w:tr><w:trPr><w:tblHeader/></w:trPr>{hdr}</w:tr>")
@@ -772,9 +800,9 @@ def lined_table(
         cells = []
         for i, text in enumerate(row):
             if pageref and i == len(row) - 1:
-                content = field_xml(f"PAGEREF {text} \\h", "0", font=TIMES, size=11)
+                content = field_xml(f"PAGEREF {text} \\h", "0", font=TIMES, size=10)
             else:
-                content = inline(text, ctx, font=TIMES, size=11)
+                content = inline(text, ctx, font=TIMES, size=10)
             cells.append(
                 f'<w:tc><w:tcPr><w:tcW w:w="{widths[i]}" w:type="dxa"/></w:tcPr>'
                 f'<w:p><w:pPr><w:pStyle w:val="TableText"/></w:pPr>{content}</w:p></w:tc>'
@@ -801,7 +829,10 @@ def list_pages(ctx: Ctx) -> list[str]:
         else para("")
     )
     out.append(front_title("LIST OF ABBREVIATIONS"))
-    abbr = sorted(ctx.abbreviations.items(), key=lambda kv: kv[0].lower())
+    abbr = sorted(
+        ((k, v) for k, v in ctx.abbreviations.items() if k not in OBVIOUS_ABBREVIATIONS),
+        key=lambda kv: kv[0].lower(),
+    )
     rows = [[k, v] for k, v in abbr]
     out.append(
         lined_table(rows, [2200, 6845], ["Abbreviation", "Full Form"], ctx, False)
@@ -817,14 +848,14 @@ def bibliography(ctx: Ctx) -> list[str]:
         text = ctx.refs[key]
         out.append(
             para(
-                run(f"[{n}]", font=TIMES, size=11)
+                run(f"[{n}]", font=TIMES, size=10)
                 + "<w:r><w:tab/></w:r>"
-                + inline(text, ctx, font=TIMES, size=11),
+                + inline(text, ctx, font=TIMES, size=10),
                 jc="both",
                 hanging=560,
                 ind_left=560,
-                after=100,
-                line=300,
+                after=40,
+                line=240,
                 tabs=[("left", 560, None)],
             )
         )
@@ -879,20 +910,20 @@ def styles_xml() -> str:
         + pstyle(
             "BodyText",
             "Body Text",
-            ppr='<w:spacing w:after="120" w:line="360" w:lineRule="auto"/><w:jc w:val="both"/>',
+            ppr='<w:spacing w:after="70" w:line="276" w:lineRule="auto"/><w:jc w:val="both"/>',
         )
         + pstyle(
             "Heading1",
             "heading 1",
             nxt="BodyText",
-            ppr='<w:keepNext/><w:spacing w:before="0" w:after="240" w:line="370" w:lineRule="exact"/><w:outlineLvl w:val="0"/>',
+            ppr='<w:keepNext/><w:spacing w:before="0" w:after="160" w:line="370" w:lineRule="exact"/><w:outlineLvl w:val="0"/>',
             rp='<w:b/><w:bCs/><w:sz w:val="34"/><w:szCs w:val="34"/>',
         )
         + pstyle(
             "Heading2",
             "heading 2",
             nxt="BodyText",
-            ppr='<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="780"/></w:tabs><w:spacing w:before="240" w:after="120"/>'
+            ppr='<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="780"/></w:tabs><w:spacing w:before="160" w:after="60"/>'
             '<w:ind w:left="780" w:hanging="780"/><w:outlineLvl w:val="1"/>',
             rp='<w:b/><w:bCs/><w:sz w:val="24"/><w:szCs w:val="24"/>',
         )
@@ -900,7 +931,7 @@ def styles_xml() -> str:
             "Heading3",
             "heading 3",
             nxt="BodyText",
-            ppr='<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="780"/></w:tabs><w:spacing w:before="180" w:after="100"/>'
+            ppr='<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="780"/></w:tabs><w:spacing w:before="100" w:after="50"/>'
             '<w:ind w:left="780" w:hanging="780"/><w:outlineLvl w:val="2"/>',
             rp='<w:b/><w:bCs/><w:i/><w:iCs/><w:sz w:val="24"/><w:szCs w:val="24"/>',
         )
@@ -908,25 +939,25 @@ def styles_xml() -> str:
         + pstyle(
             "Caption",
             "caption",
-            ppr='<w:keepLines/><w:spacing w:before="80" w:after="200" w:line="260" w:lineRule="auto"/>',
+            ppr='<w:keepLines/><w:spacing w:before="60" w:after="120" w:line="250" w:lineRule="auto"/>',
             rp='<w:sz w:val="22"/><w:szCs w:val="22"/>',
         )
         + pstyle(
             "TableText",
             "Table Text",
-            ppr='<w:spacing w:before="0" w:after="0" w:line="250" w:lineRule="auto"/>',
-            rp='<w:sz w:val="20"/><w:szCs w:val="20"/>',
+            ppr='<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>',
+            rp='<w:sz w:val="18"/><w:szCs w:val="18"/>',
         )
         + pstyle(
             "CodeBlock",
             "Code Block",
-            ppr='<w:spacing w:before="60" w:after="160" w:line="240" w:lineRule="auto"/><w:ind w:left="120" w:right="120"/>',
-            rp='<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/><w:sz w:val="17"/><w:szCs w:val="17"/>',
+            ppr='<w:spacing w:before="40" w:after="100" w:line="228" w:lineRule="auto"/><w:ind w:left="120" w:right="120"/>',
+            rp='<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/><w:sz w:val="16"/><w:szCs w:val="16"/>',
         )
         + pstyle(
             "TOC1",
             "toc 1",
-            ppr=f'<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="{TEXT_WIDTH}"/></w:tabs><w:spacing w:before="120" w:after="40"/>',
+            ppr=f'<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="{TEXT_WIDTH}"/></w:tabs><w:spacing w:before="60" w:after="10"/>',
             rp="<w:b/><w:bCs/>",
             qf=False,
         )
